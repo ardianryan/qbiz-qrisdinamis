@@ -8,6 +8,7 @@ import { TransactionsPage } from './src/pages/Transactions.tsx';
 import { DeveloperPage } from './src/pages/Developer.tsx';
 import { UsersPage } from './src/pages/Users.tsx';
 import { CheckoutPage } from './src/pages/Checkout.tsx';
+import { DashboardPage } from './src/pages/Dashboard.tsx';
 import QRCode from 'npm:qrcode';
 import { renderToString } from 'react-dom/server';
 import { db } from './db/db.ts';
@@ -237,16 +238,137 @@ app.get('/logout', (c) => {
 // HTML PAGES ROUTING (With RBAC Row-Level Protection)
 // =========================================================================
 
-// Redirect root index based on role
+// Redirect root index to dashboard
 app.get('/', (c) => {
   const user = (c as any).get('user') as UserSession | undefined;
   if (user) {
-    if (user.role === 'MERCHANT' || user.role === 'MERCHANT_EMPLOYEE') {
-      return c.redirect('/transactions');
-    }
-    return c.redirect('/merchants');
+    return c.redirect('/dashboard');
   }
   return c.redirect('/login');
+});
+
+// PAGE 0: Dashboard (SUPER_ADMIN, ADMIN, REGIONAL_ADMIN, MERCHANT, MERCHANT_EMPLOYEE)
+app.get('/dashboard', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT', 'MERCHANT_EMPLOYEE']), async (c) => {
+  const user = (c as any).get('user') as UserSession;
+
+  // Let's filter queries based on role (row-level security)
+  let allowedMerchantIds: string[] | null = null;
+  if (user.role === 'REGIONAL_ADMIN') {
+    const mappings = await db.select({ id: regionalAdminMerchants.merchantId })
+      .from(regionalAdminMerchants)
+      .where(eq(regionalAdminMerchants.userId, user.id));
+    allowedMerchantIds = mappings.map(m => m.id).filter(Boolean) as string[];
+    // If regional admin has no mapped merchants, they have 0 allowed
+    if (allowedMerchantIds.length === 0) {
+      allowedMerchantIds = ['none'];
+    }
+  } else if (user.role === 'MERCHANT' || user.role === 'MERCHANT_EMPLOYEE') {
+    allowedMerchantIds = [user.merchantId || 'none'];
+  }
+
+  // 1. Fetch Invoices based on filter
+  let filterConditions: any = null;
+  if (allowedMerchantIds) {
+    filterConditions = inArray(invoices.merchantId, allowedMerchantIds);
+  }
+
+  let dbInvoices: any[] = [];
+  try {
+    if (filterConditions) {
+      dbInvoices = await db.select().from(invoices).where(filterConditions);
+    } else {
+      dbInvoices = await db.select().from(invoices);
+    }
+  } catch (_e) {}
+
+  // 2. Fetch Active Scrapers (Merchants with ACTIVE status)
+  let activeScrapers = 0;
+  try {
+    if (allowedMerchantIds) {
+      const activeMerchantsList = await db.select()
+        .from(merchants)
+        .where(and(
+          eq(merchants.status, 'ACTIVE'),
+          inArray(merchants.id, allowedMerchantIds)
+        ));
+      activeScrapers = activeMerchantsList.length;
+    } else {
+      const activeMerchantsList = await db.select()
+        .from(merchants)
+        .where(eq(merchants.status, 'ACTIVE'));
+      activeScrapers = activeMerchantsList.length;
+    }
+  } catch (_e) {}
+
+  // Calculate stats
+  let totalVolume = 0;
+  let totalInvoices = dbInvoices.length;
+  let paidInvoices = 0;
+  let pendingInvoices = 0;
+  let expiredInvoices = 0;
+
+  for (const inv of dbInvoices) {
+    if (inv.status === 'PAID') {
+      totalVolume += inv.totalAmount;
+      paidInvoices++;
+    } else if (inv.status === 'PENDING') {
+      pendingInvoices++;
+    } else if (inv.status === 'EXPIRED') {
+      expiredInvoices++;
+    }
+  }
+
+  const successRate = totalInvoices > 0 ? Math.round((paidInvoices / totalInvoices) * 100) : 0;
+
+  // 3. Get Recent Activity (5 latest invoices with merchant names mapped)
+  let recentInvoices: any[] = [];
+  try {
+    if (filterConditions) {
+      recentInvoices = await db.select()
+        .from(invoices)
+        .where(filterConditions)
+        .orderBy(desc(invoices.createdAt))
+        .limit(5);
+    } else {
+      recentInvoices = await db.select()
+        .from(invoices)
+        .orderBy(desc(invoices.createdAt))
+        .limit(5);
+    }
+  } catch (_e) {}
+
+  // Map merchant names
+  let recentActivities: any[] = [];
+  try {
+    const merchantNamesList = await db.select({ id: merchants.id, name: merchants.name }).from(merchants);
+    const merchantMap = new Map(merchantNamesList.map(m => [m.id, m.name]));
+
+    recentActivities = recentInvoices.map(inv => ({
+      id: inv.id,
+      merchantName: merchantMap.get(inv.merchantId || '') || 'Unknown Store',
+      orderId: inv.orderId,
+      totalAmount: inv.totalAmount,
+      status: inv.status,
+      createdAt: inv.createdAt.toLocaleString('id-ID')
+    }));
+  } catch (_e) {}
+
+  (c as any).set('title', 'Dashboard Overview');
+  return c.render(
+    <DashboardPage
+      stats={{
+        totalVolume,
+        totalInvoices,
+        paidInvoices,
+        pendingInvoices,
+        expiredInvoices,
+        activeScrapers,
+        successRate
+      }}
+      recentActivities={recentActivities}
+      currentUser={user}
+    />
+  );
 });
 
 // PAGE 1: Multi-Merchant Manager (SUPER_ADMIN, ADMIN, REGIONAL_ADMIN)
