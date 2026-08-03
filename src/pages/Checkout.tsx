@@ -102,7 +102,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               .checkout-card {
                 border-radius: 24px;
                 overflow: hidden;
-                max-width: 900px !important;
+                max-width: 1040px !important;
                 min-height: 0 !important;
                 height: auto !important;
               }
