@@ -20,6 +20,11 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
   const formattedBase = invoice.baseAmount.toLocaleString('id-ID');
   const formattedTotal = invoice.totalAmount.toLocaleString('id-ID');
 
+  const diffMs = new Date(invoice.expiredAt).getTime() - Date.now();
+  const diffMins = Math.max(0, Math.floor(diffMs / 1000 / 60));
+  const diffSecs = Math.max(0, Math.floor((diffMs / 1000) % 60));
+  const timerPlaceholder = `${String(diffMins).padStart(2, '0')}:${String(diffSecs).padStart(2, '0')}`;
+
   return (
     <html lang="id">
       <head>
@@ -61,12 +66,20 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
             {/* Price Details */}
             <div className="p-6 border-b border-slate-100 dark:border-zinc-800 text-center bg-slate-50/50 dark:bg-zinc-900/30">
               <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Pembayaran</span>
-              <div className="text-3xl font-extrabold text-slate-900 dark:text-zinc-50 mt-1 font-mono-qbiz">
-                Rp {formattedBase}<span className="text-sky-600 dark:text-sky-400">.{invoice.uniqueCode.toString().padStart(3, '0')}</span>
-              </div>
-              <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-2 leading-relaxed px-4">
-                PENTING: Mohon bayar sesuai nominal di atas. Perbedaan 3 digit terakhir (**.{invoice.uniqueCode.toString().padStart(3, '0')}**) digunakan untuk verifikasi pembayaran instan Anda.
-              </p>
+              {(() => {
+                const thousandsPart = Math.floor(invoice.totalAmount / 1000).toLocaleString('id-ID');
+                const unitsPart = (invoice.totalAmount % 1000).toString().padStart(3, '0');
+                return (
+                  <>
+                    <div className="text-3xl font-extrabold text-slate-900 dark:text-zinc-50 mt-1 font-mono-qbiz">
+                      Rp {thousandsPart}<span className="text-sky-600 dark:text-sky-400">.{unitsPart}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-2 leading-relaxed px-4">
+                      PENTING: Mohon bayar sesuai nominal di atas. Perbedaan 3 digit terakhir (**{unitsPart}**) digunakan untuk verifikasi pembayaran instan Anda.
+                    </p>
+                  </>
+                );
+              })()}
             </div>
 
             {/* QR Code section */}
@@ -103,8 +116,20 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               <div className="mt-5 w-full bg-slate-50 dark:bg-zinc-900/50 rounded-xl p-3 border border-slate-100 dark:border-zinc-800 text-center">
                 <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider block">Sisa Waktu Pembayaran</span>
                 <div id="countdown-timer" className="text-xl font-bold font-mono-qbiz text-slate-700 dark:text-zinc-200 mt-0.5">
-                  15:00
+                  {timerPlaceholder}
                 </div>
+              </div>
+
+              {/* Check status button */}
+              <div className="mt-3 w-full">
+                <button 
+                  id="btn-check-status"
+                  type="button"
+                  className="w-full h-10 inline-flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white font-medium text-xs rounded-xl transition-all active:scale-[0.98] shadow-sm cursor-pointer"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                  Periksa Status Pembayaran
+                </button>
               </div>
 
             </div>
@@ -184,6 +209,52 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
 
               const statusInterval = setInterval(checkPaymentStatus, 3000);
               checkPaymentStatus(); // Initial call
+
+              // --- 3. MANUAL STATUS CHECK ---
+              const btnCheckStatus = document.getElementById('btn-check-status');
+              if (btnCheckStatus) {
+                btnCheckStatus.addEventListener('click', function() {
+                  const originalText = this.innerHTML;
+                  this.disabled = true;
+                  this.innerHTML = \`
+                    <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H17.75"></path></svg>
+                    Memeriksa...
+                  \`;
+
+                  fetch('/api/v1/invoices/' + invoiceId + '/status')
+                    .then(res => res.json())
+                    .then(data => {
+                      setTimeout(() => {
+                        this.disabled = false;
+                        this.innerHTML = originalText;
+                        
+                        if (data.status === 'PAID') {
+                          clearInterval(timerInterval);
+                          clearInterval(statusInterval);
+                          if (successOverlay) successOverlay.classList.remove('hidden');
+                          if (data.callbackUrl) {
+                            setTimeout(() => {
+                              window.location.href = data.callbackUrl;
+                            }, 3000);
+                          }
+                        } else if (data.status === 'EXPIRED') {
+                          clearInterval(timerInterval);
+                          clearInterval(statusInterval);
+                          if (expiredOverlay) expiredOverlay.classList.remove('hidden');
+                        } else {
+                          alert('Pembayaran belum masuk. Mohon tunggu atau coba beberapa saat lagi.');
+                        }
+                      }, 1000); // 1-second deliberate delay for loading state
+                    })
+                    .catch(err => {
+                      setTimeout(() => {
+                        this.disabled = false;
+                        this.innerHTML = originalText;
+                        alert('Gagal memeriksa status pembayaran. Koneksi bermasalah.');
+                      }, 1000);
+                    });
+                });
+              }
             })();
           `
         }} />

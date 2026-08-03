@@ -218,6 +218,12 @@ print(response.json())`
             <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
               Select runtime to copy template scripts.
             </p>
+            <div className="mt-3 bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800 rounded-lg p-2.5 flex items-start gap-2">
+              <span className="text-[14px]">💡</span>
+              <span className="text-[10px] text-slate-600 dark:text-zinc-400 leading-relaxed">
+                <strong>Official SDKs available!</strong> Prebuilt client clients for <strong>PHP</strong> (<a href="file:///Users/ardianryan/Documents/qrispaymti/sdk/qbiz.php" className="text-sky-600 hover:underline font-mono">sdk/qbiz.php</a>) and <strong>Node.js</strong> (<a href="file:///Users/ardianryan/Documents/qrispaymti/sdk/qbiz-node.js" className="text-sky-600 hover:underline font-mono">sdk/qbiz-node.js</a>) are ready in the <code>sdk/</code> folder!
+              </span>
+            </div>
           </div>
 
           {/* Tab Switcher Headers */}
@@ -266,9 +272,10 @@ print(response.json())`
               </pre>
             </div>
             
-            <div className="border-t border-zinc-900 pt-4 mt-4">
-              <span className="text-[10px] text-zinc-500 uppercase tracking-widest block font-mono">POST /api/v1/invoices {"->"} Expected response:</span>
-              <pre className="text-[10.5px] text-emerald-400 font-mono mt-1 overflow-x-auto whitespace-pre">
+            <div className="border-t border-zinc-900 pt-4 mt-4 space-y-4">
+              <div>
+                <span className="text-[10px] text-zinc-500 uppercase tracking-widest block font-mono">POST /api/v1/invoices {"->"} Expected response:</span>
+                <pre className="text-[10.5px] text-emerald-400 font-mono mt-1 overflow-x-auto whitespace-pre">
 {`{
   "success": true,
   "invoice": {
@@ -277,10 +284,21 @@ print(response.json())`
     "base_amount": 50000,
     "unique_code": 123,
     "total_amount": 50123,
-    "status": "PENDING"
+    "status": "PENDING",
+    "qris_payload": "00020101021238590014...",
+    "checkout_url": "http://localhost:8000/pay/inv_10923840"
   }
 }`}
-              </pre>
+                </pre>
+              </div>
+
+              <div className="border-t border-zinc-800/60 pt-3">
+                <span className="text-[10px] text-zinc-400 uppercase tracking-wider block font-bold mb-1.5">Integration Methods:</span>
+                <ul className="list-disc pl-4 text-[10.5px] text-zinc-400 space-y-1">
+                  <li><strong>Method A (Direct QRIS)</strong>: Take the raw <code>qris_payload</code> string response and generate the QR code directly inside your own application page.</li>
+                  <li><strong>Method B (Redirect Checkout)</strong>: Redirect the buyer's browser to the hosted <code>checkout_url</code> page to complete their payment.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </section>

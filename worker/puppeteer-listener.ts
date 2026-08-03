@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 import { db } from '../db/db.ts';
-import { merchants, invoices, mutations } from '../db/schema.ts';
+import { merchants, invoices, mutations, users } from '../db/schema.ts';
 import { eq, and, sql } from 'drizzle-orm';
 
 // Mutex or tracker for running listeners
@@ -57,12 +57,23 @@ export async function startMerchantListener(merchantId: string) {
 
     page.on('response', async (response) => {
       const url = response.url();
-      if (url.includes('/v1/transactions') && response.status() === 200) {
+      const isOldTransactions = url.includes('/v1/transactions');
+      const isNewTransactions = url.includes('merchant-analytics/v2/merchants/transactions');
+      
+      if ((isOldTransactions || isNewTransactions) && response.status() === 200) {
         try {
           const payload = await response.json();
-          console.log(`[Worker ${merchantId}] Transaction data intercepted:`, payload);
-          if (payload && payload.data) {
-            await processIncomingMutations(merchantId, payload.data);
+          console.log(`[Worker ${merchantId}] Transaction data intercepted from ${isNewTransactions ? "new" : "old"} API.`);
+          
+          let list: any[] = [];
+          if (isNewTransactions && payload && payload.transactions) {
+            list = payload.transactions;
+          } else if (isOldTransactions && payload && payload.data) {
+            list = payload.data;
+          }
+
+          if (list.length > 0) {
+            await processIncomingMutations(merchantId, list);
           }
         } catch (e) {
           console.error(`[Worker ${merchantId}] Error parsing response JSON:`, e);
@@ -89,6 +100,13 @@ export async function startMerchantListener(merchantId: string) {
       activeListeners.delete(merchantId);
       return;
     }
+
+    // Navigating straight to the transactions list page
+    console.log(`[Worker ${merchantId}] Navigating to transactions list page...`);
+    await page.goto('https://portal.gofoodmerchant.co.id/transactions?data_range=this_week', {
+      waitUntil: 'networkidle2',
+      timeout: 30000
+    });
 
     // Update status to ACTIVE in database
     await db.update(merchants)
@@ -256,11 +274,18 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
  */
 async function processIncomingMutations(merchantId: string, transactionList: any[]) {
   for (const tx of transactionList) {
-    // Standard GoBiz transaction parameters
-    // tx.id, tx.amount, tx.created_at, etc.
     const txId = tx.id || `mut_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const txAmount = Math.round(Number(tx.amount || 0));
-    const txTime = tx.created_at || new Date().toISOString();
+    
+    // Support both gross_amount (new API, divided by 100) and amount (old API)
+    let txAmount = 0;
+    if (tx.gross_amount !== undefined) {
+      txAmount = Math.round(Number(tx.gross_amount) / 100);
+    } else {
+      txAmount = Math.round(Number(tx.amount || 0));
+    }
+
+    // Support both transaction_time (new API) and created_at (old API)
+    const txTime = tx.transaction_time || tx.created_at || new Date().toISOString();
 
     // Check if mutation already logged
     const existing = await db.select().from(mutations).where(eq(mutations.id, txId));
@@ -318,6 +343,32 @@ async function processIncomingMutations(merchantId: string, transactionList: any
 async function dispatchWebhook(invoice: any, txTime: string, retryCount = 0) {
   console.log(`[Webhook] Dispatching callback for invoice ${invoice.id} (Attempt ${retryCount + 1})...`);
 
+  // Resolve target url and signing secret dynamically based on user creator settings
+  let secretKey = Deno.env.get("WEBHOOK_SECRET") || "qbiz_secret_key_hmac_2026";
+  let targetUrl = invoice.callbackUrl;
+
+  if (invoice.userId) {
+    try {
+      const userList = await db.select().from(users).where(eq(users.id, invoice.userId));
+      if (userList.length > 0) {
+        const userRecord = userList[0];
+        if (userRecord.webhookSecret) {
+          secretKey = userRecord.webhookSecret;
+        }
+        if (!targetUrl && userRecord.webhookUrl) {
+          targetUrl = userRecord.webhookUrl;
+        }
+      }
+    } catch (err: any) {
+      console.error(`[Webhook] Failed querying creator user for invoice ${invoice.id}:`, err.message);
+    }
+  }
+
+  if (!targetUrl) {
+    console.error(`[Webhook] Aborted dispatching invoice ${invoice.id}: no callback url or default user webhook url configured.`);
+    return;
+  }
+
   const payload = {
     event: 'payment.success',
     invoice_id: invoice.id,
@@ -328,7 +379,6 @@ async function dispatchWebhook(invoice: any, txTime: string, retryCount = 0) {
 
   // Build HMAC SHA256 Signature
   const encoder = new TextEncoder();
-  const secretKey = Deno.env.get("WEBHOOK_SECRET") || "qbiz_secret_key_hmac_2026";
   const keyBuf = encoder.encode(secretKey);
   const dataBuf = encoder.encode(JSON.stringify(payload));
   
@@ -349,12 +399,16 @@ async function dispatchWebhook(invoice: any, txTime: string, retryCount = 0) {
     console.error("[Webhook] Signature generation failed:", e);
   }
 
+  const baseUrl = Deno.env.get("BASE_URL") || "http://localhost:8000";
+
   try {
-    const response = await fetch(invoice.callbackUrl, {
+    const response = await fetch(targetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-QBiz-Signature': signature
+        'X-QBiz-Signature': signature,
+        'Referer': baseUrl,
+        'Origin': baseUrl
       },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(10000) // 10s timeout

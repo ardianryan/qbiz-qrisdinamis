@@ -1,7 +1,6 @@
-/**
- * Utility for parsing and manipulating EMVCo QRIS payloads
- * to convert Static QRIS to Dynamic QRIS.
- */
+import jsQR from "npm:jsqr";
+import { Jimp } from "npm:jimp";
+
 
 export function parseEMVCo(qrString: string): Map<string, string> {
   const tags = new Map<string, string>();
@@ -80,4 +79,16 @@ export function generateDynamicQRIS(staticPayload: string, amount: number, invoi
   // 6. Calculate CRC-16-CCITT and append it
   const crc = computeCRC16(finalPreCrc);
   return finalPreCrc + crc;
+}
+
+export async function decodeQRISFromImage(filePath: string): Promise<string | null> {
+  try {
+    const image = await Jimp.read(filePath);
+    const imageData = new Uint8ClampedArray(image.bitmap.data.buffer);
+    const code = (jsQR as any)(imageData, image.bitmap.width, image.bitmap.height);
+    return code ? code.data : null;
+  } catch (err) {
+    console.error("[QRIS Decoder] Error decoding QR code:", err);
+    return null;
+  }
 }

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/deno';
-import { setSignedCookie, deleteCookie } from 'hono/cookie';
+import { setSignedCookie, deleteCookie, getSignedCookie } from 'hono/cookie';
 import { renderer } from './src/renderer.tsx';
 import { LoginPage } from './src/pages/Login.tsx';
 import { MerchantsPage } from './src/pages/Merchants.tsx';
@@ -15,7 +15,9 @@ import { merchants, invoices, mutations, users, regionalAdminMerchants } from '.
 import { eq, desc, inArray, and, sql } from 'drizzle-orm';
 import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener } from './worker/puppeteer-listener.ts';
 import { authMiddleware, requireRole, hashPassword, COOKIE_SECRET, UserSession } from './src/middleware/auth.ts';
-import { generateDynamicQRIS } from './src/utils/qris.ts';
+import { generateDynamicQRIS, decodeQRISFromImage } from './src/utils/qris.ts';
+
+const DEFAULT_MOCK_STATIC_QRIS = "00020101021138590014ID.CO.QRIS.WWW0215ID10200845344330303UMI51440014ID.CO.QRIS.WWW0215ID10200845344330303UMI5204581253033605802ID5920Resto Ayam Bakar Cbk6009Mojokerto6105613006304D116";
 
 const app = new Hono();
 
@@ -35,7 +37,10 @@ async function seedDefaultUsers() {
           email: 'superadmin@qbiz.com',
           password: await hashPassword('SuperQBiz2026'),
           role: 'SUPER_ADMIN' as const,
-          merchantId: null
+          merchantId: null,
+          apiKey: 'qbiz_api_key_live_2026_w8a2b3d9x7c',
+          webhookUrl: 'https://webhook.site/df038cb2-2c6e-4ad3-9ef4-8c813a3028d0',
+          webhookSecret: 'my_secret_signing_hmac_key_2026'
         },
         {
           id: 'usr_admin',
@@ -43,7 +48,10 @@ async function seedDefaultUsers() {
           email: 'admin@qbiz.com',
           password: await hashPassword('AdminQBiz2026'),
           role: 'ADMIN' as const,
-          merchantId: null
+          merchantId: null,
+          apiKey: 'qbiz_api_key_live_2026_admin',
+          webhookUrl: null,
+          webhookSecret: null
         },
         {
           id: 'usr_regional',
@@ -51,7 +59,10 @@ async function seedDefaultUsers() {
           email: 'regional@qbiz.com',
           password: await hashPassword('RegionalQBiz2026'),
           role: 'REGIONAL_ADMIN' as const,
-          merchantId: null
+          merchantId: null,
+          apiKey: 'qbiz_api_key_live_2026_regional',
+          webhookUrl: null,
+          webhookSecret: null
         },
         {
           id: 'usr_merchant',
@@ -59,7 +70,10 @@ async function seedDefaultUsers() {
           email: 'merchant@qbiz.com',
           password: await hashPassword('MerchantQBiz2026'),
           role: 'MERCHANT' as const,
-          merchantId: 'mrc_toko_1' // Associated with mock merchant
+          merchantId: 'mrc_toko_1', // Associated with mock merchant
+          apiKey: 'qbiz_api_key_live_2026_merchant',
+          webhookUrl: null,
+          webhookSecret: null
         },
         {
           id: 'usr_karyawan',
@@ -67,7 +81,10 @@ async function seedDefaultUsers() {
           email: 'karyawan@qbiz.com',
           password: await hashPassword('EmployeeQBiz2026'),
           role: 'MERCHANT_EMPLOYEE' as const,
-          merchantId: 'mrc_toko_1'
+          merchantId: 'mrc_toko_1',
+          apiKey: 'qbiz_api_key_live_2026_karyawan',
+          webhookUrl: null,
+          webhookSecret: null
         }
       ];
 
@@ -110,6 +127,23 @@ async function seedDefaultUsers() {
   }
 }
 await seedDefaultUsers();
+
+// Auto-start active merchant listeners on application boot
+async function bootActiveListeners() {
+  try {
+    const activeMerchants = await db.select().from(merchants).where(eq(merchants.status, 'ACTIVE'));
+    console.log(`[Boot] Found ${activeMerchants.length} active merchant listeners to start.`);
+    for (const m of activeMerchants) {
+      // Async start in background
+      startMerchantListener(m.id).catch(err => {
+        console.error(`[Boot] Failed to start listener for merchant ${m.id}:`, err);
+      });
+    }
+  } catch (err: any) {
+    console.error(`[Boot] Failed to query active merchants:`, err.message);
+  }
+}
+await bootActiveListeners();
 
 // =========================================================================
 // MIDDLEWARES & STATIC ROUTES
@@ -249,6 +283,7 @@ app.get('/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN']), a
     name: m.name,
     phoneNumber: m.phoneNumber,
     qrisImageUrl: m.qrisImageUrl,
+    qrisPayload: m.qrisPayload || '',
     status: m.status as any,
     todayTransactions: (m as any).todayTransactions || 0,
     lastSync: (m as any).lastSync || (m.createdAt ? m.createdAt.toISOString().slice(0, 19).replace('T', ' ') : 'N/A')
@@ -340,15 +375,18 @@ app.get('/transactions', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 
   );
 });
 
-// PAGE 3: Developer Hub (SUPER_ADMIN, ADMIN)
-app.get('/developer', requireRole(['SUPER_ADMIN', 'ADMIN']), (c) => {
+// PAGE 3: Developer Hub (All authenticated users)
+app.get('/developer', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT']), async (c) => {
   const user = (c as any).get('user') as UserSession;
+  const userList = await db.select().from(users).where(eq(users.id, user.id));
+  const dbUser = userList[0] || { apiKey: '', webhookUrl: '', webhookSecret: '' };
+
   (c as any).set('title', 'Developer Hub');
   return c.render(
     <DeveloperPage 
-      apiKey="qbiz_api_key_live_2026_w8a2b3d9x7c" 
-      webhookUrl="https://webhook.site/df038cb2-2c6e-4ad3-9ef4-8c813a3028d0" 
-      webhookSecret="my_secret_signing_hmac_key_2026" 
+      apiKey={dbUser.apiKey || ''} 
+      webhookUrl={dbUser.webhookUrl || ''} 
+      webhookSecret={dbUser.webhookSecret || ''} 
       currentUser={user}
     />
   );
@@ -634,6 +672,69 @@ app.delete('/api/v1/merchants/:id', requireRole(['SUPER_ADMIN', 'ADMIN']), async
   }
 });
 
+// API: Edit Merchant
+app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.parseBody();
+  const name = body.name as string;
+  const phoneNumber = body.phoneNumber as string;
+  const qrisImage = body.qrisImage as File;
+  const qrisPayload = (body.qrisPayload as string) || '';
+
+  try {
+    // 1. Fetch current merchant data
+    const mList = await db.select().from(merchants).where(eq(merchants.id, id));
+    if (mList.length === 0) {
+      return c.text('Merchant not found', 404);
+    }
+    const currentMerchant = mList[0];
+
+    let fileUrl = currentMerchant.qrisImageUrl;
+    let finalQrisPayload = qrisPayload || currentMerchant.qrisPayload;
+
+    // 2. Handle new QRIS image upload if file is provided
+    if (qrisImage && qrisImage.size > 0) {
+      const tempDir = './static/uploads';
+      await Deno.mkdir(tempDir, { recursive: true });
+      const ext = qrisImage.name.split('.').pop() || 'png';
+      const filePath = `${tempDir}/${id}.${ext}`;
+      fileUrl = `/static/uploads/${id}.${ext}`;
+
+      const arrayBuffer = await qrisImage.arrayBuffer();
+      await Deno.writeFile(filePath, new Uint8Array(arrayBuffer));
+
+      // Decode QRIS payload from the new image automatically if qrisPayload wasn't typed manually
+      if (!qrisPayload) {
+        try {
+          const decoded = await decodeQRISFromImage(filePath);
+          if (decoded) {
+            finalQrisPayload = decoded;
+            console.log(`[QRIS Decoder] Successfully extracted QRIS payload from edited image: ${decoded}`);
+          }
+        } catch (err: any) {
+          console.error(`[QRIS Decoder] Failed decoding edited image:`, err);
+        }
+      }
+    } else if (qrisPayload && qrisPayload !== currentMerchant.qrisPayload) {
+      // If no new image was uploaded but the text payload textarea was changed
+      finalQrisPayload = qrisPayload;
+    }
+
+    // 3. Update merchant row
+    await db.update(merchants).set({
+      name,
+      phoneNumber,
+      qrisImageUrl: fileUrl,
+      qrisPayload: finalQrisPayload
+    }).where(eq(merchants.id, id));
+
+  } catch (err: any) {
+    console.error(`[API] Edit merchant failed for ${id}:`, err);
+  }
+
+  return c.redirect('/merchants');
+});
+
 // API: Add Merchant
 app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
   const body = await c.req.parseBody();
@@ -653,13 +754,26 @@ app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) =
   const arrayBuffer = await qrisImage.arrayBuffer();
   await Deno.writeFile(filePath, new Uint8Array(arrayBuffer));
 
+  let finalQrisPayload = qrisPayload;
+  if (!finalQrisPayload) {
+    try {
+      const decoded = await decodeQRISFromImage(filePath);
+      if (decoded) {
+        finalQrisPayload = decoded;
+        console.log(`[QRIS Decoder] Successfully extracted QRIS payload from image: ${decoded}`);
+      }
+    } catch (err: any) {
+      console.error(`[QRIS Decoder] Failed decoding uploaded image:`, err);
+    }
+  }
+
   try {
     await db.insert(merchants).values({
       id: newId,
       name,
       phoneNumber,
       qrisImageUrl: fileUrl,
-      qrisPayload: qrisPayload,
+      qrisPayload: finalQrisPayload,
       sessionFilePath: `sessions/${newId}.json`,
       status: 'NEEDS_OTP'
     });
@@ -674,8 +788,21 @@ app.post('/api/v1/transactions/:id/resend-webhook', requireRole(['SUPER_ADMIN', 
   return c.json({ success: true });
 });
 
+// API: Clear all transaction invoices and mutations (SUPER_ADMIN ONLY)
+app.delete('/api/v1/transactions/clear-all', requireRole(['SUPER_ADMIN']), async (c) => {
+  try {
+    await db.delete(invoices);
+    await db.delete(mutations);
+    console.log('[API] Super Admin cleared all transaction history (invoices and mutations).');
+    return c.json({ success: true });
+  } catch (err: any) {
+    console.error('[API] Clear all transactions failed:', err);
+    return c.json({ success: false, error: err.message });
+  }
+});
+
 // API: Test Webhook dispatch trigger
-app.post('/api/v1/developer/test-webhook', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
+app.post('/api/v1/developer/test-webhook', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT']), async (c) => {
   const body = await c.req.json();
   const url = body.url;
   
@@ -693,16 +820,80 @@ app.post('/api/v1/developer/test-webhook', requireRole(['SUPER_ADMIN', 'ADMIN'])
   }
 });
 
+// API: Save Webhook Settings
+app.post('/api/v1/developer/webhook', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT']), async (c) => {
+  const user = (c as any).get('user') as UserSession;
+  const body = await c.req.parseBody();
+  const webhookUrl = body.webhookUrl as string;
+  const webhookSecret = body.webhookSecret as string;
+  
+  try {
+    await db.update(users).set({ webhookUrl, webhookSecret }).where(eq(users.id, user.id));
+    return c.redirect('/developer');
+  } catch (err: any) {
+    return c.text(`Failed to save webhook settings: ${err.message}`, 500);
+  }
+});
+
 // API: Regenerate API Key
-app.post('/api/v1/developer/regenerate-key', requireRole(['SUPER_ADMIN', 'ADMIN']), (c) => {
+app.post('/api/v1/developer/regenerate-key', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT']), async (c) => {
+  const user = (c as any).get('user') as UserSession;
   const newKey = `qbiz_api_key_live_2026_` + Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-  return c.json({ success: true, apiKey: newKey });
+  
+  try {
+    await db.update(users).set({ apiKey: newKey }).where(eq(users.id, user.id));
+    return c.json({ success: true, apiKey: newKey });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
 });
 
 // API: Create dynamic invoices (REST call from POS client - uses API Bearer Key)
 app.post('/api/v1/invoices', async (c) => {
   const authHeader = c.req.header('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  let isAuthorized = false;
+  let authenticatedUserId: string | null = null;
+  let authenticatedRole: string | null = null;
+  let authenticatedMerchantId: string | null = null;
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const key = authHeader.substring(7);
+    const userList = await db.select().from(users).where(eq(users.apiKey, key));
+    if (userList.length > 0) {
+      isAuthorized = true;
+      authenticatedUserId = userList[0].id;
+      authenticatedRole = userList[0].role;
+      authenticatedMerchantId = userList[0].merchantId;
+    }
+  } else {
+    let session = (c as any).get('user');
+    if (!session) {
+      try {
+        const sessionUserId = await getSignedCookie(c, COOKIE_SECRET, 'session');
+        if (sessionUserId) {
+          const userList = await db.select().from(users).where(eq(users.id, sessionUserId));
+          if (userList.length > 0) {
+            session = {
+              id: userList[0].id,
+              name: userList[0].name,
+              email: userList[0].email,
+              role: userList[0].role,
+              merchantId: userList[0].merchantId
+            };
+          }
+        }
+      } catch (_e) {}
+    }
+
+    if (session) {
+      isAuthorized = true;
+      authenticatedUserId = session.id;
+      authenticatedRole = session.role;
+      authenticatedMerchantId = session.merchantId;
+    }
+  }
+
+  if (!isAuthorized || !authenticatedUserId) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
@@ -711,6 +902,23 @@ app.post('/api/v1/invoices', async (c) => {
   const amount = Number(body.amount);
   const callbackUrl = body.callback_url;
   const merchantId = body.merchant_id || 'mrc_toko_1';
+
+  // Role-based access validation for target merchant
+  if (authenticatedRole === 'MERCHANT' || authenticatedRole === 'MERCHANT_EMPLOYEE') {
+    if (merchantId !== authenticatedMerchantId) {
+      return c.json({ error: 'Forbidden: You can only create invoices for your own merchant account' }, 403);
+    }
+  } else if (authenticatedRole === 'REGIONAL_ADMIN') {
+    const mapping = await db.select()
+      .from(regionalAdminMerchants)
+      .where(and(
+        eq(regionalAdminMerchants.userId, authenticatedUserId),
+        eq(regionalAdminMerchants.merchantId, merchantId)
+      ));
+    if (mapping.length === 0) {
+      return c.json({ error: 'Forbidden: You do not manage this merchant account' }, 403);
+    }
+  }
 
   let suffix = 1;
   try {
@@ -731,10 +939,11 @@ app.post('/api/v1/invoices', async (c) => {
 
   let dynamicQrisString = '';
   try {
-    const expiredAt = new Date(Date.now() + 15 * 60 * 1000);
+    const expiredAt = new Date(Date.now() + 5 * 60 * 1000);
     await db.insert(invoices).values({
       id: newInvoiceId,
       merchantId,
+      userId: authenticatedUserId, // Save invoice creator
       orderId,
       baseAmount: amount,
       uniqueCode: suffix,
@@ -746,10 +955,13 @@ app.post('/api/v1/invoices', async (c) => {
 
     // Fetch the merchant to get their static QRIS payload
     const mList = await db.select().from(merchants).where(eq(merchants.id, merchantId));
-    if (mList.length > 0 && mList[0].qrisPayload) {
-      dynamicQrisString = generateDynamicQRIS(mList[0].qrisPayload, totalAmount, newInvoiceId);
-    }
+    const staticPayload = (mList.length > 0 && mList[0].qrisPayload) 
+      ? mList[0].qrisPayload 
+      : DEFAULT_MOCK_STATIC_QRIS;
+    dynamicQrisString = generateDynamicQRIS(staticPayload, totalAmount, newInvoiceId);
   } catch (_e) {}
+
+  const baseUrl = Deno.env.get("BASE_URL") || "http://localhost:8000";
 
   return c.json({
     success: true,
@@ -761,7 +973,7 @@ app.post('/api/v1/invoices', async (c) => {
       total_amount: totalAmount,
       status: 'PENDING',
       qris_payload: dynamicQrisString,
-      checkout_url: `http://localhost:8000/pay/${newInvoiceId}`
+      checkout_url: `${baseUrl}/pay/${newInvoiceId}`
     }
   });
 });
@@ -783,9 +995,8 @@ app.get('/pay/:id', async (c) => {
     const merchant = mrcList[0];
 
     // Generate Dynamic QRIS payload
-    const dynamicQrisString = merchant.qrisPayload 
-      ? generateDynamicQRIS(merchant.qrisPayload, invoice.totalAmount, invoice.id)
-      : '000201010211...'; // Fallback raw string indicator
+    const staticPayload = merchant.qrisPayload ? merchant.qrisPayload : DEFAULT_MOCK_STATIC_QRIS;
+    const dynamicQrisString = generateDynamicQRIS(staticPayload, invoice.totalAmount, invoice.id);
 
     // Generate QR code SVG
     const qrSvgHtml = await QRCode.toString(dynamicQrisString, { 

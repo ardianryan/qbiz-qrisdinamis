@@ -37,7 +37,7 @@ export function Layout({ children, activePath, user }: LayoutProps) {
   if (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN') {
     navItems.push({ label: 'User Directory', path: '/users', icon: 'Users' });
   }
-  if (isPrivileged) {
+  if (currentUser.role !== 'MERCHANT_EMPLOYEE') {
     navItems.push({ label: 'Developer Hub', path: '/developer', icon: 'Code2' });
   }
 

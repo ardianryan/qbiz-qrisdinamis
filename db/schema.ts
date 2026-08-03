@@ -20,6 +20,9 @@ export const users = pgTable('users', {
   password: text('password').notNull(), // Hashed password
   role: text('role').$type<'SUPER_ADMIN' | 'ADMIN' | 'REGIONAL_ADMIN' | 'MERCHANT' | 'MERCHANT_EMPLOYEE'>().notNull(),
   merchantId: text('merchant_id').references(() => merchants.id, { onDelete: 'set null' }), // Set if user is Merchant or Employee
+  apiKey: text('api_key').unique(),
+  webhookUrl: text('webhook_url'),
+  webhookSecret: text('webhook_secret'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -35,6 +38,7 @@ export const regionalAdminMerchants = pgTable('regional_admin_merchants', {
 export const invoices = pgTable('invoices', {
   id: text('id').primaryKey(), // e.g., 'inv_10923840'
   merchantId: text('merchant_id').references(() => merchants.id, { onDelete: 'cascade' }),
+  userId: text('user_id').references(() => users.id, { onDelete: 'set null' }), // Associated user creator
   orderId: text('order_id').notNull(), // Client's POS Order ID
   baseAmount: integer('base_amount').notNull(), // e.g. 50000
   uniqueCode: integer('unique_code').notNull(), // e.g. 123
