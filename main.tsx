@@ -1151,7 +1151,11 @@ app.post('/api/v1/invoices', async (c) => {
   try {
     const activePending = await db.select()
       .from(invoices)
-      .where(eq(invoices.baseAmount, amount));
+      .where(and(
+        eq(invoices.baseAmount, amount),
+        eq(invoices.merchantId, merchantId),
+        eq(invoices.status, 'PENDING')
+      ));
     
     const usedSuffixes = new Set(activePending.map(inv => inv.uniqueCode));
     while (usedSuffixes.has(suffix)) {
