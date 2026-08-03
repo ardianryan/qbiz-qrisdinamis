@@ -1,0 +1,29 @@
+{
+  "nodeModulesDir": "auto",
+  "imports": {
+    "hono": "npm:hono@^4.6.0",
+    "hono/": "npm:/hono@^4.6.0/",
+    "@hono/react-renderer": "npm:@hono/react-renderer@^1.0.1",
+    "react": "npm:react@^19.0.0",
+    "react/jsx-runtime": "npm:react@^19.0.0/jsx-runtime",
+    "react-dom": "npm:react-dom@^19.0.0",
+    "react-dom/server": "npm:react-dom@^19.0.0/server",
+    "@types/react": "npm:@types/react@^19.0.8",
+    "@types/react-dom": "npm:@types/react-dom@^19.0.4",
+    "lucide-react": "npm:lucide-react@^0.381.0",
+    "postgres": "npm:postgres@^3.4.4",
+    "drizzle-orm": "npm:drizzle-orm@^0.30.10",
+    "drizzle-orm/": "npm:/drizzle-orm@^0.30.10/",
+    "drizzle-kit": "npm:drizzle-kit@^0.21.4",
+    "puppeteer": "npm:puppeteer@^22.10.0"
+  },
+  "tasks": {
+    "dev": "deno run -A --env --watch main.tsx",
+    "build:css": "deno run -A npm:tailwindcss@3 -i src/styles/input.css -o static/styles.css --minify",
+    "watch:css": "deno run -A npm:tailwindcss@3 -i src/styles/input.css -o static/styles.css --watch"
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
+  }
+}
