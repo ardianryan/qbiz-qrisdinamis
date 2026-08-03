@@ -69,7 +69,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>QBiz Secure Checkout - Portal Pembayaran</title>
+        <title>{merchant.name} - Checkout Pembayaran</title>
         <link rel="stylesheet" href="/static/styles.css" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -158,7 +158,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               <div className="flex flex-col gap-3 mb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300">QRIS by ShopeePay</span>
+                    <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300">QRIS by Gopay Merchant</span>
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400 uppercase border border-sky-100 dark:border-sky-900/30">Dinamis</span>
                   </div>
                   {/* QRIS tiny logo */}
@@ -227,9 +227,9 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               <div id="accordion-content" style={{ maxHeight: '0px', overflow: 'hidden' }} className="transition-all duration-300 mt-2 px-1 text-slate-500 dark:text-zinc-400 text-[11px] leading-relaxed">
                 <ol className="list-decimal pl-4 space-y-1.5 py-2">
                   <li>Buka aplikasi e-wallet atau M-Banking favorit Anda (ShopeePay, GoPay, OVO, Dana, LinkAja, BCA, Mandiri, dll).</li>
-                  <li>Pilih menu **Scan / Bayar QRIS**.</li>
+                  <li>Pilih menu <strong>Scan / Bayar QRIS</strong>.</li>
                   <li>Scan kode QR yang tampil di layar halaman pembayaran ini.</li>
-                  <li>Periksa kembali nominal pembayaran Anda (nominal pembayaran harus persis **Rp{formattedTotal}**).</li>
+                  <li>Periksa kembali nominal pembayaran Anda (nominal pembayaran harus persis <strong>Rp{formattedTotal}</strong>).</li>
                   <li>Selesaikan transaksi. Halaman ini akan otomatis terupdate setelah pembayaran terverifikasi.</li>
                 </ol>
               </div>
@@ -242,10 +242,10 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               {/* Header Logo */}
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center text-white font-bold text-base">
-                  P
+                  {merchant.name ? merchant.name.charAt(0).toUpperCase() : 'M'}
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight leading-none text-sm">Premium Portal</h3>
+                  <h3 className="font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight leading-none text-sm">{merchant.name}</h3>
                   <span className="text-[9px] text-slate-400 dark:text-zinc-500 tracking-wider uppercase font-bold">Checkout Gateway</span>
                 </div>
               </div>
