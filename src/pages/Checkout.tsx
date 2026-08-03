@@ -16,6 +16,7 @@ interface CheckoutPageProps {
   };
   merchant: {
     name: string;
+    logoUrl?: string | null;
   };
   qrSvgHtml: string;
 }
@@ -241,9 +242,13 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
             <div>
               {/* Header Logo */}
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center text-white font-bold text-base">
-                  {merchant.name ? merchant.name.charAt(0).toUpperCase() : 'M'}
-                </div>
+                {merchant.logoUrl ? (
+                  <img src={merchant.logoUrl} alt="" className="w-8 h-8 rounded-lg object-contain bg-white border border-slate-200 dark:bg-zinc-850 dark:border-zinc-800 shadow-sm shrink-0" />
+                ) : (
+                  <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center text-white font-bold text-base shrink-0">
+                    {merchant.name ? merchant.name.charAt(0).toUpperCase() : 'M'}
+                  </div>
+                )}
                 <div>
                   <h3 className="font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight leading-none text-sm">{merchant.name}</h3>
                   <span className="text-[9px] text-slate-400 dark:text-zinc-500 tracking-wider uppercase font-bold">Checkout Gateway</span>

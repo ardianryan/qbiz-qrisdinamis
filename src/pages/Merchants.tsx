@@ -7,6 +7,7 @@ interface Merchant {
   phoneNumber: string;
   qrisImageUrl: string;
   qrisPayload?: string;
+  logoUrl?: string | null;
   status: 'ACTIVE' | 'NEEDS_OTP' | 'DISCONNECTED';
   todayTransactions: number;
   lastSync: string;
@@ -75,7 +76,10 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
                 {/* Top Row: Info & Provider */}
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <h3 className="font-bold text-lg text-slate-900 dark:text-zinc-50 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-zinc-50 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors flex items-center gap-2">
+                      {merchant.logoUrl && (
+                        <img src={merchant.logoUrl} alt="" className="w-6 h-6 rounded object-contain bg-slate-50 border border-slate-100 shadow-sm" />
+                      )}
                       {merchant.name}
                     </h3>
                     <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider bg-slate-100 text-slate-800 dark:bg-zinc-800 dark:text-zinc-300 px-2 py-0.5 rounded">
@@ -325,6 +329,27 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
                 </div>
               </div>
 
+              {/* File dropzone for Merchant Logo */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                  Upload Merchant Logo (Optional)
+                </label>
+                <div className="border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl p-4 text-center hover:bg-slate-50 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer group">
+                  <input 
+                    type="file" 
+                    name="logoImage" 
+                    accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                    id="edit-logo-file-input"
+                  />
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    <svg className="w-6 h-6 text-slate-400 dark:text-zinc-500 group-hover:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <span className="text-xs text-slate-600 dark:text-zinc-300 font-medium">Click to upload logo image</span>
+                    <span className="text-[9px] text-slate-400 dark:text-zinc-500" id="edit-logo-name-preview">PNG or JPG up to 2MB</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Raw Static QRIS Payload */}
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="edit-merchant-qris-payload" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
@@ -427,6 +452,27 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
                     <svg className="w-8 h-8 text-slate-400 dark:text-zinc-500 group-hover:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                     <span className="text-xs text-slate-600 dark:text-zinc-300 font-medium">Click to upload or drag image here</span>
                     <span className="text-[10px] text-slate-400 dark:text-zinc-500" id="file-name-preview">PNG, JPG or SVG up to 5MB</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* File dropzone for Merchant Logo */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                  Upload Merchant Logo (Optional)
+                </label>
+                <div className="border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl p-4 text-center hover:bg-slate-50 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer group">
+                  <input 
+                    type="file" 
+                    name="logoImage" 
+                    accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                    id="logo-file-input"
+                  />
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    <svg className="w-6 h-6 text-slate-400 dark:text-zinc-500 group-hover:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <span className="text-xs text-slate-600 dark:text-zinc-300 font-medium">Click to upload logo image</span>
+                    <span className="text-[9px] text-slate-400 dark:text-zinc-500" id="logo-name-preview">PNG or JPG up to 2MB</span>
                   </div>
                 </div>
               </div>
@@ -718,6 +764,18 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
               });
             }
 
+            // Logo File Preview
+            const logoFile = document.getElementById('logo-file-input');
+            const logoNamePreview = document.getElementById('logo-name-preview');
+            if (logoFile && logoNamePreview) {
+              logoFile.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                  logoNamePreview.textContent = this.files[0].name + " (" + (this.files[0].size / 1024 / 1024).toFixed(2) + "MB)";
+                  logoNamePreview.className = "text-[10px] text-sky-600 dark:text-sky-400 font-semibold";
+                }
+              });
+            }
+
             // --- C. Settings Dropdown toggle ---
             document.querySelectorAll('.btn-dropdown-trigger').forEach(btn => {
               btn.addEventListener('click', function(e) {
@@ -988,6 +1046,18 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
               });
             }
 
+            // Edit Logo File Preview
+            const editLogoFile = document.getElementById('edit-logo-file-input');
+            const editLogoNamePreview = document.getElementById('edit-logo-name-preview');
+            if (editLogoFile && editLogoNamePreview) {
+              editLogoFile.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                  editLogoNamePreview.textContent = this.files[0].name + " (" + (this.files[0].size / 1024 / 1024).toFixed(2) + "MB)";
+                  editLogoNamePreview.className = "text-[10px] text-sky-600 dark:text-sky-400 font-semibold";
+                }
+              });
+            }
+
             document.querySelectorAll('.btn-edit-merchant').forEach(btn => {
               btn.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -1008,6 +1078,10 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
                 if (editNamePreview) {
                   editNamePreview.textContent = "Leave empty to keep existing image";
                   editNamePreview.className = "text-[10px] text-slate-400 dark:text-zinc-500";
+                }
+                if (editLogoNamePreview) {
+                  editLogoNamePreview.textContent = "Leave empty to keep existing logo";
+                  editLogoNamePreview.className = "text-[10px] text-slate-400 dark:text-zinc-500";
                 }
 
                 openSheet('sheet-edit-merchant');

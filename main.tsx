@@ -411,6 +411,7 @@ app.get('/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN']), a
     phoneNumber: m.phoneNumber,
     qrisImageUrl: m.qrisImageUrl,
     qrisPayload: m.qrisPayload || '',
+    logoUrl: m.logoUrl,
     status: m.status as any,
     todayTransactions: (m as any).todayTransactions || 0,
     lastSync: (m as any).lastSync || (m.createdAt ? m.createdAt.toISOString().slice(0, 19).replace('T', ' ') : 'N/A')
@@ -901,6 +902,7 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
   const phoneNumber = body.phoneNumber as string;
   const qrisImage = body.qrisImage as File;
   const qrisPayload = (body.qrisPayload as string) || '';
+  const logoImage = body.logoImage as File | undefined;
 
   try {
     // 1. Fetch current merchant data
@@ -912,8 +914,21 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
 
     let fileUrl = currentMerchant.qrisImageUrl;
     let finalQrisPayload = qrisPayload || currentMerchant.qrisPayload;
+    let finalLogoUrl = currentMerchant.logoUrl;
 
-    // 2. Handle new QRIS image upload if file is provided
+    // 2. Handle new logo upload if provided
+    if (logoImage && logoImage.size > 0) {
+      const tempDir = './static/uploads';
+      await Deno.mkdir(tempDir, { recursive: true });
+      const logoExt = logoImage.name.split('.').pop() || 'png';
+      const logoFilePath = `${tempDir}/logo_${id}.${logoExt}`;
+      finalLogoUrl = `/static/uploads/logo_${id}.${logoExt}`;
+      const logoBuffer = await logoImage.arrayBuffer();
+      await Deno.writeFile(logoFilePath, new Uint8Array(logoBuffer));
+      console.log(`[Logo Edit] Successfully updated logo to ${logoFilePath}`);
+    }
+
+    // 3. Handle new QRIS image upload if file is provided
     if (qrisImage && qrisImage.size > 0) {
       const tempDir = './static/uploads';
       await Deno.mkdir(tempDir, { recursive: true });
@@ -941,12 +956,13 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
       finalQrisPayload = qrisPayload;
     }
 
-    // 3. Update merchant row
+    // 4. Update merchant row
     await db.update(merchants).set({
       name,
       phoneNumber,
       qrisImageUrl: fileUrl,
-      qrisPayload: finalQrisPayload
+      qrisPayload: finalQrisPayload,
+      logoUrl: finalLogoUrl
     }).where(eq(merchants.id, id));
 
   } catch (err: any) {
@@ -964,6 +980,7 @@ app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADM
   const phoneNumber = body.phoneNumber as string;
   const qrisImage = body.qrisImage as File;
   const qrisPayload = (body.qrisPayload as string) || '';
+  const logoImage = body.logoImage as File | undefined;
 
   const newId = `mrc_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString().slice(-4)}`;
   
@@ -975,6 +992,17 @@ app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADM
 
   const arrayBuffer = await qrisImage.arrayBuffer();
   await Deno.writeFile(filePath, new Uint8Array(arrayBuffer));
+
+  // Process Merchant Logo Upload
+  let logoUrl: string | null = null;
+  if (logoImage && logoImage.size > 0) {
+    const logoExt = logoImage.name.split('.').pop() || 'png';
+    const logoFilePath = `${tempDir}/logo_${newId}.${logoExt}`;
+    logoUrl = `/static/uploads/logo_${newId}.${logoExt}`;
+    const logoBuffer = await logoImage.arrayBuffer();
+    await Deno.writeFile(logoFilePath, new Uint8Array(logoBuffer));
+    console.log(`[Logo Upload] Successfully saved logo to ${logoFilePath}`);
+  }
 
   let finalQrisPayload = qrisPayload;
   if (!finalQrisPayload) {
@@ -996,6 +1024,7 @@ app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADM
       phoneNumber,
       qrisImageUrl: fileUrl,
       qrisPayload: finalQrisPayload,
+      logoUrl: logoUrl,
       sessionFilePath: `sessions/${newId}.json`,
       status: 'NEEDS_OTP'
     });
@@ -1265,7 +1294,8 @@ app.get('/pay/:id', async (c) => {
             items: invoice.items || '[]'
           }}
           merchant={{
-            name: merchant.name
+            name: merchant.name,
+            logoUrl: merchant.logoUrl
           }}
           qrSvgHtml={qrSvgHtml}
         />
