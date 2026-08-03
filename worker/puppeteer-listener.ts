@@ -39,7 +39,7 @@ export async function startMerchantListener(merchantId: string) {
   try {
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      executablePath: Deno.env.get("PUPPETEER_EXECUTABLE_PATH") || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
     });
 
@@ -193,7 +193,7 @@ export async function triggerGoBizOTP(merchantId: string) {
   try {
     const browser = await puppeteer.launch({
       headless: true,
-      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      executablePath: Deno.env.get("PUPPETEER_EXECUTABLE_PATH") || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     const page = await browser.newPage();

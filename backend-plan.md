@@ -32,7 +32,7 @@ The system operates as an **In-House Dynamic QRIS Payment Middleware**. It bridg
 
 Using Drizzle ORM mapping to a local/remote PostgreSQL instance (`qrispaymti` database) with credentials:
 - Username: `ardianryan`
-- Password: `M0jokerto1`
+- Password: `your_secure_db_password`
 
 ```typescript
 // db/schema.ts
