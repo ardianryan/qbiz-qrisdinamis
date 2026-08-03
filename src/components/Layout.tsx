@@ -35,7 +35,7 @@ export function Layout({ children, activePath, user }: LayoutProps) {
     navItems.push({ label: 'Merchants', path: '/merchants', icon: 'Store' });
   }
   navItems.push({ label: 'Transactions', path: '/transactions', icon: 'Receipt' });
-  if (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN') {
+  if (currentUser.role !== 'MERCHANT_EMPLOYEE') {
     navItems.push({ label: 'User Directory', path: '/users', icon: 'Users' });
   }
   if (currentUser.role !== 'MERCHANT_EMPLOYEE') {

@@ -228,9 +228,10 @@ export function UsersPage({ users, merchants, currentUser }: UsersPageProps) {
                 name="role"
                 className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all cursor-pointer"
               >
-                <option value="ADMIN">Admin (Full Control)</option>
-                <option value="REGIONAL_ADMIN">Regional Admin (Membawahi Toko)</option>
-                <option value="MERCHANT">Merchant Owner (Single Store)</option>
+                {currentUser.role === 'SUPER_ADMIN' && <option value="SUPER_ADMIN">Super Admin (Global Root)</option>}
+                {currentUser.role === 'SUPER_ADMIN' && <option value="ADMIN">Admin (Full Control)</option>}
+                {(currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN') && <option value="REGIONAL_ADMIN">Regional Admin (Membawahi Toko)</option>}
+                {(currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN' || currentUser.role === 'REGIONAL_ADMIN') && <option value="MERCHANT">Merchant Owner (Single Store)</option>}
                 <option value="MERCHANT_EMPLOYEE">Karyawan Merchant (Cashier)</option>
               </select>
             </div>
@@ -245,10 +246,16 @@ export function UsersPage({ users, merchants, currentUser }: UsersPageProps) {
                 name="merchantId"
                 className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all cursor-pointer"
               >
-                <option value="">Select Associated Store...</option>
-                {merchants.map(m => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
+                {currentUser.role === 'MERCHANT' ? (
+                  <option value={currentUser.merchantId || ''}>Selected Merchant</option>
+                ) : (
+                  <>
+                    <option value="">Select Associated Store...</option>
+                    {merchants.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </>
+                )}
               </select>
             </div>
 
@@ -314,14 +321,16 @@ export function UsersPage({ users, merchants, currentUser }: UsersPageProps) {
             const merchantBlock = document.getElementById('associated-merchant-block');
             
             if (roleSelect && merchantBlock) {
-              roleSelect.addEventListener('change', function() {
-                const val = this.value;
+              const checkRole = () => {
+                const val = roleSelect.value;
                 if (val === 'MERCHANT' || val === 'MERCHANT_EMPLOYEE') {
                   merchantBlock.classList.remove('hidden');
                 } else {
                   merchantBlock.classList.add('hidden');
                 }
-              });
+              };
+              roleSelect.addEventListener('change', checkRole);
+              checkRole();
             }
 
             // Bind Delete Account triggers

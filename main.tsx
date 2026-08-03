@@ -13,7 +13,7 @@ import QRCode from 'npm:qrcode';
 import { renderToString } from 'react-dom/server';
 import { db } from './db/db.ts';
 import { merchants, invoices, mutations, users, regionalAdminMerchants } from './db/schema.ts';
-import { eq, desc, inArray, and, sql } from 'drizzle-orm';
+import { eq, desc, inArray, and, or, sql } from 'drizzle-orm';
 import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener } from './worker/puppeteer-listener.ts';
 import { authMiddleware, requireRole, hashPassword, COOKIE_SECRET, UserSession } from './src/middleware/auth.ts';
 import { generateDynamicQRIS, decodeQRISFromImage } from './src/utils/qris.ts';
@@ -517,21 +517,61 @@ app.get('/developer', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'ME
   );
 });
 
-// PAGE 4: User & Role Directory (SUPER_ADMIN, ADMIN)
-app.get('/users', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
+// PAGE 4: User & Role Directory (SUPER_ADMIN, ADMIN, REGIONAL_ADMIN, MERCHANT)
+app.get('/users', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT']), async (c) => {
   const currentUser = (c as any).get('user') as UserSession;
   let userList: any[] = [];
   let merchantList: any[] = [];
 
   try {
-    merchantList = await db.select().from(merchants);
-    const dbUsers = await db.select().from(users);
-    
+    // 1. Fetch allowed merchants list based on role (for User creation dropdown)
+    if (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN') {
+      merchantList = await db.select().from(merchants);
+    } else if (currentUser.role === 'REGIONAL_ADMIN') {
+      const mappings = await db.select({ merchantId: regionalAdminMerchants.merchantId })
+        .from(regionalAdminMerchants)
+        .where(eq(regionalAdminMerchants.userId, currentUser.id));
+      let allowedIds = mappings.map(m => m.merchantId).filter(Boolean) as string[];
+      if (allowedIds.length === 0) allowedIds = ['none'];
+      merchantList = await db.select().from(merchants).where(inArray(merchants.id, allowedIds));
+    } else if (currentUser.role === 'MERCHANT') {
+      merchantList = await db.select().from(merchants).where(eq(merchants.id, currentUser.merchantId || 'none'));
+    }
+
+    // 2. Fetch users list based on role
+    let dbUsers: any[] = [];
+    if (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN') {
+      dbUsers = await db.select().from(users);
+    } else if (currentUser.role === 'REGIONAL_ADMIN') {
+      const mappings = await db.select({ merchantId: regionalAdminMerchants.merchantId })
+        .from(regionalAdminMerchants)
+        .where(eq(regionalAdminMerchants.userId, currentUser.id));
+      let allowedIds = mappings.map(m => m.merchantId).filter(Boolean) as string[];
+      if (allowedIds.length === 0) allowedIds = ['none'];
+      
+      // Regional Admin can see users under their managed merchants, OR themselves
+      dbUsers = await db.select().from(users).where(
+        or(
+          eq(users.id, currentUser.id),
+          inArray(users.merchantId, allowedIds)
+        )
+      );
+    } else if (currentUser.role === 'MERCHANT') {
+      // Merchant Owner can only see themselves, and employees under their merchant
+      dbUsers = await db.select().from(users).where(
+        or(
+          eq(users.id, currentUser.id),
+          eq(users.merchantId, currentUser.merchantId || 'none')
+        )
+      );
+    }
+
     // Fetch counts of mapped regional merchants
     const regionalMappings = await db.select().from(regionalAdminMerchants);
-    
+    const globalMerchantList = await db.select().from(merchants);
+
     userList = dbUsers.map(u => {
-      const associatedMrc = merchantList.find(m => m.id === u.merchantId);
+      const associatedMrc = globalMerchantList.find(m => m.id === u.merchantId);
       const mappedCount = regionalMappings.filter(rm => rm.userId === u.id).length;
       
       return {
@@ -546,15 +586,10 @@ app.get('/users', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
   } catch (_e) {
     // Fallback Mock Users list in case DB is offline
     merchantList = [
-      { id: 'mrc_toko_1', name: 'Warung Kopi Mojokerto' },
-      { id: 'mrc_toko_2', name: 'Resto Ayam Bakar Cobek' }
+      { id: 'mrc_toko_1', name: 'Warung Kopi Mojokerto' }
     ];
     userList = [
-      { id: 'usr_superadmin', name: 'Adrian Ryan (SA)', email: 'superadmin@qbiz.com', role: 'SUPER_ADMIN' as const, merchantName: null, mappedMerchantsCount: 0 },
-      { id: 'usr_admin', name: 'QBiz Admin Operations', email: 'admin@qbiz.com', role: 'ADMIN' as const, merchantName: null, mappedMerchantsCount: 0 },
-      { id: 'usr_regional', name: 'Budi Regional Manager', email: 'regional@qbiz.com', role: 'REGIONAL_ADMIN' as const, merchantName: null, mappedMerchantsCount: 2 },
-      { id: 'usr_merchant', name: 'Toko Mojokerto Owner', email: 'merchant@qbiz.com', role: 'MERCHANT' as const, merchantName: 'Warung Kopi Mojokerto', mappedMerchantsCount: 0 },
-      { id: 'usr_karyawan', name: 'Siti Kasir Toko', email: 'karyawan@qbiz.com', role: 'MERCHANT_EMPLOYEE' as const, merchantName: 'Warung Kopi Mojokerto', mappedMerchantsCount: 0 }
+      { id: currentUser.id, name: currentUser.name, email: currentUser.email, role: currentUser.role as any, merchantName: null, mappedMerchantsCount: 0 }
     ];
   }
 
@@ -565,13 +600,39 @@ app.get('/users', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
 });
 
 // API: Create User Account
-app.post('/api/v1/users', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
+app.post('/api/v1/users', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT']), async (c) => {
+  const currentUser = (c as any).get('user') as UserSession;
   const body = await c.req.parseBody();
   const name = body.name as string;
   const email = body.email as string;
   const password = body.password as string;
   const role = body.role as any;
   const merchantId = (body.merchantId as string) || null;
+
+  // 1. Validate role mapping security
+  if (currentUser.role === 'ADMIN') {
+    if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
+      return c.text('Forbidden: Admins cannot create Admin or Super Admin accounts', 403);
+    }
+  } else if (currentUser.role === 'REGIONAL_ADMIN') {
+    if (role !== 'MERCHANT' && role !== 'MERCHANT_EMPLOYEE') {
+      return c.text('Forbidden: Regional Admins can only create Merchant Owners or Employees', 403);
+    }
+    const mappings = await db.select({ merchantId: regionalAdminMerchants.merchantId })
+      .from(regionalAdminMerchants)
+      .where(eq(regionalAdminMerchants.userId, currentUser.id));
+    const allowedIds = mappings.map(m => m.merchantId).filter(Boolean) as string[];
+    if (!allowedIds.includes(merchantId || '')) {
+      return c.text('Forbidden: You do not manage this merchant store', 403);
+    }
+  } else if (currentUser.role === 'MERCHANT') {
+    if (role !== 'MERCHANT_EMPLOYEE') {
+      return c.text('Forbidden: Merchant Owners can only create Cashiers', 403);
+    }
+    if (merchantId !== currentUser.merchantId) {
+      return c.text('Forbidden: You can only create cashiers for your own store', 403);
+    }
+  }
 
   const newId = `usr_${Date.now()}`;
   const hashedPassword = await hashPassword(password);
@@ -588,13 +649,15 @@ app.post('/api/v1/users', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
     console.log(`[DB] Created user: ${newId} (${email})`);
   } catch (err: any) {
     console.error(`[DB] User creation failed: ${err.message}`);
+    return c.text('Failed to create user: ' + err.message, 500);
   }
 
   return c.redirect('/users');
 });
 
 // API: Delete User Account
-app.post('/api/v1/users/:id/delete', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
+app.post('/api/v1/users/:id/delete', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT']), async (c) => {
+  const currentUser = (c as any).get('user') as UserSession;
   const id = c.req.param('id');
   
   if (id === 'usr_superadmin') {
@@ -602,6 +665,34 @@ app.post('/api/v1/users/:id/delete', requireRole(['SUPER_ADMIN', 'ADMIN']), asyn
   }
 
   try {
+    const targetUserList = await db.select().from(users).where(eq(users.id, id));
+    if (targetUserList.length === 0) {
+      return c.json({ success: false, error: 'User not found' }, 404);
+    }
+    const targetUser = targetUserList[0];
+
+    // Validate permission to delete
+    if (currentUser.role === 'ADMIN') {
+      if (targetUser.role === 'SUPER_ADMIN' || targetUser.role === 'ADMIN') {
+        return c.json({ success: false, error: 'Forbidden: Admins cannot delete Admin or Super Admin accounts' }, 403);
+      }
+    } else if (currentUser.role === 'REGIONAL_ADMIN') {
+      const mappings = await db.select({ merchantId: regionalAdminMerchants.merchantId })
+        .from(regionalAdminMerchants)
+        .where(eq(regionalAdminMerchants.userId, currentUser.id));
+      const allowedIds = mappings.map(m => m.merchantId).filter(Boolean) as string[];
+      if (!allowedIds.includes(targetUser.merchantId || '')) {
+        return c.json({ success: false, error: 'Forbidden: You do not manage the merchant store of this user' }, 403);
+      }
+    } else if (currentUser.role === 'MERCHANT') {
+      if (targetUser.role !== 'MERCHANT_EMPLOYEE') {
+        return c.json({ success: false, error: 'Forbidden: Merchant Owners can only delete Cashiers' }, 403);
+      }
+      if (targetUser.merchantId !== currentUser.merchantId) {
+        return c.json({ success: false, error: 'Forbidden: You can only delete cashiers from your own store' }, 403);
+      }
+    }
+
     await db.delete(users).where(eq(users.id, id));
     console.log(`[DB] Deleted user: ${id}`);
     return c.json({ success: true });
@@ -861,7 +952,8 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
 });
 
 // API: Add Merchant
-app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
+app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN']), async (c) => {
+  const currentUser = (c as any).get('user') as UserSession;
   const body = await c.req.parseBody();
   const name = body.name as string;
   const phoneNumber = body.phoneNumber as string;
@@ -902,6 +994,15 @@ app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) =
       sessionFilePath: `sessions/${newId}.json`,
       status: 'NEEDS_OTP'
     });
+
+    // If the creator is a REGIONAL_ADMIN, automatically map this new merchant to them!
+    if (currentUser && currentUser.role === 'REGIONAL_ADMIN') {
+      await db.insert(regionalAdminMerchants).values({
+        userId: currentUser.id,
+        merchantId: newId
+      });
+      console.log(`[DB] Auto-mapped merchant ${newId} to Regional Admin ${currentUser.id}`);
+    }
   } catch (_e) {}
 
   return c.redirect('/merchants');
