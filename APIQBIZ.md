@@ -33,7 +33,8 @@ Generates a dynamic QRIS payment with a unique numeric suffix to match bank muta
   | `amount` | `integer` | Yes | Base nominal charge amount (e.g. `50000` for Rp 50,000). |
   | `order_id` | `string` | Yes | Unique order reference ID from your POS/client system. |
   | `merchant_id` | `string` | Optional | Target merchant ID (defaults to `mrc_toko_1`). Must be associated with your API Key account. |
-  | `callback_url` | `string` | Optional | Custom webhook target url for this invoice (overrides default user profile settings). |
+  | `callback_url` | `string` | Optional | Custom webhook target URL (backend API POST destination) for this invoice. |
+  | `redirect_url` | `string` | Optional | Custom redirect URL (frontend browser destination) to return the customer to after checkout success. |
 
 * **Request Example**:
   ```json
@@ -41,7 +42,8 @@ Generates a dynamic QRIS payment with a unique numeric suffix to match bank muta
     "amount": 10000,
     "order_id": "ORD-178592301",
     "merchant_id": "mrc_toko_1",
-    "callback_url": "https://mypos.com/api/webhooks/qris"
+    "callback_url": "https://mypos.com/api/webhooks/qris",
+    "redirect_url": "https://mypos.com/checkout/success"
   }
   ```
 
@@ -57,7 +59,8 @@ Generates a dynamic QRIS payment with a unique numeric suffix to match bank muta
       "total_amount": 10002,
       "status": "PENDING",
       "qris_payload": "00020101021138590014...",
-      "checkout_url": "http://localhost:8000/pay/inv_1785738263024_587"
+      "checkout_url": "http://localhost:8000/pay/inv_1785738263024_587",
+      "redirect_url": "https://mypos.com/checkout/success"
     }
   }
   ```

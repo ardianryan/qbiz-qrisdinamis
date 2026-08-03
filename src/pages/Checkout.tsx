@@ -192,10 +192,11 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                       clearInterval(statusInterval);
                       if (successOverlay) successOverlay.classList.remove('hidden');
                       
-                      // Optional redirect to callback url after 3 seconds
-                      if (data.callbackUrl) {
+                      // Redirect to client success page after 3 seconds
+                      const targetRedirect = data.redirectUrl || data.callbackUrl;
+                      if (targetRedirect) {
                         setTimeout(() => {
-                          window.location.href = data.callbackUrl;
+                          window.location.href = targetRedirect;
                         }, 3000);
                       }
                     } else if (data.status === 'EXPIRED') {

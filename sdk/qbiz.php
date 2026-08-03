@@ -29,6 +29,7 @@ class QBizClient {
             'order_id' => $params['orderId'],
             'amount' => (int)$params['amount'],
             'callback_url' => isset($params['callbackUrl']) ? $params['callbackUrl'] : null,
+            'redirect_url' => isset($params['redirectUrl']) ? $params['redirectUrl'] : null,
             'merchant_id' => isset($params['merchantId']) ? $params['merchantId'] : null
         ];
 

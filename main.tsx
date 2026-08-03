@@ -904,6 +904,7 @@ app.post('/api/v1/invoices', async (c) => {
   const orderId = body.order_id;
   const amount = Number(body.amount);
   const callbackUrl = body.callback_url;
+  const redirectUrl = body.redirect_url || body.redirectUrl;
   const merchantId = body.merchant_id || 'mrc_toko_1';
 
   // Role-based access validation for target merchant
@@ -953,6 +954,7 @@ app.post('/api/v1/invoices', async (c) => {
       totalAmount,
       status: 'PENDING',
       callbackUrl,
+      redirectUrl,
       expiredAt
     });
 
@@ -976,7 +978,8 @@ app.post('/api/v1/invoices', async (c) => {
       total_amount: totalAmount,
       status: 'PENDING',
       qris_payload: dynamicQrisString,
-      checkout_url: `${baseUrl}/pay/${newInvoiceId}`
+      checkout_url: `${baseUrl}/pay/${newInvoiceId}`,
+      redirect_url: redirectUrl
     }
   });
 });
@@ -1052,7 +1055,8 @@ app.get('/api/v1/invoices/:id/status', async (c) => {
 
     return c.json({ 
       status, 
-      callbackUrl: invoice.callbackUrl 
+      callbackUrl: invoice.callbackUrl,
+      redirectUrl: invoice.redirectUrl 
     });
   } catch (err: any) {
     return c.json({ error: err.message }, 500);

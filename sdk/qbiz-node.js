@@ -23,7 +23,7 @@ class QBizClient {
    * @param {string} [params.merchantId] - Target merchant ID (optional)
    * @returns {Promise<Object>} The created invoice details
    */
-  async createInvoice({ orderId, amount, callbackUrl, merchantId }) {
+  async createInvoice({ orderId, amount, callbackUrl, redirectUrl, merchantId }) {
     const url = `${this.baseUrl}/api/v1/invoices`;
     const response = await fetch(url, {
       method: 'POST',
@@ -35,6 +35,7 @@ class QBizClient {
         order_id: orderId,
         amount: Number(amount),
         callback_url: callbackUrl,
+        redirect_url: redirectUrl,
         merchant_id: merchantId
       })
     });
