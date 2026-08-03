@@ -33,7 +33,7 @@ export async function startMerchantListener(merchantId: string) {
   }
   const merchant = mrcList[0];
 
-  console.log(`[Worker ${merchantId}] Starting Puppeteer idle-browser listener...`);
+  console.log(`[Worker ${merchantId}] Starting Puppeteer optimized resource-blocked listener...`);
   activeListeners.set(merchantId, { status: 'STARTING' });
 
   try {
@@ -44,6 +44,44 @@ export async function startMerchantListener(merchantId: string) {
     });
 
     const page = await browser.newPage();
+
+    // 1. Enable request interception to block heavy assets (RAM & CPU reduction)
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const type = req.resourceType();
+      if (['image', 'media'].includes(type)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
+    // 2. Intercept internal GoBiz API transactions data
+    page.on('response', async (response) => {
+      const url = response.url();
+      const isOldTransactions = url.includes('/v1/transactions');
+      const isNewTransactions = url.includes('merchant-analytics/v2/merchants/transactions');
+      
+      if ((isOldTransactions || isNewTransactions) && response.status() === 200) {
+        try {
+          const payload = await response.json();
+          console.log(`[Worker ${merchantId}] Transaction data intercepted successfully.`);
+          
+          let list: any[] = [];
+          if (isNewTransactions && payload && payload.transactions) {
+            list = payload.transactions;
+          } else if (isOldTransactions && payload && payload.data) {
+            list = payload.data;
+          }
+
+          if (list.length > 0) {
+            await processIncomingMutations(merchantId, list);
+          }
+        } catch (e) {
+          console.error(`[Worker ${merchantId}] Error parsing response JSON:`, e);
+        }
+      }
+    });
 
     // Load existing cookies from session file
     try {
@@ -59,7 +97,7 @@ export async function startMerchantListener(merchantId: string) {
       return;
     }
 
-    // Navigate to transactions page once (not reloaded again after this)
+    // Initial navigation
     console.log(`[Worker ${merchantId}] Navigating to GoBiz transactions page...`);
     await page.goto('https://portal.gofoodmerchant.co.id/transactions?data_range=this_week', {
       waitUntil: 'networkidle2',
@@ -81,73 +119,36 @@ export async function startMerchantListener(merchantId: string) {
     activeListeners.get(merchantId).page = page;
     activeListeners.get(merchantId).status = 'ACTIVE';
 
-    // Poll using page.evaluate() — fetch runs INSIDE the browser with its auth context
+    // Safe page reload loop (prevent overlapping reloads)
+    let isReloading = false;
     const intervalId = setInterval(async () => {
-      try {
-        console.log(`[Worker ${merchantId}] Polling mutation feed (in-browser fetch)...`);
-
-        const now = new Date();
-        const startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        const startIso = startTime.toISOString().replace('T', ' ').substring(0, 19);
-        const endIso = now.toISOString().replace('T', ' ').substring(0, 19);
-
-        const result = await page.evaluate(async (startIso: string, endIso: string) => {
-          // This code runs inside Chrome — cookies & auth auto-included!
-          const apiUrl = `https://portal.gofoodmerchant.co.id/merchant-analytics/v2/merchants/transactions?start_time=${encodeURIComponent(startIso)}&end_time=${encodeURIComponent(endIso)}&page=1&page_size=50`;
-          try {
-            const resp = await fetch(apiUrl, {
-              method: 'GET',
-              credentials: 'include', // Ensures browser cookies are included
-              headers: {
-                'Accept': 'application/json',
-              }
-            });
-            if (!resp.ok) return { error: resp.status };
-            const data = await resp.json();
-            return { data };
-          } catch (e: any) {
-            return { error: e.message };
-          }
-        }, startIso, endIso);
-
-        if (!result || result.error) {
-          const errStatus = result?.error;
-          if (errStatus === 401 || errStatus === 403) {
-            console.warn(`[Worker ${merchantId}] Session expired (HTTP ${errStatus}). Setting NEEDS_OTP.`);
-            await db.update(merchants)
-              .set({ status: 'NEEDS_OTP', sessionToken: null })
-              .where(eq(merchants.id, merchantId));
-            clearInterval(intervalId);
-            try { await browser.close(); } catch (_) {}
-            activeListeners.delete(merchantId);
-          } else {
-            console.warn(`[Worker ${merchantId}] In-browser fetch error: ${errStatus}`);
-          }
-          return;
-        }
-
-        const payload = result.data;
-        let list: any[] = [];
-        if (payload?.transactions) {
-          list = payload.transactions;
-        } else if (payload?.data) {
-          list = payload.data;
-        } else if (Array.isArray(payload)) {
-          list = payload;
-        }
-
-        if (list.length > 0) {
-          console.log(`[Worker ${merchantId}] ${list.length} mutations received. Processing...`);
-          await processIncomingMutations(merchantId, list);
-        }
-
-      } catch (err: any) {
-        console.error(`[Worker ${merchantId}] Polling cycle error:`, err.message);
+      if (isReloading) {
+        console.log(`[Worker ${merchantId}] Previous reload still active. Skipping.`);
+        return;
       }
-    }, 8000);
+      
+      try {
+        isReloading = true;
+        console.log(`[Worker ${merchantId}] Reloading transactions page...`);
+        
+        await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
+        
+        if (page.url().includes('/login')) {
+          console.warn(`[Worker ${merchantId}] Session expired during reload. Setting NEEDS_OTP.`);
+          await db.update(merchants).set({ status: 'NEEDS_OTP' }).where(eq(merchants.id, merchantId));
+          clearInterval(intervalId);
+          await browser.close();
+          activeListeners.delete(merchantId);
+        }
+      } catch (err: any) {
+        console.error(`[Worker ${merchantId}] Reload error (non-fatal):`, err.message);
+      } finally {
+        isReloading = false;
+      }
+    }, 15000);
 
     activeListeners.get(merchantId).intervalId = intervalId;
-    console.log(`[Worker ${merchantId}] Idle-browser polling active (every 8s). ✅`);
+    console.log(`[Worker ${merchantId}] Safe reload listener active (every 15s). ✅`);
 
   } catch (err: any) {
     console.error(`[Worker ${merchantId}] Listener crashed:`, err.message);
@@ -348,16 +349,14 @@ async function processIncomingMutations(merchantId: string, transactionList: any
       isMatched: false
     });
 
-    // Check if there is an active invoice matching this totalAmount
-    // Matching logic: status === 'PENDING', totalAmount === txAmount, expiredAt > NOW()
+    // Check if there is an active or recently expired invoice (within 30 minutes) matching this totalAmount
     const invoiceList = await db.select()
       .from(invoices)
       .where(
         and(
           eq(invoices.merchantId, merchantId),
-          eq(invoices.status, 'PENDING'),
           eq(invoices.totalAmount, txAmount),
-          sql`${invoices.expiredAt} > NOW()`
+          sql`(${invoices.status} = 'PENDING' OR (${invoices.status} = 'EXPIRED' AND ${invoices.expiredAt} > NOW() - INTERVAL '30 minutes'))`
         )
       );
 

@@ -132,7 +132,12 @@ await seedDefaultUsers();
 // Auto-start active merchant listeners on application boot
 async function bootActiveListeners() {
   try {
-    const activeMerchants = await db.select().from(merchants).where(eq(merchants.status, 'ACTIVE'));
+    const activeMerchants = await db.select().from(merchants).where(
+      or(
+        eq(merchants.status, 'ACTIVE'),
+        eq(merchants.status, 'DISCONNECTED')
+      )
+    );
     console.log(`[Boot] Found ${activeMerchants.length} active merchant listeners to start.`);
     for (const m of activeMerchants) {
       // Async start in background
