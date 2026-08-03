@@ -8,6 +8,7 @@ export const merchants = pgTable('merchants', {
   qrisImageUrl: text('qris_image_url').notNull(),
   qrisPayload: text('qris_payload').default('').notNull(), // Raw static EMVCo QRIS string
   sessionFilePath: text('session_file_path').notNull(), // 'sessions/mrc_1.json'
+  sessionToken: text('session_token'), // GoBiz Bearer access token (extracted after OTP login)
   status: text('status').$type<'ACTIVE' | 'NEEDS_OTP' | 'DISCONNECTED'>().default('NEEDS_OTP').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
