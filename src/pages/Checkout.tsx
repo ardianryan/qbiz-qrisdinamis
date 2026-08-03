@@ -86,40 +86,52 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
             .checkout-card {
               box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
               width: 100%;
-              min-height: 100vh; /* Full screen height on mobile */
+              min-height: auto;
+            }
+            /* Rounded corners for left/right panels on mobile */
+            .rounded-left-panel {
+              border-top-left-radius: 16px;
+              border-top-right-radius: 16px;
+            }
+            .rounded-right-panel {
+              border-bottom-left-radius: 16px;
+              border-bottom-right-radius: 16px;
             }
             @media (min-width: 768px) {
               .checkout-card {
                 border-radius: 24px;
                 overflow: hidden;
                 max-width: 900px !important;
-                min-height: 0 !important; /* Reset full screen height on desktop */
+                min-height: 0 !important;
                 height: auto !important;
               }
               .rounded-left-panel {
                 border-top-left-radius: 24px;
                 border-bottom-left-radius: 24px;
+                border-top-right-radius: 0;
               }
               .rounded-right-panel {
                 border-top-right-radius: 24px;
                 border-bottom-right-radius: 24px;
+                border-bottom-left-radius: 0;
               }
             }
           `
         }} />
       </head>
-      <body className="text-slate-800 dark:text-zinc-200 min-h-screen flex items-center justify-center p-0 md:p-6 antialiased">
+      <body className="text-slate-800 dark:text-zinc-200 min-h-screen flex items-center justify-center p-4 md:p-8 antialiased">
         
         {/* Responsive Container */}
-        <div className="w-full bg-white dark:bg-zinc-900 checkout-card md:rounded-3xl flex flex-col md:flex-row transition-all duration-300">
+        <div className="w-full bg-white dark:bg-zinc-900 checkout-card rounded-2xl md:rounded-3xl flex flex-col md:flex-row transition-all duration-300">
           
           {/* LEFT PANEL - White checkout section */}
-          <div className="w-full md:w-[48%] bg-white dark:bg-zinc-950 p-6 md:p-10 flex flex-col justify-between rounded-left-panel border-r border-slate-100 dark:border-zinc-800/50">
+          <div className="w-full md:w-[48%] bg-white dark:bg-zinc-950 p-5 md:p-8 flex flex-col justify-between rounded-left-panel border-b md:border-b-0 md:border-r border-slate-100 dark:border-zinc-800/50">
             <div>
               {/* Back button */}
               <a 
-                href="javascript:history.back()" 
-                className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors font-medium mb-8"
+                href="#" 
+                id="back-btn"
+                className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors font-medium mb-6"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                 Kembali
@@ -128,7 +140,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               {/* Timer Title & Value */}
               <div className="text-center md:text-left mb-6">
                 <span className="text-xs text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-wider block">Selesaikan pembayaran dalam</span>
-                <div id="countdown-timer" className="text-[2.25rem] font-bold text-sky-500 dark:text-sky-400 mt-2 tracking-widest font-mono-qbiz select-none">
+                <div id="countdown-timer" className="text-3xl md:text-4xl font-bold text-sky-500 dark:text-sky-400 mt-2 tracking-widest font-mono-qbiz select-none">
                   {timerPlaceholder}
                 </div>
               </div>
@@ -489,6 +501,15 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                     this.textContent = 'Tersalin!';
                     setTimeout(() => { this.textContent = originalText; }, 1500);
                   }
+                });
+              }
+
+              // --- 6. BACK BUTTON UTILITY ---
+              const backBtn = document.getElementById('back-btn');
+              if (backBtn) {
+                backBtn.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  history.back();
                 });
               }
             })();
