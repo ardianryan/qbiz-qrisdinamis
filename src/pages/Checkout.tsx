@@ -92,8 +92,9 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                 border-radius: 24px;
                 overflow: hidden;
                 max-width: 900px !important;
-                min-height: 600px !important;
-                margin: 2rem auto;
+                min-height: auto !important;
+                height: auto !important;
+                margin: 4rem auto !important;
               }
               .rounded-left-panel {
                 border-top-left-radius: 24px;
