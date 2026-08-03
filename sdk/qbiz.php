@@ -30,7 +30,11 @@ class QBizClient {
             'amount' => (int)$params['amount'],
             'callback_url' => isset($params['callbackUrl']) ? $params['callbackUrl'] : null,
             'redirect_url' => isset($params['redirectUrl']) ? $params['redirectUrl'] : null,
-            'merchant_id' => isset($params['merchantId']) ? $params['merchantId'] : null
+            'merchant_id' => isset($params['merchantId']) ? $params['merchantId'] : null,
+            'customer_name' => isset($params['customerName']) ? $params['customerName'] : null,
+            'customer_email' => isset($params['customerEmail']) ? $params['customerEmail'] : null,
+            'customer_phone' => isset($params['customerPhone']) ? $params['customerPhone'] : null,
+            'items' => isset($params['items']) ? $params['items'] : null
         ];
 
         $ch = curl_init($url);

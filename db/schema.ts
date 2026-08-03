@@ -47,6 +47,10 @@ export const invoices = pgTable('invoices', {
   status: text('status').$type<'PENDING' | 'PAID' | 'EXPIRED'>().default('PENDING').notNull(),
   callbackUrl: text('callback_url'),
   redirectUrl: text('redirect_url'), // Customer browser redirection target on payment success
+  customerName: text('customer_name'),
+  customerEmail: text('customer_email'),
+  customerPhone: text('customer_phone'),
+  items: text('items'), // JSON string representing purchase item details
   expiredAt: timestamp('expired_at', { withTimezone: true }).notNull(),
   paidAt: timestamp('paid_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

@@ -1187,6 +1187,10 @@ app.post('/api/v1/invoices', async (c) => {
       status: 'PENDING',
       callbackUrl,
       redirectUrl,
+      customerName: body.customer_name || body.customerName || null,
+      customerEmail: body.customer_email || body.customerEmail || null,
+      customerPhone: body.customer_phone || body.customerPhone || null,
+      items: body.items ? JSON.stringify(body.items) : null,
       expiredAt
     });
 
@@ -1254,7 +1258,11 @@ app.get('/pay/:id', async (c) => {
             uniqueCode: invoice.uniqueCode,
             totalAmount: invoice.totalAmount,
             status: invoice.status,
-            expiredAt: invoice.expiredAt.toISOString()
+            expiredAt: invoice.expiredAt.toISOString(),
+            customerName: invoice.customerName || '',
+            customerEmail: invoice.customerEmail || '',
+            customerPhone: invoice.customerPhone || '',
+            items: invoice.items || '[]'
           }}
           merchant={{
             name: merchant.name

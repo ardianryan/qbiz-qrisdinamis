@@ -35,15 +35,29 @@ Generates a dynamic QRIS payment with a unique numeric suffix to match bank muta
   | `merchant_id` | `string` | Optional | Target merchant ID (defaults to `mrc_toko_1`). Must be associated with your API Key account. |
   | `callback_url` | `string` | Optional | Custom webhook target URL (backend API POST destination) for this invoice. |
   | `redirect_url` | `string` | Optional | Custom redirect URL (frontend browser destination) to return the customer to after checkout success. |
+  | `customer_name` | `string` | Optional | Full name of the paying customer (displayed on secure checkout page). |
+  | `customer_email` | `string` | Optional | Email address of the paying customer (displayed on secure checkout page). |
+  | `customer_phone` | `string` | Optional | Mobile phone number of the paying customer (displayed on secure checkout page). |
+  | `items` | `array` | Optional | List of purchase items. Format: `[{"name": string, "quantity": integer, "price": integer}]`. |
 
 * **Request Example**:
   ```json
   {
-    "amount": 10000,
+    "amount": 98000,
     "order_id": "ORD-178592301",
     "merchant_id": "mrc_toko_1",
     "callback_url": "https://mypos.com/api/webhooks/qris",
-    "redirect_url": "https://mypos.com/checkout/success"
+    "redirect_url": "https://mypos.com/checkout/success",
+    "customer_name": "adianadia",
+    "customer_phone": "085155030300",
+    "customer_email": "adianr94@gmail.com",
+    "items": [
+      {
+        "name": "[Exclusive - 1 Month] - Exclusive - 1 Month",
+        "quantity": 1,
+        "price": 98000
+      }
+    ]
   }
   ```
 

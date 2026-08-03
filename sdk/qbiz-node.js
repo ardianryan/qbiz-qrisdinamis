@@ -20,10 +20,15 @@ class QBizClient {
    * @param {string} params.orderId - Unique order ID from client system
    * @param {number} params.amount - Base billing amount in Rupiah
    * @param {string} [params.callbackUrl] - Webhook callback URL for payment success notification
+   * @param {string} [params.redirectUrl] - Browser redirect page URL on payment success
    * @param {string} [params.merchantId] - Target merchant ID (optional)
+   * @param {string} [params.customerName] - Full customer name (optional)
+   * @param {string} [params.customerEmail] - Customer email address (optional)
+   * @param {string} [params.customerPhone] - Customer phone number (optional)
+   * @param {Array} [params.items] - List of purchase items (optional)
    * @returns {Promise<Object>} The created invoice details
    */
-  async createInvoice({ orderId, amount, callbackUrl, redirectUrl, merchantId }) {
+  async createInvoice({ orderId, amount, callbackUrl, redirectUrl, merchantId, customerName, customerEmail, customerPhone, items }) {
     const url = `${this.baseUrl}/api/v1/invoices`;
     const response = await fetch(url, {
       method: 'POST',
@@ -36,7 +41,11 @@ class QBizClient {
         amount: Number(amount),
         callback_url: callbackUrl,
         redirect_url: redirectUrl,
-        merchant_id: merchantId
+        merchant_id: merchantId,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+        items: items
       })
     });
 
