@@ -381,12 +381,15 @@ app.get('/developer', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'ME
   const userList = await db.select().from(users).where(eq(users.id, user.id));
   const dbUser = userList[0] || { apiKey: '', webhookUrl: '', webhookSecret: '' };
 
+  const baseUrl = Deno.env.get("BASE_URL") || "http://localhost:8000";
+
   (c as any).set('title', 'Developer Hub');
   return c.render(
     <DeveloperPage 
       apiKey={dbUser.apiKey || ''} 
       webhookUrl={dbUser.webhookUrl || ''} 
       webhookSecret={dbUser.webhookSecret || ''} 
+      baseUrl={baseUrl}
       currentUser={user}
     />
   );

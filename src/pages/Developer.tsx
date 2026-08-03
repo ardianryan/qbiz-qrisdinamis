@@ -5,13 +5,14 @@ interface DeveloperPageProps {
   apiKey: string;
   webhookUrl: string;
   webhookSecret: string;
+  baseUrl: string;
   currentUser?: any;
 }
 
-export function DeveloperPage({ apiKey, webhookUrl, webhookSecret, currentUser }: DeveloperPageProps) {
+export function DeveloperPage({ apiKey, webhookUrl, webhookSecret, baseUrl, currentUser }: DeveloperPageProps) {
   // Static code snippets for code tabs
   const codeSnippets = {
-    curl: `curl -X POST https://localhost:8000/api/v1/invoices \\
+    curl: `curl -X POST ${baseUrl}/api/v1/invoices \\
   -H "Authorization: Bearer ${apiKey || 'qbiz_api_key_demo_2026'}" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -19,7 +20,7 @@ export function DeveloperPage({ apiKey, webhookUrl, webhookSecret, currentUser }
     "amount": 50000,
     "callback_url": "${webhookUrl || 'https://yourserver.com/webhooks/qris'}"
   }'`,
-    node: `const response = await fetch('https://localhost:8000/api/v1/invoices', {
+    node: `const response = await fetch('${baseUrl}/api/v1/invoices', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer ${apiKey || 'qbiz_api_key_demo_2026'}',
@@ -47,7 +48,7 @@ headers = {
 }
 
 response = requests.post(
-    "https://localhost:8000/api/v1/invoices",
+    "${baseUrl}/api/v1/invoices",
     json=payload,
     headers=headers
 )
@@ -221,7 +222,7 @@ print(response.json())`
             <div className="mt-3 bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800 rounded-lg p-2.5 flex items-start gap-2">
               <span className="text-[14px]">💡</span>
               <span className="text-[10px] text-slate-600 dark:text-zinc-400 leading-relaxed">
-                <strong>Official SDKs available!</strong> Prebuilt client clients for <strong>PHP</strong> (<a href="file:///Users/ardianryan/Documents/qrispaymti/sdk/qbiz.php" className="text-sky-600 hover:underline font-mono">sdk/qbiz.php</a>) and <strong>Node.js</strong> (<a href="file:///Users/ardianryan/Documents/qrispaymti/sdk/qbiz-node.js" className="text-sky-600 hover:underline font-mono">sdk/qbiz-node.js</a>) are ready in the <code>sdk/</code> folder!
+                <strong>Official SDKs available!</strong> Prebuilt client clients for <strong>PHP</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.php" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.php</a>) and <strong>Node.js</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz-node.js" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz-node.js</a>) are ready in the <code>sdk/</code> folder!
               </span>
             </div>
           </div>
@@ -286,7 +287,7 @@ print(response.json())`
     "total_amount": 50123,
     "status": "PENDING",
     "qris_payload": "00020101021238590014...",
-    "checkout_url": "http://localhost:8000/pay/inv_10923840"
+    "checkout_url": "${baseUrl}/pay/inv_10923840"
   }
 }`}
                 </pre>
@@ -298,6 +299,14 @@ print(response.json())`
                   <li><strong>Method A (Direct QRIS)</strong>: Take the raw <code>qris_payload</code> string response and generate the QR code directly inside your own application page.</li>
                   <li><strong>Method B (Redirect Checkout)</strong>: Redirect the buyer's browser to the hosted <code>checkout_url</code> page to complete their payment.</li>
                 </ul>
+              </div>
+
+              <div className="bg-amber-950/20 border border-amber-900/60 rounded-lg p-3 mt-3">
+                <span className="text-[10px] text-amber-400 uppercase tracking-wider block font-bold mb-1 font-mono">⚠️ IMPORTANT: Unique Suffix (Nominal Unik) Display</span>
+                <p className="text-[10.5px] text-zinc-300 leading-relaxed font-sans">
+                  QBiz automatically adds a unique 3-digit suffix (e.g., <code>unique_code: 123</code>) to prevent payment conflicts. 
+                  <strong>You MUST display the <code>total_amount</code> (e.g., Rp 50,123) to the customer</strong> in your client application. Do NOT display the base amount (e.g., Rp 50,000). The generated <code>qris_payload</code> is already pre-configured with this exact total amount.
+                </p>
               </div>
             </div>
           </div>

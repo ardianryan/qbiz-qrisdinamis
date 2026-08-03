@@ -62,6 +62,12 @@ Generates a dynamic QRIS payment with a unique numeric suffix to match bank muta
   }
   ```
 
+> [!IMPORTANT]
+> **How to Handle Unique Codes (`total_amount` vs `base_amount`)**:
+> 1. **Display `total_amount` to the Customer**: When creating an invoice, QBiz dynamically appends a unique 3-digit suffix (e.g. `2`) to the requested base amount to prevent payment collisions. **You MUST display the `total_amount` (e.g., Rp 10,002) in your client application** and clearly instruct the customer to pay the exact amount. Do NOT display the `base_amount` (e.g., Rp 10,000) to the buyer.
+> 2. **Pre-configured QRIS Payload**: The returned `qris_payload` string is already pre-configured with the exact `total_amount` inside the EMVCo structure. If the customer scans the QR code directly, their e-wallet app will automatically load the correct `total_amount` (e.g., Rp 10,002) without manual input.
+> 3. **Collision Prevention**: QBiz guarantees that no two pending invoices for the same merchant will ever share the exact same `total_amount`. This ensures that when a bank/e-wallet mutation is intercepted, it maps to exactly one pending transaction, avoiding double matching or collision errors.
+
 ---
 
 ### B. View Secure Checkout Page (Redirect Method)
