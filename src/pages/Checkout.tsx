@@ -87,6 +87,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
               width: 100%;
               min-height: auto;
+              margin: auto !important; /* Center correctly without cropping in flex container */
             }
             /* Rounded corners for left/right panels on mobile */
             .rounded-left-panel {
@@ -119,7 +120,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
           `
         }} />
       </head>
-      <body className="text-slate-800 dark:text-zinc-200 min-h-screen flex items-center justify-center p-4 md:p-8 antialiased">
+      <body className="text-slate-800 dark:text-zinc-200 min-h-screen flex p-4 md:p-12 antialiased">
         
         {/* Responsive Container */}
         <div className="w-full bg-white dark:bg-zinc-900 checkout-card rounded-2xl md:rounded-3xl flex flex-col md:flex-row transition-all duration-300">
