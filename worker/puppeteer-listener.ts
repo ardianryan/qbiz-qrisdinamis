@@ -4,13 +4,21 @@ import { merchants, invoices, mutations, users } from '../db/schema.ts';
 import { eq, and, sql } from 'drizzle-orm';
 
 // Mutex or tracker for running listeners
-// Now each entry only stores { intervalId, status } — no more browser references!
+// Each entry stores { intervalId, browser, page, status }
 export const activeListeners = new Map<string, any>();
 
 /**
- * Start the lightweight HTTP fetch-based polling listener for a merchant.
- * Replaces the old Puppeteer browser-based approach.
- * RAM usage: ~0.1 MB per merchant vs ~150 MB previously.
+ * Start the Puppeteer-backed idle browser listener for a merchant.
+ * 
+ * HYBRID APPROACH:
+ * - Browser opens once, navigates to the GoBiz transactions page.
+ * - Does NOT reload the page anymore (saves CPU/RAM vs old approach).
+ * - Instead, uses page.evaluate() to trigger a fetch() from INSIDE
+ *   the browser context every 8 seconds — so cookies and auth tokens
+ *   are all handled automatically by Chrome.
+ * 
+ * RAM: ~80-100MB per browser (vs ~150MB with full reloads, and 0.1MB
+ * pure fetch which doesn't work due to GoBiz bot protection).
  */
 export async function startMerchantListener(merchantId: string) {
   if (activeListeners.has(merchantId)) {
@@ -18,7 +26,6 @@ export async function startMerchantListener(merchantId: string) {
     return;
   }
 
-  // Get merchant details from DB
   const mrcList = await db.select().from(merchants).where(eq(merchants.id, merchantId));
   if (mrcList.length === 0) {
     console.error(`[Worker ${merchantId}] Merchant not found in DB.`);
@@ -26,117 +33,132 @@ export async function startMerchantListener(merchantId: string) {
   }
   const merchant = mrcList[0];
 
-  // Load cookies from session file
-  let cookieString = '';
-  let accessToken = merchant.sessionToken || '';
+  console.log(`[Worker ${merchantId}] Starting Puppeteer idle-browser listener...`);
+  activeListeners.set(merchantId, { status: 'STARTING' });
 
   try {
-    const sessionData = await Deno.readTextFile(merchant.sessionFilePath);
-    const cookies: Array<{ name: string; value: string }> = JSON.parse(sessionData);
-    cookieString = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-    console.log(`[Worker ${merchantId}] Session cookies loaded (${cookies.length} cookies).`);
+    const browser = await puppeteer.launch({
+      headless: true,
+      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+    });
 
-    // Try to extract access token from cookies if not already in DB
-    if (!accessToken) {
-      const tokenCookie = cookies.find(c =>
-        c.name === 'access_token' ||
-        c.name === 'Authorization' ||
-        c.name === '_token' ||
-        c.name === 'gobiz_token'
-      );
-      if (tokenCookie) {
-        accessToken = tokenCookie.value;
-        await db.update(merchants)
-          .set({ sessionToken: accessToken })
-          .where(eq(merchants.id, merchantId));
-      }
-    }
-  } catch (_err) {
-    console.error(`[Worker ${merchantId}] No session file found. Cannot start listener. Setting NEEDS_OTP.`);
-    await db.update(merchants)
-      .set({ status: 'NEEDS_OTP' })
-      .where(eq(merchants.id, merchantId));
-    return;
-  }
+    const page = await browser.newPage();
 
-  console.log(`[Worker ${merchantId}] Starting lightweight HTTP fetch polling...`);
-  activeListeners.set(merchantId, { status: 'ACTIVE' });
-
-  await db.update(merchants)
-    .set({ status: 'ACTIVE' })
-    .where(eq(merchants.id, merchantId));
-
-  // Poll GoBiz transactions API directly every 8 seconds (no browser needed!)
-  const intervalId = setInterval(async () => {
+    // Load existing cookies from session file
     try {
-      const now = new Date();
-      const startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-      const startIso = startTime.toISOString().replace('T', ' ').substring(0, 19);
-      const endIso = now.toISOString().replace('T', ' ').substring(0, 19);
-
-      const apiUrl = `https://portal.gofoodmerchant.co.id/merchant-analytics/v2/merchants/transactions?start_time=${encodeURIComponent(startIso)}&end_time=${encodeURIComponent(endIso)}&page=1&page_size=50`;
-
-      const headers: Record<string, string> = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Cookie': cookieString,
-        'Referer': 'https://portal.gofoodmerchant.co.id/transactions',
-        'Origin': 'https://portal.gofoodmerchant.co.id',
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      };
-
-      if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
-      }
-
-      console.log(`[Worker ${merchantId}] Polling mutation feed...`);
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers,
-        signal: AbortSignal.timeout(10000),
-      });
-
-      // Session expired → stop listener and require re-auth
-      if (response.status === 401 || response.status === 403) {
-        console.warn(`[Worker ${merchantId}] Session expired (HTTP ${response.status}). Setting to NEEDS_OTP.`);
-        await db.update(merchants)
-          .set({ status: 'NEEDS_OTP', sessionToken: null })
-          .where(eq(merchants.id, merchantId));
-        clearInterval(intervalId);
-        activeListeners.delete(merchantId);
-        return;
-      }
-
-      if (response.status !== 200) {
-        console.warn(`[Worker ${merchantId}] Unexpected response HTTP ${response.status}. Skipping.`);
-        return;
-      }
-
-      const payload = await response.json();
-      let list: any[] = [];
-
-      if (payload?.transactions) {
-        list = payload.transactions;
-      } else if (payload?.data) {
-        list = payload.data;
-      } else if (Array.isArray(payload)) {
-        list = payload;
-      }
-
-      if (list.length > 0) {
-        console.log(`[Worker ${merchantId}] ${list.length} mutations received. Processing...`);
-        await processIncomingMutations(merchantId, list);
-      }
-
-    } catch (err: any) {
-      console.error(`[Worker ${merchantId}] Fetch polling failed:`, err.message);
+      const sessionData = await Deno.readTextFile(merchant.sessionFilePath);
+      const cookies = JSON.parse(sessionData);
+      await page.setCookie(...cookies);
+      console.log(`[Worker ${merchantId}] Session cookies loaded (${cookies.length} cookies).`);
+    } catch (_err) {
+      console.error(`[Worker ${merchantId}] No session file found. Setting NEEDS_OTP.`);
+      await db.update(merchants).set({ status: 'NEEDS_OTP' }).where(eq(merchants.id, merchantId));
+      await browser.close();
+      activeListeners.delete(merchantId);
+      return;
     }
-  }, 8000);
 
-  activeListeners.get(merchantId).intervalId = intervalId;
-  console.log(`[Worker ${merchantId}] Polling listener active (every 8s). ✅`);
+    // Navigate to transactions page once (not reloaded again after this)
+    console.log(`[Worker ${merchantId}] Navigating to GoBiz transactions page...`);
+    await page.goto('https://portal.gofoodmerchant.co.id/transactions?data_range=this_week', {
+      waitUntil: 'networkidle2',
+      timeout: 30000
+    });
+
+    // If redirected to login page, session is dead
+    if (page.url().includes('/login')) {
+      console.warn(`[Worker ${merchantId}] Session expired on navigation. Setting NEEDS_OTP.`);
+      await db.update(merchants).set({ status: 'NEEDS_OTP' }).where(eq(merchants.id, merchantId));
+      await browser.close();
+      activeListeners.delete(merchantId);
+      return;
+    }
+
+    // Mark as ACTIVE
+    await db.update(merchants).set({ status: 'ACTIVE' }).where(eq(merchants.id, merchantId));
+    activeListeners.get(merchantId).browser = browser;
+    activeListeners.get(merchantId).page = page;
+    activeListeners.get(merchantId).status = 'ACTIVE';
+
+    // Poll using page.evaluate() — fetch runs INSIDE the browser with its auth context
+    const intervalId = setInterval(async () => {
+      try {
+        console.log(`[Worker ${merchantId}] Polling mutation feed (in-browser fetch)...`);
+
+        const now = new Date();
+        const startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const startIso = startTime.toISOString().replace('T', ' ').substring(0, 19);
+        const endIso = now.toISOString().replace('T', ' ').substring(0, 19);
+
+        const result = await page.evaluate(async (startIso: string, endIso: string) => {
+          // This code runs inside Chrome — cookies & auth auto-included!
+          const apiUrl = `https://portal.gofoodmerchant.co.id/merchant-analytics/v2/merchants/transactions?start_time=${encodeURIComponent(startIso)}&end_time=${encodeURIComponent(endIso)}&page=1&page_size=50`;
+          try {
+            const resp = await fetch(apiUrl, {
+              method: 'GET',
+              credentials: 'include', // Ensures browser cookies are included
+              headers: {
+                'Accept': 'application/json',
+              }
+            });
+            if (!resp.ok) return { error: resp.status };
+            const data = await resp.json();
+            return { data };
+          } catch (e: any) {
+            return { error: e.message };
+          }
+        }, startIso, endIso);
+
+        if (!result || result.error) {
+          const errStatus = result?.error;
+          if (errStatus === 401 || errStatus === 403) {
+            console.warn(`[Worker ${merchantId}] Session expired (HTTP ${errStatus}). Setting NEEDS_OTP.`);
+            await db.update(merchants)
+              .set({ status: 'NEEDS_OTP', sessionToken: null })
+              .where(eq(merchants.id, merchantId));
+            clearInterval(intervalId);
+            try { await browser.close(); } catch (_) {}
+            activeListeners.delete(merchantId);
+          } else {
+            console.warn(`[Worker ${merchantId}] In-browser fetch error: ${errStatus}`);
+          }
+          return;
+        }
+
+        const payload = result.data;
+        let list: any[] = [];
+        if (payload?.transactions) {
+          list = payload.transactions;
+        } else if (payload?.data) {
+          list = payload.data;
+        } else if (Array.isArray(payload)) {
+          list = payload;
+        }
+
+        if (list.length > 0) {
+          console.log(`[Worker ${merchantId}] ${list.length} mutations received. Processing...`);
+          await processIncomingMutations(merchantId, list);
+        }
+
+      } catch (err: any) {
+        console.error(`[Worker ${merchantId}] Polling cycle error:`, err.message);
+      }
+    }, 8000);
+
+    activeListeners.get(merchantId).intervalId = intervalId;
+    console.log(`[Worker ${merchantId}] Idle-browser polling active (every 8s). ✅`);
+
+  } catch (err: any) {
+    console.error(`[Worker ${merchantId}] Listener crashed:`, err.message);
+    await db.update(merchants).set({ status: 'DISCONNECTED' }).where(eq(merchants.id, merchantId));
+    const active = activeListeners.get(merchantId);
+    if (active?.browser) try { await active.browser.close(); } catch (_) {}
+    if (active?.intervalId) clearInterval(active.intervalId);
+    activeListeners.delete(merchantId);
+  }
 }
+
 
 /**
  * Terminate a running listener worker
@@ -146,8 +168,9 @@ export async function stopMerchantListener(merchantId: string) {
   if (!active) return;
 
   console.log(`[Worker ${merchantId}] Stopping listener worker...`);
-  if (active.intervalId) {
-    clearInterval(active.intervalId);
+  if (active.intervalId) clearInterval(active.intervalId);
+  if (active.browser) {
+    try { await active.browser.close(); } catch (_) {}
   }
   activeListeners.delete(merchantId);
 
