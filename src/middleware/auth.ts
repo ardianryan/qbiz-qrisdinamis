@@ -34,11 +34,12 @@ export async function hashPassword(password: string): Promise<string> {
 export async function authMiddleware(c: any, next: any) {
   const url = new URL(c.req.url);
   
-  // Skip auth for login, static assets, and test endpoints
+  // Skip auth for login, static assets, public pay page, and API public endpoints
   if (
     url.pathname === '/login' || 
     url.pathname.startsWith('/static/') || 
-    url.pathname.startsWith('/api/v1/invoices') || // API invoices are auth'd via Bearer key
+    url.pathname.startsWith('/pay/') || // Public secure pay page
+    url.pathname.startsWith('/api/v1/invoices') || // API invoices are auth'd via Bearer key or public status check
     url.pathname.startsWith('/api/v1/developer/test-webhook') // Test webhook handles own auth
   ) {
     return await next();
