@@ -86,15 +86,15 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
             .checkout-card {
               box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
               width: 100%;
+              min-height: 100vh; /* Full screen height on mobile */
             }
             @media (min-width: 768px) {
               .checkout-card {
                 border-radius: 24px;
                 overflow: hidden;
                 max-width: 900px !important;
-                min-height: auto !important;
+                min-height: 0 !important; /* Reset full screen height on desktop */
                 height: auto !important;
-                margin: 4rem auto !important;
               }
               .rounded-left-panel {
                 border-top-left-radius: 24px;
@@ -111,7 +111,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
       <body className="text-slate-800 dark:text-zinc-200 min-h-screen flex items-center justify-center p-0 md:p-6 antialiased">
         
         {/* Responsive Container */}
-        <div className="w-full bg-white dark:bg-zinc-900 checkout-card md:rounded-3xl flex flex-col md:flex-row min-h-screen md:min-h-[600px] transition-all duration-300">
+        <div className="w-full bg-white dark:bg-zinc-900 checkout-card md:rounded-3xl flex flex-col md:flex-row transition-all duration-300">
           
           {/* LEFT PANEL - White checkout section */}
           <div className="w-full md:w-[48%] bg-white dark:bg-zinc-950 p-6 md:p-10 flex flex-col justify-between rounded-left-panel border-r border-slate-100 dark:border-zinc-800/50">
