@@ -126,20 +126,20 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
         <div className="w-full bg-white dark:bg-zinc-900 checkout-card rounded-2xl md:rounded-3xl flex flex-col md:flex-row transition-all duration-300">
           
           {/* LEFT PANEL - White checkout section */}
-          <div className="w-full md:w-[48%] bg-white dark:bg-zinc-950 p-5 md:p-8 flex flex-col justify-between rounded-left-panel border-b md:border-b-0 md:border-r border-slate-100 dark:border-zinc-800/50">
+          <div className="w-full md:w-[48%] bg-white dark:bg-zinc-950 p-5 md:p-6 flex flex-col justify-between rounded-left-panel border-b md:border-b-0 md:border-r border-slate-100 dark:border-zinc-800/50">
             <div>
               {/* Back button */}
               <a 
                 href="#" 
                 id="back-btn"
-                className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors font-medium mb-6"
+                className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors font-medium mb-4"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
                 Kembali
               </a>
 
               {/* Timer Title & Value */}
-              <div className="text-center md:text-left mb-6">
+              <div className="text-center md:text-left mb-4">
                 <span className="text-xs text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-wider block">Selesaikan pembayaran dalam</span>
                 <div id="countdown-timer" className="text-3xl md:text-4xl font-bold text-sky-500 dark:text-sky-400 mt-2 tracking-widest font-mono-qbiz select-none">
                   {timerPlaceholder}
@@ -147,7 +147,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               </div>
 
               {/* Deadline expiry date display */}
-              <div className="text-center md:text-left mb-6 border-b border-slate-100 dark:border-zinc-800/80 pb-5">
+              <div className="text-center md:text-left mb-4 border-b border-slate-100 dark:border-zinc-800/80 pb-3">
                 <span className="text-[11px] text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-wide block">Batas akhir pembayaran</span>
                 <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300 mt-1 block">
                   {formattedExpiry}
@@ -155,7 +155,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               </div>
 
               {/* Payment Method & Copy amount */}
-              <div className="flex flex-col gap-4 mb-6">
+              <div className="flex flex-col gap-3 mb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300">QRIS by ShopeePay</span>
@@ -167,7 +167,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between bg-slate-50 dark:bg-zinc-900/50 p-4 rounded-xl border border-slate-100 dark:border-zinc-800/80">
+                <div className="flex items-center justify-between bg-slate-50 dark:bg-zinc-900/50 p-3 rounded-xl border border-slate-100 dark:border-zinc-800/80">
                   <div>
                     <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-wider block">Jumlah Bayar</span>
                     <span className="text-xl font-extrabold text-slate-900 dark:text-zinc-50 font-mono-qbiz mt-1 block">
@@ -185,46 +185,46 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               </div>
 
               {/* QR CODE DISPLAY */}
-              <div className="flex flex-col items-center justify-center py-4 relative">
-                <div className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm relative overflow-hidden max-w-[240px] w-full flex items-center justify-center">
+              <div className="flex flex-col items-center justify-center py-2 relative">
+                <div className="bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm relative overflow-hidden max-w-[220px] w-full flex items-center justify-center">
                   <div dangerouslySetInnerHTML={{ __html: qrSvgHtml }} className="w-full h-full" />
                   
                   {/* Expired Overlay */}
-                  <div id="expired-overlay" className="absolute inset-0 bg-white/95 dark:bg-zinc-950/95 flex flex-col items-center justify-center p-4 text-center hidden">
-                    <svg className="w-10 h-10 text-red-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                    <h4 className="font-bold text-slate-900 dark:text-zinc-50 text-xs">Kedaluwarsa</h4>
-                    <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-1 leading-relaxed">Invoice telah kedaluwarsa. Silakan checkout ulang.</p>
+                  <div id="expired-overlay" style={{ display: 'none', position: 'absolute', inset: '0', backgroundColor: 'rgba(255, 255, 255, 0.96)', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px', textAlign: 'center', zIndex: 10 }} className="dark:bg-zinc-950/96">
+                    <svg style={{ width: '40px', height: '40px', color: '#ef4444', marginBottom: '8px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <h4 style={{ fontWeight: '700', color: '#1f2937', fontSize: '13px', margin: '0' }} className="dark:text-zinc-50">Kedaluwarsa</h4>
+                    <p style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px', marginBottom: '0' }} className="dark:text-zinc-500">Invoice telah kedaluwarsa. Silakan checkout ulang.</p>
                   </div>
 
                   {/* Paid Success Overlay */}
-                  <div id="success-overlay" className="absolute inset-0 bg-emerald-50/95 dark:bg-emerald-950/95 flex flex-col items-center justify-center p-4 text-center hidden">
-                    <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-2 animate-bounce">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                  <div id="success-overlay" style={{ display: 'none', position: 'absolute', inset: '0', backgroundColor: 'rgba(236, 253, 245, 0.97)', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px', textAlign: 'center', zIndex: 10 }} className="dark:bg-emerald-950/95">
+                    <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#d1fae5', border: '2px solid #a7f3d0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', color: '#047857' }} className="animate-bounce">
+                      <svg style={{ width: '20px', height: '20px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     </div>
-                    <h4 className="font-bold text-emerald-800 dark:text-emerald-400 text-xs">Pembayaran Sukses!</h4>
-                    <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 mt-1">Mengalihkan halaman dalam beberapa detik...</p>
+                    <h4 style={{ fontWeight: '700', color: '#065f46', fontSize: '13px', margin: '0' }} className="dark:text-emerald-400">Pembayaran Sukses!</h4>
+                    <p style={{ fontSize: '10px', color: '#047857', marginTop: '4px', marginBottom: '0' }} className="dark:text-emerald-500">Mengalihkan halaman dalam beberapa detik...</p>
                   </div>
                 </div>
                 
-                <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-3 block italic">
+                <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-2 block italic">
                   *Klik untuk memperbesar kode QR
                 </span>
               </div>
             </div>
 
             {/* Cara Pembayaran Accordion Trigger */}
-            <div className="mt-6 border-t border-slate-100 dark:border-zinc-800/80 pt-6">
+            <div className="mt-4 border-t border-slate-100 dark:border-zinc-800/80 pt-4">
               <button 
                 id="accordion-toggle-btn"
                 type="button"
-                className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-900 dark:hover:bg-zinc-800/80 text-slate-700 dark:text-zinc-300 border border-slate-200/80 dark:border-zinc-800 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer"
+                className="w-full py-2 px-4 bg-slate-50 hover:bg-slate-100 dark:bg-zinc-900 dark:hover:bg-zinc-800/80 text-slate-700 dark:text-zinc-300 border border-slate-200/80 dark:border-zinc-800 font-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all select-none cursor-pointer"
               >
                 Cara pembayaran
                 <svg id="accordion-arrow" className="w-3.5 h-3.5 transform transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
               </button>
               
               {/* Accordion Content */}
-              <div id="accordion-content" className="max-h-0 overflow-hidden transition-all duration-300 mt-2 px-1 text-slate-500 dark:text-zinc-400 text-[11px] leading-relaxed">
+              <div id="accordion-content" style={{ maxHeight: '0px', overflow: 'hidden' }} className="transition-all duration-300 mt-2 px-1 text-slate-500 dark:text-zinc-400 text-[11px] leading-relaxed">
                 <ol className="list-decimal pl-4 space-y-1.5 py-2">
                   <li>Buka aplikasi e-wallet atau M-Banking favorit Anda (ShopeePay, GoPay, OVO, Dana, LinkAja, BCA, Mandiri, dll).</li>
                   <li>Pilih menu **Scan / Bayar QRIS**.</li>
@@ -237,10 +237,10 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
           </div>
 
           {/* RIGHT PANEL - Light grey transaction & purchase breakdown */}
-          <div className="w-full md:w-[52%] bg-[#f4f8fc] dark:bg-zinc-900 p-6 md:p-10 flex flex-col justify-between rounded-right-panel">
+          <div className="w-full md:w-[52%] bg-[#f4f8fc] dark:bg-zinc-900 p-5 md:p-6 flex flex-col justify-between rounded-right-panel">
             <div>
               {/* Header Logo */}
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center text-white font-bold text-base">
                   P
                 </div>
@@ -251,15 +251,15 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               </div>
 
               {/* Guide Alert Text */}
-              <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed mb-6">
+              <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed mb-4">
                 Pastikan anda melakukan pembayaran dengan nominal yang tepat dan sebelum melewati batas pembayaran.
               </p>
 
               {/* Detail Transaksi */}
-              <div className="mb-6">
-                <h4 className="text-xs font-bold text-slate-950 dark:text-zinc-100 uppercase tracking-wider mb-3 pb-1 border-b border-slate-200/60 dark:border-zinc-800">Detail Transaksi</h4>
+              <div className="mb-4">
+                <h4 className="text-xs font-bold text-slate-950 dark:text-zinc-100 uppercase tracking-wider mb-2 pb-1 border-b border-slate-200/60 dark:border-zinc-800">Detail Transaksi</h4>
                 
-                <div className="grid grid-cols-2 gap-y-3.5 gap-x-4 text-xs">
+                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
                   <div>
                     <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-bold uppercase block">Merchant</span>
                     <span className="text-slate-800 dark:text-zinc-200 font-semibold mt-0.5 block">{merchant.name}</span>
@@ -290,8 +290,8 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               </div>
 
               {/* Rincian Pembelian */}
-              <div className="mb-6">
-                <h4 className="text-xs font-bold text-slate-950 dark:text-zinc-100 uppercase tracking-wider mb-3 pb-1 border-b border-slate-200/60 dark:border-zinc-800">Rincian Pembelian</h4>
+              <div className="mb-4">
+                <h4 className="text-xs font-bold text-slate-950 dark:text-zinc-100 uppercase tracking-wider mb-2 pb-1 border-b border-slate-200/60 dark:border-zinc-800">Rincian Pembelian</h4>
                 
                 <div className="bg-white dark:bg-zinc-950/40 p-4 rounded-xl border border-slate-200/50 dark:border-zinc-800/80">
                   {/* Purchase Item List */}
@@ -362,7 +362,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                 if (distance < 0) {
                   clearInterval(timerInterval);
                   if (timerDisplay) timerDisplay.textContent = 'EXPIRED';
-                  if (expiredOverlay) expiredOverlay.classList.remove('hidden');
+                  if (expiredOverlay) expiredOverlay.style.display = 'flex';
                   return;
                 }
 
@@ -386,7 +386,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                     if (data.status === 'PAID') {
                       clearInterval(timerInterval);
                       clearInterval(statusInterval);
-                      if (successOverlay) successOverlay.classList.remove('hidden');
+                      if (successOverlay) successOverlay.style.display = 'flex';
                       
                       // Redirect to client success page after 3 seconds
                       const targetRedirect = data.redirectUrl || data.callbackUrl;
@@ -398,7 +398,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                     } else if (data.status === 'EXPIRED') {
                       clearInterval(timerInterval);
                       clearInterval(statusInterval);
-                      if (expiredOverlay) expiredOverlay.classList.remove('hidden');
+                      if (expiredOverlay) expiredOverlay.style.display = 'flex';
                     }
                   })
                   .catch(err => console.error('Status check failed:', err));
@@ -428,7 +428,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                         if (data.status === 'PAID') {
                           clearInterval(timerInterval);
                           clearInterval(statusInterval);
-                          if (successOverlay) successOverlay.classList.remove('hidden');
+                          if (successOverlay) successOverlay.style.display = 'flex';
                           
                           const targetRedirect = data.redirectUrl || data.callbackUrl;
                           if (targetRedirect) {
@@ -439,7 +439,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                         } else if (data.status === 'EXPIRED') {
                           clearInterval(timerInterval);
                           clearInterval(statusInterval);
-                          if (expiredOverlay) expiredOverlay.classList.remove('hidden');
+                          if (expiredOverlay) expiredOverlay.style.display = 'flex';
                         } else {
                           alert('Pembayaran belum masuk. Mohon tunggu atau coba beberapa saat lagi.');
                         }
