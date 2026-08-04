@@ -16,5 +16,6 @@ All notable changes to the **QBiz Gateway Hub** project will be documented in th
 - **Interactive Scalar API Docs**: Beautiful interactive developer documentation served at `/docs` backed by an OpenAPI 3.0 specification (`static/openapi.json`).
 - **LLM Indexing Support**: Created root specifications `llms.txt` and `llms-full.txt` alongside meta link declarations for AI agent discovery.
 - **Geographic & SEO Target Metadata**: Integrated Indonesia regional GEO meta codes and search engine indexing boundaries via `robots.txt` and meta indexing tags.
+- **Session File Encryption (AES-256-GCM)**: Implemented cryptographic encryption-at-rest for Puppeteer session cookie files using Web Crypto PBKDF2 key derivation (100k iterations) and AES-256-GCM symmetric encryption.
 - **Containerized Deployments**: Provided docker config files (`Dockerfile`, `docker-compose.yml`) and one-click shell auto-installers (`install.sh`).
 - **Deno Testing Suite**: Unified unit/integration test suites matching EMVCo calculations and Honos routing API validations.

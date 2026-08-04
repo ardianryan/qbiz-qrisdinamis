@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer';
 import { db } from '../db/db.ts';
 import { merchants, invoices, mutations, users } from '../db/schema.ts';
 import { eq, and, sql } from 'drizzle-orm';
+import { encryptSession, decryptSession } from '../src/utils/crypto.ts';
 
 // Mutex or tracker for running listeners
 // Each entry stores { intervalId, browser, page, status }
@@ -83,10 +84,17 @@ export async function startMerchantListener(merchantId: string) {
       }
     });
 
-    // Load existing cookies from session file
+    // Load existing cookies from session file securely
     try {
       const sessionData = await Deno.readTextFile(merchant.sessionFilePath);
-      const cookies = JSON.parse(sessionData);
+      let cookies: any;
+      try {
+        const decrypted = await decryptSession(sessionData);
+        cookies = JSON.parse(decrypted);
+      } catch (_decryptErr) {
+        // Fallback to plain JSON for backward compatibility
+        cookies = JSON.parse(sessionData);
+      }
       await page.setCookie(...cookies);
       console.log(`[Worker ${merchantId}] Session cookies loaded (${cookies.length} cookies).`);
     } catch (_err) {
@@ -249,14 +257,15 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
 
     if (page.url().includes('/dashboard') || !page.url().includes('/login')) {
-      // 1. Save cookies to session JSON file
+      // 1. Save cookies to session JSON file securely (encrypted at rest)
       const cookies = await page.cookies();
       const mrcList = await db.select().from(merchants).where(eq(merchants.id, merchantId));
       if (mrcList.length > 0) {
         const sessionPath = mrcList[0].sessionFilePath;
         await Deno.mkdir('sessions', { recursive: true });
-        await Deno.writeTextFile(sessionPath, JSON.stringify(cookies, null, 2));
-        console.log(`[Worker ${merchantId}] Session cookies saved.`);
+        const encrypted = await encryptSession(JSON.stringify(cookies));
+        await Deno.writeTextFile(sessionPath, encrypted);
+        console.log(`[Worker ${merchantId}] Session cookies saved securely (AES-256-GCM encrypted).`);
       }
 
       // 2. Extract Bearer access token from localStorage or cookies
