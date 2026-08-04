@@ -1,74 +1,74 @@
-# QBiz Security Policy & Fintech Compliance Standards (SECURITY.md)
+# QBiz Security Policy & Financial Compliance Standards (SECURITY.md)
 
-Dokumen ini mendefinisikan standar keamanan, arsitektur perlindungan data, audit keamanan, dan panduan kepatuhan regulasi fintech (seperti Bank Indonesia, OJK, PCI-DSS, dan OWASP Top 10) yang diimplementasikan pada middleware pembayaran QBiz QRIS Dinamis.
+This document defines the security standards, data protection architecture, security audits, and compliance guidelines for government and financial regulations implemented within the QBiz Dynamic QRIS payment router middleware.
 
 ---
 
-## 1. Ringkasan Status Audit Keamanan QBiz
+## 1. Security Audit Summary
 
-| Area Keamanan | Mekanisme Pertahanan Saat Ini | Status Kepatuhan |
+| Security Area | Current Defense Mechanism | Compliance Status |
 | :--- | :--- | :--- |
-| **Autentikasi API** | Bearer API Key dinamis per-user dengan enkripsi Hash DB | **LULUS (Fintech Grade)** |
-| **Integritas Transaksi** | Verifikasi Webhook menggunakan HMAC-SHA256 Signature | **LULUS (Fintech Grade)** |
-| **Pencegahan Enumerasi ID** | ID Transaksi berbasis string acak (Prefixed Secure IDs) | **LULUS (Fintech Grade)** |
-| **Kontrol Akses (RBAC)** | Isolasi data ketat (Multi-Tenant) tingkat query ORM | **LULUS (Fintech Grade)** |
-| **Keamanan Data Sesi** | Session cookie Puppeteer terisolasi per-Merchant | **LULUS (Fintech Grade)** |
-| **SQL Injection & XSS** | Parameterized queries via Drizzle ORM & React sanitizer | **LULUS (Fintech Grade)** |
+| **API Authentication** | Dynamic per-user Bearer API Key with DB verification mapping | **PASSED (Fintech Grade)** |
+| **Transaction Integrity** | Webhook verification using HMAC-SHA256 signature payloads | **PASSED (Fintech Grade)** |
+| **ID Enumeration Prevention** | Random string transaction IDs (Prefixed Secure IDs) | **PASSED (Fintech Grade)** |
+| **Access Control (RBAC)** | Strict data isolation (Multi-Tenancy) at the ORM query level | **PASSED (Fintech Grade)** |
+| **Session Data Protection** | Isolated Puppeteer browser session files per Merchant | **PASSED (Fintech Grade)** |
+| **Injection & XSS Protection** | Parameterized queries via ORM and React-based escaping | **PASSED (Fintech Grade)** |
 
 ---
 
-## 2. Arsitektur & Implementasi Detail Keamanan
+## 2. Security Architecture & Implementation Details
 
-### A. Autentikasi API & Manajemen Kunci (Fintech API Standard)
-* **API Key Per-User**: API key di-generate secara dinamis (`qbiz_api_key_live_2026_[16_char_hex_entropy]`) memberikan ruang entropi sebesar $16^{16}$ kemungkinan kombinasi.
-* **Scope Isolation**: API Key dipetakan langsung ke pengguna yang berwenang di database. Klien POS tidak dapat mengakses atau membuat transaksi untuk merchant lain yang bukan miliknya.
-* **Token Rotation**: Pengguna dapat melakukan rotasi API key secara mandiri kapan saja melalui portal Developer Hub untuk meminimalisir dampak kebocoran kunci (*credential exposure*).
+### A. API Authentication & Key Management
+* **Per-User API Keys**: API keys are generated dynamically (`qbiz_api_key_live_2026_[16_char_hex]`) providing $16^{16}$ possible combinations to prevent brute-force attacks.
+* **Scope Isolation**: API keys are mapped directly to authorized user accounts in the database. External client systems cannot retrieve or generate invoices for other tenants.
+* **Key Rotation**: Users can rotate their API keys at any time via the Developer Hub dashboard to minimize the window of credential exposure.
 
-### B. Keamanan Webhook & Pencegahan Pemalsuan (Anti-Spoofing & Replay Attack)
-* **HMAC-SHA256 Signatures**: Setiap webhook keluar ditandatangani menggunakan kunci rahasia HMAC (`webhook_secret`) milik masing-masing pengguna.
+### B. Webhook Verification & Anti-Spoofing
+* **HMAC-SHA256 Signatures**: Each outgoing webhook is signed with the user's custom cryptographic secret key (`webhook_secret`):
   $$\text{Signature} = \text{HMAC-SHA256}(\text{JSON Payload}, \text{webhook\_secret})$$
-* **Signature Header**: Tanda tangan dikirimkan melalui header `X-QBiz-Signature`. Server klien wajib memverifikasi tanda tangan ini untuk memastikan payload benar-benar berasal dari server QBiz dan belum dimodifikasi selama pengiriman (*Integrity Check*).
-* **IP Whitelisting & Webhook Retries**: Pengiriman didesain dengan timeout 10 detik dan mekanisme percobaan ulang (*exponential backoff retry*) sebanyak 3 kali (jeda 5s, 15s, 45s) untuk menjaga ketahanan sistem.
+* **Signature Header**: The computed signature is dispatched in the `X-QBiz-Signature` header. Client servers must compute and match this signature to verify payload integrity and origin before processing payments.
+* **Network Reliability**: Dispatches feature a 10-second timeout with an exponential backoff retry mechanism (retrying up to 3 times: 5s, 15s, 45s offsets) to guarantee delivery under unstable network conditions.
 
-### C. Kontrol Akses Berbasis Peran (RBAC & Multi-Tenancy)
-Sistem menerapkan pembagian hak akses (*Separation of Duties*) yang ketat:
-* **SUPER_ADMIN**: Memiliki kontrol penuh atas semua merchant, pengguna, transaksi, dan dapat melakukan pembersihan log keamanan khusus.
-* **ADMIN**: Manajemen operasional harian merchant, persetujuan OTP, dan pemantauan transaksi global.
-* **REGIONAL_ADMIN**: Hanya dapat melihat dan mengelola merchant yang dipetakan ke wilayahnya di tabel Junction `regional_admin_merchants`.
-* **MERCHANT**: Pemilik toko yang hanya dapat memantau data mutasi dan invoice dari token/merchant miliknya sendiri (`merchantId`).
-* **MERCHANT_EMPLOYEE**: Kasir yang hanya berhak melihat transaksi dan memicu pembuatan invoice dinamis tanpa akses ke setelan developer/API key.
+### C. Role-Based Access Control (RBAC & Multi-Tenancy)
+The system enforces separation of duties across five distinct roles:
+* **SUPER_ADMIN**: Full platform dashboard controls, operations monitoring, user management, and security log management.
+* **ADMIN**: Daily merchant operations manager, OTP review, and global transaction monitors.
+* **REGIONAL_ADMIN**: Access restricted strictly to merchants mapped to their region via junction table parameters.
+* **MERCHANT**: Store owner accounts isolated to their own metrics, cashier lists, and invoices (`merchantId`).
+* **MERCHANT_EMPLOYEE**: Cashier role restricted to creating dynamic checkout invoices and viewing matching transactions without developer settings.
 
-### D. Keamanan Integrasi GoBiz (Puppeteer Session Security)
-* **No Password Storage**: QBiz tidak menyimpan kata sandi akun GoBiz merchant di database. Otentikasi dilakukan via OTP WhatsApp sekali pakai langsung ke GoBiz portal.
-* **Session Cookie Isolation**: Sesi browser Puppeteer disimpan di file JSON terenkripsi terpisah pada sub-direktori `sessions/` yang tidak dapat diakses secara publik.
-* **Automatic Session Invalidation**: Jika sesi Puppeteer terdeteksi kedaluwarsa atau crash, status merchant otomatis diubah menjadi `DISCONNECTED` atau `NEEDS_OTP` untuk memotong akses ilegal di memori server.
+### D. Headless Integration Security (Puppeteer Sessions)
+* **No Password Storage**: QBiz does not store GoBiz portal account passwords in the database. Authentication relies on one-time OTP tokens dispatched directly to the merchant's registered WhatsApp line.
+* **Session Cookie Isolation**: Headless session files are stored in individual encrypted files inside the `sessions/` directory, excluded from public web assets.
+* **Automatic Disconnection**: If a headless session fails, terminates, or expires, the status is immediately flagged as `DISCONNECTED` or `NEEDS_OTP` to prevent unauthorized execution.
 
-### E. Pencegahan Double-Spend & Fraud Validasi Pembayaran
-* **Kode Unik Nominal (Unique Suffix Match)**: Nominal transfer tagihan dimodifikasi dengan penambahan kode unik 3 digit terakhir. Jika ada transaksi pending dengan nominal dasar yang sama, sistem secara dinamis mencari kode unik berikutnya yang belum terpakai.
-* **Auto-Expiration**: Tagihan QRIS dibatasi masa berlakunya hanya **5 menit**. Setelah waktu habis, status invoice berubah menjadi `EXPIRED` dan kode unik nominal dibebaskan kembali untuk mencegah klaim pembayaran ganda.
-
----
-
-## 3. Checklist Kepatuhan Regulasi Fintech (BI / OJK / PCI-DSS)
-
-### [x] Enkripsi Seluruh Jalur Komunikasi (Transport Layer Security)
-* **Persyaratan**: Wajib menggunakan TLS 1.2 atau TLS 1.3 untuk semua komunikasi HTTP (REST API, Webhook, dan Web Interface).
-* **Status**: LULUS. Diimplementasikan pada layer Load Balancer / Reverse Proxy (Nginx/Cloudflare) sebelum masuk ke aplikasi QBiz Hono.
-
-### [x] Enkripsi Data Sensitif Saat Istirahat (Data Encryption at Rest)
-* **Persyaratan**: Enkripsi berkas sesi Puppeteer di folder `sessions/` menggunakan algoritma enkripsi simetris AES-256-GCM.
-* **Status**: LULUS. Seluruh berkas sesi Puppeteer dienkripsi menggunakan AES-256-GCM dengan kunci dinamis yang diturunkan dari `COOKIE_SECRET` menggunakan PBKDF2 (100.000 iterasi & salt statis).
-
-### [x] Audit Log Keamanan (Security Trail Logs)
-* **Persyaratan**: Setiap aktivitas administratif sensitif (regenerasi API key, pergantian webhook url, penghapusan transaksi) harus mencatat riwayat alamat IP, timestamp, dan identitas pelaku audit.
-* **Status**: LULUS. Logger bawaan mencatat seluruh mutasi dan aktivitas ke stdout server untuk diteruskan ke journald/SIEM.
-
-### [x] Penanganan Error yang Aman (Secure Error Handling)
-* **Persyaratan**: Informasi internal server (stack trace, path berkas, query SQL mentah) tidak boleh dibocorkan ke pengguna akhir dalam respon API/UI.
-* **Status**: LULUS. Seluruh error REST API dibungkus menggunakan pesan ramah pengguna: `c.json({ error: "Friendly message" })` dengan log detail hanya disimpan di internal server console.
+### E. Fraud Validation & Collision Prevention
+* **Unique Nominal Suffixes**: Invoice nominal totals are modified by minor unique digit increments. If multiple pending invoices share the same base amount, the system dynamically calculates the next available suffix.
+* **Auto-Expiration**: Invoices are restricted to a **5-minute** validity window. Once expired, the unique suffix is released back to the pool, preventing double-spend exploits.
 
 ---
 
-## 4. Panduan Pelaporan Kerentanan (Vulnerability Disclosure Policy)
+## 3. Compliance Checklist (Government & Financial Regulations)
 
-Jika Anda menemukan celah keamanan pada sistem QBiz, harap **TIDAK** melaporkannya melalui publik issues GitHub. Silakan hubungi tim keamanan internal kami melalui email: **security@qbiz.com** demi menjaga kerahasiaan data pengguna sebelum patch perbaikan diterbitkan (*Responsible Disclosure*).
+### [x] Transport Layer Security (TLS)
+* **Requirements**: Enforce TLS 1.2 or TLS 1.3 across all communication channels (REST APIs, Webhooks, and User Interfaces).
+* **Status**: LULUS. Configured at the Load Balancer / Reverse Proxy layer (Nginx/Cloudflare) before forwarding requests to the Hono backend server.
+
+### [x] Data Encryption at Rest
+* **Requirements**: Encrypt sensitive Puppeteer session files on disk using symmetric encryption algorithms.
+* **Status**: LULUS. All Puppeteer session files in the `sessions/` folder are encrypted using AES-256-GCM, with keys derived dynamically from the environment secret via PBKDF2 (100,000 iterations and a static salt).
+
+### [x] Security Trail Logs (Audit Logs)
+* **Requirements**: Log sensitive administrative operations (key regeneration, webhook adjustments, record deletions) detailing origin IP, timestamps, and operator identity.
+* **Status**: LULUS. System logger output is piped directly to stdout, allowing easy integration with local system services (journald) or remote security information managers (SIEM).
+
+### [x] Secure Error Handling
+* **Requirements**: Prevent internal system details (system paths, SQL structures, stack traces) from leaking to client responses.
+* **Status**: LULUS. All API and web errors are intercepted and wrapped into user-friendly messages (`c.json({ error: "Friendly message" })`) while detail logs are kept within internal console scopes.
+
+---
+
+## 4. Vulnerability Disclosure Policy
+
+If you discover a security vulnerability within QBiz, please **do not** file a public GitHub issue. Instead, report it directly to our security team via email at **security@qbiz.com** to allow us to address and patch the issue securely (*Responsible Disclosure*).
