@@ -203,7 +203,23 @@ if ($isVerified) {
 
 ---
 
-## 5. AI Instructions (System Prompt Guide)
+## 5. Security & Cryptographic Standards
+
+QBiz Gateway Hub implements professional compliance defenses to ensure transaction integrity and secure storage boundaries:
+
+### A. Webhook Signature Verification (HMAC-SHA256)
+All webhook notifications dispatched by QBiz are signed with the merchant's unique `webhook_secret` using HMAC-SHA256. The signature is transmitted via the `X-QBiz-Signature` header:
+$$\text{Signature} = \text{HMAC-SHA256}(\text{JSON Payload}, \text{webhook\_secret})$$
+You must recalculate this signature on the receiving end to prevent spoofing or replay attacks.
+
+### B. Session Cookies Encryption at Rest (AES-256-GCM)
+Headless browser Puppeteer sessions (containing authentication cookies for portal mutations) are securely stored at rest inside the `sessions/` directory. 
+- **Algorithm**: Symmetric **AES-256-GCM** encryption.
+- **Key Derivation**: Keys are dynamically derived from the system environment variable (`COOKIE_SECRET`) using **PBKDF2** with **100,000 iterations** and a static salt.
+
+---
+
+## 6. AI Instructions (System Prompt Guide)
 *Copy this instruction block into your AI tool (Cursor/Gemini/Copilot) context to build client integration:*
 
 ```text

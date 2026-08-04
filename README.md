@@ -27,6 +27,7 @@
    * **Puppeteer Worker**: Headless Chromium session intercepts transactions directly inside the GoBiz portal.
    * **WhatsApp OTP Integration**: Forwards OTP requests to the merchant's registered WhatsApp account for two-factor authentication.
    * **Auto Webhook Dispatch**: Triggers target merchant webhooks with HMAC-SHA256 signature verification payloads.
+   * **Session Security at Rest**: Encrypts browser session cookie files on disk using AES-256-GCM symmetric encryption derived via PBKDF2 (100,000 iterations).
 
 3. 👥 **Multi-Tenant & Role Management (RBAC)**
    * **Five System Roles**: Supports `SUPER_ADMIN`, `ADMIN`, `REGIONAL_ADMIN`, `MERCHANT`, and `MERCHANT_EMPLOYEE`.
@@ -56,6 +57,10 @@ Below is an overview of the key components and functions driving the gateway:
 ### 3. Middleware & Security Auth (`src/middleware/auth.ts`)
 - **`authMiddleware(c: any, next: any)`**: Inspects signed session cookies to protect dashboard pages while whitelisting public checkout routes, API endpoints, and crawler files.
 - **`requireRole(roles: string[])`**: Evaluates active user sessions to enforce Role-Based Access Control (RBAC).
+
+### 4. Cryptographic Encryption at Rest (`src/utils/crypto.ts`)
+- **`encryptSession(text: string)`**: Encrypts sensitive session files (JSON-serialized browser cookies) using symmetric AES-256-GCM encryption.
+- **`decryptSession(encryptedBase64: string)`**: Decrypts the session file cipher text back to plain text, using a key derived dynamically via PBKDF2 (100,000 iterations & static salt) from the environment `COOKIE_SECRET` variable.
 
 ---
 
