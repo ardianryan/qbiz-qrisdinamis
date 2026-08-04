@@ -8,9 +8,11 @@
 **QBiz** is a modern, self-hosted dynamic QRIS payment gateway hub. It acts as an in-house middleware to connect GoBiz/GoFood merchant portals with custom Point-of-Sale (POS) systems, automates transaction synchronization via headless browser automation, and dispatches HMAC-SHA256 signed webhooks directly to your POS system without relying on third-party payment gateways.
 
 > [!WARNING]
-> **DISCLAIMER & WARRANTY LIMITATION (UNOFFICIAL API)**
+> **DISCLAIMER, RISK WARNING, & WARRANTY LIMITATION (UNOFFICIAL API)**
 > 
-> This gateway hub is an **Unofficial API** that operates via browser automation scraping and XHR interception on merchant portals. Any risks of account suspension, access restriction on the GoBiz/GoFood portal, or other legal and financial implications arising from the use of this system are entirely the **user's own responsibility (as-is)**.
+> This gateway hub is an **Unofficial API** that operates via browser automation scraping and XHR interception on merchant portals, which may violate the portal provider's terms of service (e.g., automated scraping and bot activity bans).
+> 
+> **Use this software entirely at your own risk (DWYOR - Do With Your Own Risk).** Any risks of account suspension, access restriction on the merchant portal, or other legal and financial implications arising from the use of this system are entirely the **user's own responsibility (as-is)**. The developers assume no liability.
 > 
 > **COMPATIBILITY LIMITATION**: Currently, this payment gateway hub **only supports QRIS Gopay Merchant / GoFood Merchant**.
 
