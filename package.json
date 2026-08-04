@@ -1,5 +1,7 @@
 {
   "name": "qrispaymti",
+  "version": "1.0.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
