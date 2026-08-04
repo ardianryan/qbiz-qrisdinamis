@@ -72,6 +72,44 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{merchant.name} - Checkout Pembayaran</title>
         
+        {/* SEO Metadata */}
+        <meta name="description" content={`Halaman pembayaran aman untuk merchant ${merchant.name}. Selesaikan pembayaran menggunakan kode QRIS secara instan.`} />
+        <meta name="keywords" content="checkout, qris, payment, bayar, invoice, gopay, shopeepay, ovo, dana" />
+        <meta name="robots" content="noindex, nofollow" /> {/* Secure checkout endpoints are excluded from search indexing by default */}
+        
+        {/* Geographic Targeting (GEO) Tags */}
+        <meta name="geo.region" content="ID" />
+        <meta name="geo.placename" content="Jakarta" />
+        <meta name="geo.position" content="-6.200000;106.816666" />
+        <meta name="ICBM" content="-6.200000, 106.816666" />
+        
+        {/* AI Agent / LLMs Crawling Discoverability Link Headers */}
+        <meta name="ai-agent" content="enabled" />
+        <link rel="llms" href="/llms.txt" type="text/markdown" />
+        <link rel="llms-full" href="/llms-full.txt" type="text/markdown" />
+        
+        {/* JSON-LD Semantic Structured Data (AEO & SEO Schema.org Order/Invoice) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Order",
+              "merchant": {
+                "@type": "Organization",
+                "name": merchant.name
+              },
+              "acceptedPaymentMethod": {
+                "@type": "PaymentMethod",
+                "name": "QRIS"
+              },
+              "priceCurrency": "IDR",
+              "price": invoice.totalAmount.toString(),
+              "identifier": invoice.id
+            })
+          }}
+        />
+        
         {/* Anti-Flicker Script for System Dark/Light Mode Theme Selection */}
         <script dangerouslySetInnerHTML={{
           __html: `

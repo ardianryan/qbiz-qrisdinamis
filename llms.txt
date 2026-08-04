@@ -1,0 +1,59 @@
+# QBiz Gateway Hub — Dynamic QRIS Router
+
+A self-hosted, dynamic QRIS payment gateway hub and GoBiz/GoFood transaction interceptor gateway built on Deno, Hono.js, Drizzle ORM, and Puppeteer Chrome automation.
+
+---
+
+## 🛠️ Key Features
+- **EMVCo Parser & Dynamic QRIS Compiler**: Inject dynamic transaction amounts and compute CCITT CRC16 on static EMVCo payloads.
+- **GoBiz/GoFood Sync Workers**: Headless Puppeteer Chromium worker intercepts incoming transactions, verifies mutations, and prompts WhatsApp OTP challenges.
+- **HMAC-SHA256 Webhook Dispatcher**: Fires secure signed webhooks to target POS endpoints immediately upon payment matching.
+- **Multi-Tenant RBAC**: Supports Super Admin, Admin, Regional Admin, Merchant, and Employee boundaries with query-level tenant isolation.
+
+---
+
+## 🔌 API Quick Reference
+
+### 1. Create Dynamic Invoice
+`POST /api/v1/invoices`
+- **Headers**:
+  - `Authorization: Bearer <API_KEY>`
+  - `Content-Type: application/json`
+- **Request Body**:
+  ```json
+  {
+    "order_id": "ORDER_100239",
+    "amount": 50000,
+    "callback_url": "https://yoursite.com/webhook-callback",
+    "customer_name": "John Doe",
+    "customer_email": "john@example.com",
+    "customer_phone": "081234567890",
+    "items": "[{\"name\":\"Product A\",\"quantity\":1,\"price\":50000}]"
+  }
+  ```
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "invoice": {
+      "id": "inv_8c9d...",
+      "orderId": "ORDER_100239",
+      "baseAmount": 50000,
+      "uniqueCode": 142,
+      "totalAmount": 50142,
+      "paymentUrl": "http://localhost:8000/pay/inv_8c9d...",
+      "status": "PENDING"
+    }
+  }
+  ```
+
+### 2. Verify Webhook Signature
+Every webhook request is signed with the merchant's Webhook Secret in the `X-QBiz-Signature` header computed as:
+`HMAC-SHA256(payload_body, webhook_secret)`
+
+---
+
+## 🔑 Demo Seed Accounts
+- **Super Admin**: `superadmin@qbiz.com` | `SuperQBiz2026`
+- **Merchant Owner**: `merchant@qbiz.com` | `MerchantQBiz2026`
+- **Cashier/Employee**: `karyawan@qbiz.com` | `EmployeeQBiz2026`

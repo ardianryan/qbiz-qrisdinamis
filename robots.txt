@@ -1,0 +1,27 @@
+# Robots.txt for QBiz Gateway Hub
+
+User-agent: *
+
+# Allow crawling of public specifications, assets, and auth portal
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /login
+Allow: /static/*
+
+# Strictly disallow indexing of private checkout invoices
+Disallow: /pay/
+Disallow: /pay/*
+
+# Strictly disallow indexing of admin console and API endpoints
+Disallow: /dashboard
+Disallow: /dashboard/*
+Disallow: /merchants
+Disallow: /merchants/*
+Disallow: /transactions
+Disallow: /transactions/*
+Disallow: /users
+Disallow: /users/*
+Disallow: /developer
+Disallow: /developer/*
+Disallow: /api/
+Disallow: /api/*

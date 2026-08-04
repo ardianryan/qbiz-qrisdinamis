@@ -34,9 +34,12 @@ export async function hashPassword(password: string): Promise<string> {
 export async function authMiddleware(c: any, next: any) {
   const url = new URL(c.req.url);
   
-  // Skip auth for login, static assets, public pay page, and API public endpoints
+  // Skip auth for login, static assets, public pay page, API public endpoints, and LLM indexing files
   if (
     url.pathname === '/login' || 
+    url.pathname === '/robots.txt' ||
+    url.pathname === '/llms.txt' ||
+    url.pathname === '/llms-full.txt' ||
     url.pathname.startsWith('/static/') || 
     url.pathname.startsWith('/pay/') || // Public secure pay page
     url.pathname.startsWith('/api/v1/invoices') || // API invoices are auth'd via Bearer key or public status check

@@ -1,0 +1,89 @@
+# QBiz Gateway Hub — Full Project Specification & Developer Guide
+
+This file contains the complete specification, architecture guides, database schemas, code structures, and deployment playbooks for QBiz Gateway Hub.
+
+---
+
+## 🏛️ Project Architecture Overview
+
+QBiz Gateway is an in-house dynamic QRIS payment router. It bridges the gap between merchant portals (GoBiz/GoFood) and your custom Point-of-Sale (POS) systems.
+
+```
+                  +--------------------------------+
+                  |           POS Client           |
+                  +---------------+----------------+
+                                  |
+                        1. POST /api/v1/invoices
+                                  v
+                  +---------------+----------------+
+                  |        QBiz Gateway Hub        |
+                  +---------------+----------------+
+                                  |
+                        2. Launch Headless Chromium
+                                  v
+                  +---------------+----------------+
+                  |         GoBiz Portal           |
+                  +--------------------------------+
+```
+
+---
+
+## 🗄️ Database Schema & Models (`db/schema.ts`)
+
+QBiz uses PostgreSQL with Drizzle ORM. The relational model consists of:
+
+### 1. `users` Table
+Stores accounts with RBAC authorization.
+- `id`: `varchar(36)` (Pre-fixed with `usr_`)
+- `name`: `text`
+- `email`: `text` (Unique)
+- `password`: `text` (SHA-256 hashed)
+- `role`: `text` (`SUPER_ADMIN`, `ADMIN`, `REGIONAL_ADMIN`, `MERCHANT`, `MERCHANT_EMPLOYEE`)
+- `merchantId`: `varchar(36)` (Null for platform admins)
+
+### 2. `merchants` Table
+Stores merchant credentials, logos, and target webhook details.
+- `id`: `varchar(36)` (Pre-fixed with `mrc_`)
+- `name`: `text`
+- `logoUrl`: `text`
+- `phoneNumber`: `text` (Linked GoBiz phone number)
+- `qrisImageUrl`: `text`
+- `qrisPayload`: `text` (Raw EMVCo string)
+- `apiKey`: `text` (Auth key for APIs)
+- `webhookUrl`: `text` (Target endpoint for notifications)
+- `webhookSecret`: `text` (Secret to verify HMAC signature)
+- `sessionToken`: `text` (Puppeteer GoBiz authentication token)
+- `status`: `text` (`ACTIVE`, `NEEDS_OTP`, `DISCONNECTED`)
+- `lastSync`: `timestamp`
+
+### 3. `invoices` Table
+Stores dynamic charges and payment lifecycles.
+- `id`: `varchar(36)` (Pre-fixed with `inv_`)
+- `merchantId`: `varchar(36)`
+- `orderId`: `text`
+- `baseAmount`: `integer`
+- `uniqueCode`: `integer` (1-999 suffix to differentiate invoices)
+- `totalAmount`: `integer` (baseAmount + uniqueCode)
+- `status`: `text` (`PENDING`, `PAID`, `EXPIRED`, `UNMATCHED`)
+- `expiredAt`: `timestamp`
+- `webhookStatus`: `text` (`200 OK`, `500 ERROR`, `RETRYING`, `N/A`)
+
+---
+
+## 🔌 Core Dynamic QRIS Calculation
+
+To compute the dynamic QRIS EMVCo payload:
+1. Parse the static QRIS string into tags.
+2. Locate Tag `54` (Transaction Amount) and Tag `55` (Tip/Indicator) and replace them with dynamic values.
+3. Remove Tag `63` (CRC-16 checksum).
+4. Re-calculate the CCITT CRC-16 checksum over the entire modified payload.
+5. Append Tag `63` followed by the new 4-character hex checksum.
+
+---
+
+## 📦 Containerization & Deployment
+
+Refer to the main deployment files for details:
+- **`Dockerfile`**: Builds Deno workspace, caches Puppeteer Chromium dependencies on Debian/Linux environments.
+- **`docker-compose.yml`**: Provisions multi-container network running Deno web app and PostgreSQL 15 database.
+- **`install.sh`**: One-click shell script installing docker prerequisites, generating env secrets, and running compose stacks.

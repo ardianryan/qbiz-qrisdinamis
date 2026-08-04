@@ -158,6 +158,38 @@ await bootActiveListeners();
 // Serve static assets (Tailwind compiled CSS)
 app.use('/static/*', serveStatic({ root: './' }));
 
+// Robots.txt route
+app.get('/robots.txt', async (c) => {
+  try {
+    const text = await Deno.readTextFile('./robots.txt');
+    c.header('Content-Type', 'text/plain; charset=utf-8');
+    return c.text(text);
+  } catch (_e) {
+    return c.text('Not found', 404);
+  }
+});
+
+// LLMs Discoverability Files
+app.get('/llms.txt', async (c) => {
+  try {
+    const text = await Deno.readTextFile('./llms.txt');
+    c.header('Content-Type', 'text/plain; charset=utf-8');
+    return c.text(text);
+  } catch (_e) {
+    return c.text('Not found', 404);
+  }
+});
+
+app.get('/llms-full.txt', async (c) => {
+  try {
+    const text = await Deno.readTextFile('./llms-full.txt');
+    c.header('Content-Type', 'text/plain; charset=utf-8');
+    return c.text(text);
+  } catch (_e) {
+    return c.text('Not found', 404);
+  }
+});
+
 // Apply renderer middleware globally
 app.all('*', renderer);
 
@@ -1276,8 +1308,9 @@ app.get('/pay/:id', async (c) => {
       width: 250 
     });
 
-    // Render Checkout Page
+    // Render Checkout Page with standard HTML5 DOCTYPE
     return c.html(
+      "<!DOCTYPE html>\n" +
       renderToString(
         <CheckoutPage 
           invoice={{
