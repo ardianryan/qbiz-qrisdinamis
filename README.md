@@ -1,4 +1,4 @@
-# ⚡ QBiz — Dynamic QRIS Gateway Hub
+# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.0.0)
 
 ![Runtime](https://img.shields.io/badge/Runtime-Deno-blue?style=flat-square&logo=deno)
 ![Framework](https://img.shields.io/badge/Framework-Hono.js-e36002?style=flat-square&logo=hono)
@@ -16,7 +16,7 @@
 
 ---
 
-## 🚀 Fitur Unggulan
+## 🚀 Key Features
 
 1. 💸 **Dynamic QRIS & Suffix Generation**
    * **EMVCo Parsing**: Parses static QRIS EMVCo payloads and serializes them with dynamic transaction indicators.
@@ -36,6 +36,26 @@
 4. 🔌 **Official Developer Integration**
    * **Client SDKs**: Built-in client libraries for [PHP](sdk/qbiz.php) and [Node.js](sdk/qbiz-node.js).
    * **Pre-fixed IDs**: Protects resources from scraping using unguessable prefixes (`usr_`, `mrc_`, `inv_`).
+
+---
+
+## 📂 Codebase Architecture & Key Functions
+
+Below is an overview of the key components and functions driving the gateway:
+
+### 1. Dynamic QRIS Generation (`src/utils/qris.ts`)
+- **`parseEMVCo(payload: string)`**: Parses raw static EMVCo string payload structures into structured tag key-value pairs.
+- **`serializeEMVCo(tags: Record<string, string>)`**: Serializes modifications back into standard EMVCo string formatting.
+- **`computeCRC16(data: string)`**: Calculates CCITT CRC-16 checksums on-the-fly to ensure generated QR codes are valid for mobile scanning apps.
+- **`generateDynamicQRIS(staticPayload: string, amount: number, invoiceId: string)`**: Injects the target total amount, unique transaction suffix, and invoice identifiers directly into the dynamic QR payload.
+
+### 2. Puppeteer Sync Workers (`worker/puppeteer-listener.ts`)
+- **`launchGoBizScraper(merchantId: string)`**: Spawns a headless Chromium instance to authenticate with the GoBiz portal, intercept mutation API feeds, and listen for incoming successful transactions.
+- **`promptOTPChallenge(merchantId: string, otpCode: string)`**: Relays GoBiz two-factor OTP challenges directly to the merchant owner via their registered WhatsApp line.
+
+### 3. Middleware & Security Auth (`src/middleware/auth.ts`)
+- **`authMiddleware(c: any, next: any)`**: Inspects signed session cookies to protect dashboard pages while whitelisting public checkout routes, API endpoints, and crawler files.
+- **`requireRole(roles: string[])`**: Evaluates active user sessions to enforce Role-Based Access Control (RBAC).
 
 ---
 
@@ -85,6 +105,12 @@ Open **`http://localhost:8000/`** in your browser.
   docker compose up -d --build
   ```
 * **Portainer & aaPanel Deployment**: Detailed configurations for reverse proxy and SSL Let's Encrypt are available in the [aaPanel & Portainer Deployment Guide](PORTAINER_AAPANEL.md).
+
+---
+
+## 📖 API Documentation (Scalar UI)
+
+Interactive Scalar API documentation is served directly at `/docs` (configured via OpenAPI 3.0 specification in `static/openapi.json`). You can use it to test endpoints, copy code playground snippets, or download configurations.
 
 ---
 
