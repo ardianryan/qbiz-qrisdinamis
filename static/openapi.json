@@ -3,7 +3,7 @@
   "info": {
     "title": "QBiz Gateway Hub API Reference",
     "description": "Interactive developer reference guide for the QBiz self-hosted dynamic QRIS router. Connect GoBiz portals, automate mutations, and trigger webhook callbacks directly to your POS system.",
-    "version": "2.1.0"
+    "version": "1.0.0"
   },
   "servers": [
     {

@@ -33,8 +33,8 @@ export function LoginPage({ error }: LoginPageProps) {
         </div>
 
         {/* Bottom Metadata */}
-        <div className="text-[9px] text-slate-500 font-mono hidden md:block">
-          QBIZ GATEWAY HUB v2.1 &bull; 2026 PRODUCTION RUNTIME
+        <div className="text-[9px] text-slate-500 font-mono">
+          QBIZ GATEWAY HUB v1.0.0 &bull; 2026 PRODUCTION RUNTIME
         </div>
       </div>
 
