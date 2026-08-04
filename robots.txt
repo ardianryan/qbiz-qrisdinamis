@@ -2,9 +2,10 @@
 
 User-agent: *
 
-# Allow crawling of public specifications, assets, and auth portal
+# Allow crawling of public specifications, assets, API docs, and auth portal
 Allow: /llms.txt
 Allow: /llms-full.txt
+Allow: /docs
 Allow: /login
 Allow: /static/*
 

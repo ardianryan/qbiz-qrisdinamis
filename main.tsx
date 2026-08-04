@@ -158,6 +158,32 @@ await bootActiveListeners();
 // Serve static assets (Tailwind compiled CSS)
 app.use('/static/*', serveStatic({ root: './' }));
 
+// Scalar API Reference Route
+app.get('/docs', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>API Reference - QBiz Gateway</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style>
+          body {
+            margin: 0;
+          }
+        </style>
+      </head>
+      <body>
+        <script
+          id="api-reference"
+          data-url="/static/openapi.json"
+          data-configuration='{"theme":"purple","hideDownloadButton":true}'></script>
+        <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+      </body>
+    </html>
+  `);
+});
+
 // Robots.txt route
 app.get('/robots.txt', async (c) => {
   try {

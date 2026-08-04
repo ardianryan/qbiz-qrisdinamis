@@ -37,6 +37,7 @@ export async function authMiddleware(c: any, next: any) {
   // Skip auth for login, static assets, public pay page, API public endpoints, and LLM indexing files
   if (
     url.pathname === '/login' || 
+    url.pathname === '/docs' ||
     url.pathname === '/robots.txt' ||
     url.pathname === '/llms.txt' ||
     url.pathname === '/llms-full.txt' ||

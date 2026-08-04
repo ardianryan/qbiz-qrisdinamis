@@ -1,0 +1,260 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "QBiz Gateway Hub API Reference",
+    "description": "Interactive developer reference guide for the QBiz self-hosted dynamic QRIS router. Connect GoBiz portals, automate mutations, and trigger webhook callbacks directly to your POS system.",
+    "version": "2.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Local Development Server"
+    }
+  ],
+  "paths": {
+    "/api/v1/invoices": {
+      "post": {
+        "summary": "Create Dynamic QRIS Invoice",
+        "description": "Generates a dynamic QRIS invoice with a unique numeric suffix to prevent payment collisions and enable automated bank mutation matching.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount",
+                  "order_id"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "integer",
+                    "description": "Base nominal charge amount in IDR (e.g. 50000 for Rp 50,000)",
+                    "example": 50000
+                  },
+                  "order_id": {
+                    "type": "string",
+                    "description": "Unique reference ID from your client POS system",
+                    "example": "ORD-178592301"
+                  },
+                  "merchant_id": {
+                    "type": "string",
+                    "description": "Target merchant ID. Defaults to first merchant in DB.",
+                    "example": "mrc_toko_1"
+                  },
+                  "callback_url": {
+                    "type": "string",
+                    "description": "Custom webhook target URL to receive PAID updates",
+                    "example": "https://mypos.com/api/webhooks/qris"
+                  },
+                  "redirect_url": {
+                    "type": "string",
+                    "description": "Browser redirect target URL after payment success",
+                    "example": "https://mypos.com/checkout/success"
+                  },
+                  "customer_name": {
+                    "type": "string",
+                    "description": "Full name of the customer paying",
+                    "example": "John Doe"
+                  },
+                  "customer_email": {
+                    "type": "string",
+                    "description": "Email address of the customer",
+                    "example": "john@example.com"
+                  },
+                  "customer_phone": {
+                    "type": "string",
+                    "description": "Mobile phone number of the customer",
+                    "example": "081234567890"
+                  },
+                  "items": {
+                    "type": "array",
+                    "description": "JSON array of items purchased",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "example": "Product Item A"
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "price": {
+                          "type": "integer",
+                          "example": 50000
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invoice successfully generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "invoice": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "inv_1785738263024_587"
+                        },
+                        "order_id": {
+                          "type": "string",
+                          "example": "ORD-178592301"
+                        },
+                        "base_amount": {
+                          "type": "integer",
+                          "example": 50000
+                        },
+                        "unique_code": {
+                          "type": "integer",
+                          "example": 23
+                        },
+                        "total_amount": {
+                          "type": "integer",
+                          "example": 50023
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "PENDING"
+                        },
+                        "qris_payload": {
+                          "type": "string",
+                          "example": "00020101021138590014..."
+                        },
+                        "checkout_url": {
+                          "type": "string",
+                          "example": "http://localhost:8000/pay/inv_1785738263024_587"
+                        },
+                        "redirect_url": {
+                          "type": "string",
+                          "example": "https://mypos.com/checkout/success"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized access - Invalid API Key"
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/status": {
+      "get": {
+        "summary": "Check Invoice Payment Status",
+        "description": "Queries the current status of an invoice. Useful for manual client status checks or frontend polling scripts.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Invoice ID (e.g. inv_1785738263024_587)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice status details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "PAID"
+                    },
+                    "invoice": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "inv_1785738263024_587"
+                        },
+                        "orderId": {
+                          "type": "string",
+                          "example": "ORD-178592301"
+                        },
+                        "totalAmount": {
+                          "type": "integer",
+                          "example": 50023
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "PAID"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Invoice not found"
+          }
+        }
+      }
+    },
+    "/pay/{id}": {
+      "get": {
+        "summary": "View Secure Checkout Page",
+        "description": "Hosted customer checkout page showing the dynamic QRIS code and transaction countdown.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Invoice ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Responsive HTML checkout interface"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Provide your User API Key as a Bearer Token"
+      }
+    }
+  }
+}
