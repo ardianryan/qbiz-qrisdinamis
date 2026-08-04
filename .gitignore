@@ -30,3 +30,6 @@ lerna-debug.log*
 # qbiz application data
 sessions/
 static/uploads/
+
+# AI Agent customizations
+.agents/
