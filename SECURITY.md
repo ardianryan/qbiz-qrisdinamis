@@ -53,19 +53,19 @@ The system enforces separation of duties across five distinct roles:
 
 ### [x] Transport Layer Security (TLS)
 * **Requirements**: Enforce TLS 1.2 or TLS 1.3 across all communication channels (REST APIs, Webhooks, and User Interfaces).
-* **Status**: LULUS. Configured at the Load Balancer / Reverse Proxy layer (Nginx/Cloudflare) before forwarding requests to the Hono backend server.
+* **Status**: PASSED. Configured at the Load Balancer / Reverse Proxy layer (Nginx/Cloudflare) before forwarding requests to the Hono backend server.
 
 ### [x] Data Encryption at Rest
 * **Requirements**: Encrypt sensitive Puppeteer session files on disk using symmetric encryption algorithms.
-* **Status**: LULUS. All Puppeteer session files in the `sessions/` folder are encrypted using AES-256-GCM, with keys derived dynamically from the environment secret via PBKDF2 (100,000 iterations and a static salt).
+* **Status**: PASSED. All Puppeteer session files in the `sessions/` folder are encrypted using AES-256-GCM, with keys derived dynamically from the environment secret via PBKDF2 (100,000 iterations and a static salt).
 
 ### [x] Security Trail Logs (Audit Logs)
 * **Requirements**: Log sensitive administrative operations (key regeneration, webhook adjustments, record deletions) detailing origin IP, timestamps, and operator identity.
-* **Status**: LULUS. System logger output is piped directly to stdout, allowing easy integration with local system services (journald) or remote security information managers (SIEM).
+* **Status**: PASSED. System logger output is piped directly to stdout, allowing easy integration with local system services (journald) or remote security information managers (SIEM).
 
 ### [x] Secure Error Handling
 * **Requirements**: Prevent internal system details (system paths, SQL structures, stack traces) from leaking to client responses.
-* **Status**: LULUS. All API and web errors are intercepted and wrapped into user-friendly messages (`c.json({ error: "Friendly message" })`) while detail logs are kept within internal console scopes.
+* **Status**: PASSED. All API and web errors are intercepted and wrapped into user-friendly messages (`c.json({ error: "Friendly message" })`) while detail logs are kept within internal console scopes.
 
 ---
 
