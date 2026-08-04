@@ -71,6 +71,24 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{merchant.name} - Checkout Pembayaran</title>
+        
+        {/* Anti-Flicker Script for System Dark/Light Mode Theme Selection */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              try {
+                var theme = localStorage.getItem('theme');
+                var supportDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (theme === 'dark' || (!theme && supportDark)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (e) {}
+            })();
+          `
+        }} />
+
         <link rel="stylesheet" href="/static/styles.css" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -79,7 +97,6 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
           __html: `
             body {
               font-family: 'Outfit', sans-serif;
-              background-color: #2ea1f8;
             }
             .font-mono-qbiz {
               font-family: 'JetBrains Mono', monospace;
@@ -121,10 +138,10 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
           `
         }} />
       </head>
-      <body className="text-slate-800 dark:text-zinc-200 min-h-screen flex p-4 md:p-12 antialiased">
+      <body className="text-slate-800 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-950 min-h-screen flex p-4 md:p-12 antialiased transition-colors duration-200">
         
         {/* Responsive Container */}
-        <div className="w-full bg-white dark:bg-zinc-900 checkout-card rounded-2xl md:rounded-3xl flex flex-col md:flex-row transition-all duration-300">
+        <div className="w-full bg-white dark:bg-zinc-900 checkout-card rounded-2xl md:rounded-3xl flex flex-col md:flex-row border border-slate-200 dark:border-zinc-800 shadow-md transition-all duration-300">
           
           {/* LEFT PANEL - White checkout section */}
           <div className="w-full md:w-[48%] bg-white dark:bg-zinc-950 p-5 md:p-6 flex flex-col justify-between rounded-left-panel border-b md:border-b-0 md:border-r border-slate-100 dark:border-zinc-800/50">
@@ -237,8 +254,8 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
             </div>
           </div>
 
-          {/* RIGHT PANEL - Light grey transaction & purchase breakdown */}
-          <div className="w-full md:w-[52%] bg-[#f4f8fc] dark:bg-zinc-900 p-5 md:p-6 flex flex-col justify-between rounded-right-panel">
+          {/* RIGHT PANEL - Cool grey transaction & purchase breakdown */}
+          <div className="w-full md:w-[52%] bg-slate-50 dark:bg-zinc-900/40 p-5 md:p-6 flex flex-col justify-between rounded-right-panel">
             <div>
               {/* Header Logo */}
               <div className="flex items-center gap-2 mb-4">
