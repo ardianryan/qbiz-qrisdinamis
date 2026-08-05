@@ -70,7 +70,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
       <head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>{merchant.name} - Checkout Pembayaran</title>
+        <title>{`${merchant.name} - Checkout Pembayaran`}</title>
         
         {/* SEO Metadata */}
         <meta name="description" content={`Halaman pembayaran aman untuk merchant ${merchant.name}. Selesaikan pembayaran menggunakan kode QRIS secara instan.`} />
