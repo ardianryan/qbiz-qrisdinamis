@@ -37,7 +37,7 @@
    * **API Key Rotation**: Allows merchants to independently rotate API keys and modify webhook secrets from the dashboard.
 
 4. 🔌 **Official Developer Integration**
-   * **Client SDKs**: Built-in client libraries for [PHP](sdk/qbiz.php) and [Node.js](sdk/qbiz-node.js).
+   * **Client SDKs**: Built-in client libraries for [PHP](sdk/qbiz.php), [Node.js](sdk/qbiz-node.js), [Python](sdk/qbiz.py), and [Rust](sdk/qbiz.rs).
    * **Pre-fixed IDs**: Protects resources from scraping using unguessable prefixes (`usr_`, `mrc_`, `inv_`).
 
 ---

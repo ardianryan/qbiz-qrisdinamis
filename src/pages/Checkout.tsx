@@ -173,6 +173,12 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                 border-bottom-left-radius: 0;
               }
             }
+            /* Force QR code SVG to always be square and fill its container */
+            .qr-wrapper svg {
+              width: 100% !important;
+              height: 100% !important;
+              display: block;
+            }
           `
         }} />
       </head>
@@ -242,8 +248,8 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
 
               {/* QR CODE DISPLAY */}
               <div className="flex flex-col items-center justify-center py-2 relative">
-                <div className="bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm relative overflow-hidden max-w-[220px] w-full flex items-center justify-center">
-                  <div dangerouslySetInnerHTML={{ __html: qrSvgHtml }} className="w-full h-full" />
+                <div className="bg-white p-3 rounded-2xl border border-slate-200/60 shadow-sm relative max-w-[240px] w-full" style={{ aspectRatio: '1 / 1' }}>
+                  <div dangerouslySetInnerHTML={{ __html: qrSvgHtml }} className="qr-wrapper w-full h-full" style={{ lineHeight: 0 }} />
                   
                   {/* Expired Overlay */}
                   <div id="expired-overlay" style={{ display: 'none', position: 'absolute', inset: '0', backgroundColor: 'rgba(255, 255, 255, 0.96)', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px', textAlign: 'center', zIndex: 10 }} className="dark:bg-zinc-950/96">

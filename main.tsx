@@ -1330,8 +1330,7 @@ app.get('/pay/:id', async (c) => {
     // Generate QR code SVG
     const qrSvgHtml = await QRCode.toString(dynamicQrisString, { 
       type: 'svg', 
-      margin: 1, 
-      width: 250 
+      margin: 1
     });
 
     // Render Checkout Page with standard HTML5 DOCTYPE

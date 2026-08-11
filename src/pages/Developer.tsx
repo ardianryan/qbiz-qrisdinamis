@@ -52,7 +52,22 @@ response = requests.post(
     json=payload,
     headers=headers
 )
-print(response.json())`
+print(response.json())`,
+    rust: `// Cargo.toml dependencies: reqwest, serde, serde_json
+let client = reqwest::Client::new();
+let response = client.post("${baseUrl}/api/v1/invoices")
+    .header("Authorization", "Bearer ${apiKey || 'qbiz_api_key_demo_2026'}")
+    .header("Content-Type", "application/json")
+    .json(&serde_json::json!({
+        "order_id": "ORDER-100239",
+        "amount": 50000,
+        "callback_url": "${webhookUrl || 'https://yourserver.com/webhooks/qris'}"
+    }))
+    .send()
+    .await?;
+
+let data: serde_json::Value = response.json().await?;
+println!("{:#?}", data);`
   };
 
   return (
@@ -231,7 +246,7 @@ print(response.json())`
             <div className="mt-3 bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800 rounded-lg p-2.5 flex items-start gap-2">
               <span className="text-[14px]">💡</span>
               <span className="text-[10px] text-slate-600 dark:text-zinc-400 leading-relaxed">
-                <strong>Official SDKs available!</strong> Prebuilt client clients for <strong>PHP</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.php" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.php</a>) and <strong>Node.js</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz-node.js" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz-node.js</a>) are ready in the <code>sdk/</code> folder!
+                <strong>Official SDKs available!</strong> Prebuilt clients for <strong>PHP</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.php" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.php</a>), <strong>Node.js</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz-node.js" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz-node.js</a>), <strong>Python</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.py" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.py</a>), and <strong>Rust</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.rs" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.rs</a>) are ready in the <code>sdk/</code> folder!
               </span>
             </div>
           </div>
@@ -256,6 +271,12 @@ print(response.json())`
             >
               Python
             </button>
+            <button 
+              className="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100 tab-btn outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              data-tab="rust"
+            >
+              Rust
+            </button>
           </div>
 
           {/* Code Panels */}
@@ -279,6 +300,9 @@ print(response.json())`
               </pre>
               <pre id="panel-python" className="text-xs text-zinc-300 font-mono overflow-auto max-h-[320px] whitespace-pre-wrap hidden">
                 <code>{codeSnippets.python}</code>
+              </pre>
+              <pre id="panel-rust" className="text-xs text-zinc-300 font-mono overflow-auto max-h-[320px] whitespace-pre-wrap hidden">
+                <code>{codeSnippets.rust}</code>
               </pre>
             </div>
             
@@ -413,6 +437,7 @@ print(response.json())`
                 document.getElementById('panel-curl').classList.add('hidden');
                 document.getElementById('panel-node').classList.add('hidden');
                 document.getElementById('panel-python').classList.add('hidden');
+                document.getElementById('panel-rust').classList.add('hidden');
 
                 document.getElementById('panel-' + targetTab).classList.remove('hidden');
               });

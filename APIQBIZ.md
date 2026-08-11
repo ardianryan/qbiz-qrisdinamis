@@ -201,6 +201,79 @@ if ($isVerified) {
 }
 ```
 
+### C. Python SDK
+Use the Python client file [`sdk/qbiz.py`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.py) inside your Python project:
+
+```python
+from sdk.qbiz import QBizClient
+
+# Initialize Client
+client = QBizClient(api_key="YOUR_API_KEY", base_url="http://localhost:8000")
+
+# 1. Create a payment invoice
+invoice = client.create_invoice({
+    "orderId": "ORDER-PYTHON-1002",
+    "amount": 25000,
+    "merchantId": "mrc_toko_1"
+})
+print("QRIS Payload:", invoice["qr_string"])
+print("Checkout URL:", f"http://localhost:8000/pay/{invoice['id']}")
+
+# 2. Fetch payment status
+status = client.get_invoice_status(invoice["id"])
+print("Invoice Status:", status["status"])
+
+# 3. Verify incoming webhook signature
+is_verified = client.verify_webhook(
+    payload_raw_body=raw_request_body_string,
+    signature_header=headers.get("X-QBiz-Signature"),
+    webhook_secret="YOUR_WEBHOOK_SECRET"
+)
+if is_verified:
+    # Signature is valid. Process payment.
+    pass
+```
+
+### D. Rust SDK
+Use the Rust module file [`sdk/qbiz.rs`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.rs) inside your Rust project (requires `reqwest`, `serde`, `hmac`, `sha2`, and `hex` crates):
+
+```rust
+use sdk::qbiz::{QBizClient, CreateInvoiceParams};
+
+// Initialize Client
+let client = QBizClient::new("YOUR_API_KEY", Some("http://localhost:8000")).unwrap();
+
+// 1. Create a payment invoice
+let params = CreateInvoiceParams {
+    order_id: "ORDER-RUST-1002".to_string(),
+    amount: 25000,
+    callback_url: None,
+    redirect_url: None,
+    merchant_id: Some("mrc_toko_1".to_string()),
+    customer_name: None,
+    customer_email: None,
+    customer_phone: None,
+    items: None,
+};
+
+let invoice = client.create_invoice(params).await.unwrap();
+println!("QRIS Payload: {}", invoice.qr_string);
+
+// 2. Fetch payment status
+let status = client.get_invoice_status(&invoice.id).await.unwrap();
+println!("Invoice Status: {}", status.status);
+
+// 3. Verify incoming webhook signature
+let is_verified = client.verify_webhook(
+    &raw_request_body_string,
+    signature_header_value,
+    "YOUR_WEBHOOK_SECRET"
+);
+if is_verified {
+    // Signature verified. Process payment.
+}
+```
+
 ---
 
 ## 5. Security & Cryptographic Standards
