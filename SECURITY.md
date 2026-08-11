@@ -71,4 +71,4 @@ The system enforces separation of duties across five distinct roles:
 
 ## 4. Vulnerability Disclosure Policy
 
-If you discover a security vulnerability within QBiz, please **do not** file a public GitHub issue. Instead, report it directly to our security team via email at **security@qbiz.com** to allow us to address and patch the issue securely (*Responsible Disclosure*).
+If you discover a security vulnerability within QBiz, please **do not** file a public GitHub issue. Instead, report it directly to our security team via email at **inisaya@ardianryan.com** to allow us to address and patch the issue securely (*Responsible Disclosure*).
