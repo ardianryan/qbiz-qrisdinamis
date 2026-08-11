@@ -123,7 +123,26 @@ Because QBiz utilizes **Puppeteer (headless Chromium)** in the background to syn
   chmod +x install.sh
   sudo ./install.sh
   ```
+* **Official Prebuilt Docker Image**:
+  Pull and run directly from Docker Hub or GitHub Packages:
+  ```bash
+  # Docker Hub
+  docker pull ardianryan/qbiz-qrisdinamis:latest
+
+  # GitHub Container Registry (GHCR)
+  docker pull ghcr.io/ardianryan/qbiz-qrisdinamis:latest
+  ```
+  Run using `docker run` with your local environment configuration:
+  ```bash
+  docker run -d \
+    --name qbiz-gateway \
+    -p 8000:8000 \
+    --env-file .env \
+    -v $(pwd)/sessions:/app/sessions \
+    ardianryan/qbiz-qrisdinamis:latest
+  ```
 * **Docker Compose Deployment**:
+  Build and run multi-container setups locally:
   ```bash
   docker compose up -d --build
   ```

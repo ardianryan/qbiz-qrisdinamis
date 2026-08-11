@@ -1,0 +1,48 @@
+# Git files
+.git
+.gitignore
+
+# Environment and sensitive data
+.env
+sessions/
+secrets/
+*.key
+*.cert
+*.pem
+
+# Local agent configs and cache
+.agents/
+.gemini/
+.DS_Store
+
+# Temporary files and logs
+*.log
+scratch/
+tmp/
+dist/
+
+# Test files
+*.test.ts
+*.test.tsx
+src/**/*.test.ts
+src/**/*.test.tsx
+
+# Documentation (not needed inside the production container)
+README.md
+SECURITY.md
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+PORTAINER_AAPANEL.md
+APIQBIZ.md
+LICENSE
+CHANGELOG.md
+llms.txt
+llms-full.txt
+sdk/
+static/openapi.json
+
+# Docker files
+.dockerignore
+docker-compose.yml
+install.sh
+Dockerfile
