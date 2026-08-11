@@ -61,6 +61,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Update Docker Hub Description
+        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ardianryan/qbiz-qrisdinamis
+          short-description: "An unofficial, self-hosted dynamic QRIS payment gateway for Gopay merchants—features automated GoBiz sync, POS integration, and HMAC webhooks."
+          readme-filepath: ./README.md
+
   create-github-release:
     name: Auto Release
     runs-on: ubuntu-latest

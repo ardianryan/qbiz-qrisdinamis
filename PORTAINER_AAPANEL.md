@@ -17,7 +17,7 @@ version: '3.8'
 
 services:
   web:
-    image: denoland/deno:debian
+    image: ardianryan/qbiz-qrisdinamis:latest
     container_name: qbiz-qris-app
     restart: always
     ports:
@@ -26,17 +26,12 @@ services:
       - DATABASE_URL=postgres://${DB_USER:-ardianryan}:${DB_PASSWORD:-your_secure_db_password}@db:5432/${DB_NAME:-qrispaymti}
       - COOKIE_SECRET=${COOKIE_SECRET:-qbiz_cookie_signing_secret_key_2026}
       - JWT_SECRET=${JWT_SECRET:-qbiz_jwt_secret_key_2026}
-      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-    command: ["run", "-A", "--env", "main.tsx"]
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - /opt/qbiz/sessions:/app/sessions
       - /opt/qbiz/uploads:/app/static/uploads
-    entrypoint: >
-      sh -c "apt-get update && apt-get install -y chromium fonts-freefont-ttf libxss1 --no-install-recommends && deno cache main.tsx && exec deno run -A --env main.tsx"
 
   db:
     image: postgres:15-alpine
