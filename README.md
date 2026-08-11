@@ -76,12 +76,16 @@ BASE_URL=http://localhost:8000
 DATABASE_URL=postgres://user:password@localhost:5432/qrispaymti
 COOKIE_SECRET=your_cookie_signing_secret
 JWT_SECRET=your_jwt_secret
+
+# Optional parameters for proxy and sandbox tuning
+PROXY_SERVER=http://username:password@proxyhost:port # HTTP/HTTPS/SOCKS5 proxy server for Puppeteer
+SANDBOX_MODE=false # Set to true to globally force all invoices into sandbox testing mode
 ```
 
-### 2. Push Schema to Database
-Initialize your PostgreSQL database tables directly from Drizzle schema definitions:
+### 2. Run Database Migrations
+Run the migration script to automatically apply database schemas to your PostgreSQL server:
 ```bash
-deno run -A npm:drizzle-kit push --schema=db/schema.ts --dialect=postgresql --url=YOUR_DATABASE_URL
+deno task db:migrate
 ```
 
 ### 3. Compile Tailwind CSS Styles

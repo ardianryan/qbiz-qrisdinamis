@@ -13,6 +13,7 @@ interface CheckoutPageProps {
     customerEmail: string;
     customerPhone: string;
     items: string; // JSON array of items
+    isSandbox: boolean;
   };
   merchant: {
     name: string;
@@ -271,6 +272,20 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                 <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-2 block italic">
                   *Klik untuk memperbesar kode QR
                 </span>
+
+                {invoice.isSandbox && (
+                  <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl text-center max-w-[240px] w-full">
+                    <span className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wide block">🧪 Mode Sandbox</span>
+                    <p className="text-[9.5px] text-amber-700 dark:text-amber-500 leading-relaxed mt-1">Uji integrasi Anda tanpa melakukan transfer asli.</p>
+                    <button 
+                      id="btn-simulate-sandbox"
+                      type="button"
+                      className="w-full mt-2.5 py-1.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] rounded-lg shadow-sm transition-all select-none cursor-pointer active:scale-[0.98]"
+                    >
+                      Simulasi Bayar Sukses
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -518,6 +533,36 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                         alert('Gagal memeriksa status pembayaran. Koneksi bermasalah.');
                       }, 1000);
                     });
+                });
+              }
+
+              // --- 3.5. SANDBOX SIMULATION ---
+              const btnSimulateSandbox = document.getElementById('btn-simulate-sandbox');
+              if (btnSimulateSandbox) {
+                btnSimulateSandbox.addEventListener('click', function() {
+                  this.disabled = true;
+                  const originalText = this.textContent;
+                  this.textContent = 'Memproses Simulasi...';
+                  fetch('/api/v1/sandbox/simulate-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ invoiceId: invoiceId })
+                  })
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.success) {
+                      checkPaymentStatus();
+                    } else {
+                      alert('Gagal memproses simulasi: ' + (data.error || 'Unknown error'));
+                      this.disabled = false;
+                      this.textContent = originalText;
+                    }
+                  })
+                  .catch(err => {
+                    alert('Koneksi galat: ' + err.message);
+                    this.disabled = false;
+                    this.textContent = originalText;
+                  });
                 });
               }
 

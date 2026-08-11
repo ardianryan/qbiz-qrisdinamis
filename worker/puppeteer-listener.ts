@@ -9,6 +9,35 @@ import { encryptSession, decryptSession } from '../src/utils/crypto.ts';
 export const activeListeners = new Map<string, any>();
 
 /**
+ * Parses and returns the proxy configuration from PROXY_SERVER env variable.
+ * Supports standard formats: http://host:port, http://user:pass@host:port, or socks5://...
+ */
+function getProxyConfig() {
+  const proxyServer = Deno.env.get("PROXY_SERVER");
+  const args = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage'];
+  let username = '';
+  let password = '';
+
+  if (proxyServer) {
+    try {
+      const proxyUrl = new URL(proxyServer);
+      const originUrl = `${proxyUrl.protocol}//${proxyUrl.host}`;
+      args.push(`--proxy-server=${originUrl}`);
+      if (proxyUrl.username) {
+        username = decodeURIComponent(proxyUrl.username);
+      }
+      if (proxyUrl.password) {
+        password = decodeURIComponent(proxyUrl.password);
+      }
+    } catch (_err) {
+      args.push(`--proxy-server=${proxyServer}`);
+    }
+  }
+
+  return { args, username, password, enabled: !!proxyServer };
+}
+
+/**
  * Start the Puppeteer-backed idle browser listener for a merchant.
  * 
  * HYBRID APPROACH:
@@ -38,13 +67,21 @@ export async function startMerchantListener(merchantId: string) {
   activeListeners.set(merchantId, { status: 'STARTING' });
 
   try {
+    const proxyConfig = getProxyConfig();
     const browser = await puppeteer.launch({
       headless: true,
       executablePath: Deno.env.get("PUPPETEER_EXECUTABLE_PATH") || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+      args: proxyConfig.args
     });
 
     const page = await browser.newPage();
+    if (proxyConfig.enabled && (proxyConfig.username || proxyConfig.password)) {
+      await page.authenticate({
+        username: proxyConfig.username,
+        password: proxyConfig.password
+      });
+      console.log(`[Worker ${merchantId}] Authenticated proxy connection.`);
+    }
 
     // 1. Enable request interception to block heavy assets (RAM & CPU reduction)
     await page.setRequestInterception(true);
@@ -199,12 +236,20 @@ export async function triggerGoBizOTP(merchantId: string) {
   const merchant = mrcList[0];
 
   try {
+    const proxyConfig = getProxyConfig();
     const browser = await puppeteer.launch({
       headless: true,
       executablePath: Deno.env.get("PUPPETEER_EXECUTABLE_PATH") || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: proxyConfig.args
     });
     const page = await browser.newPage();
+    if (proxyConfig.enabled && (proxyConfig.username || proxyConfig.password)) {
+      await page.authenticate({
+        username: proxyConfig.username,
+        password: proxyConfig.password
+      });
+      console.log(`[Worker ${merchantId}] Authenticated proxy connection for OTP request.`);
+    }
 
     await page.goto('https://portal.gofoodmerchant.co.id/login', { waitUntil: 'networkidle2' });
 
@@ -394,7 +439,7 @@ async function processIncomingMutations(merchantId: string, transactionList: any
 /**
  * Dispatch HTTP POST webhook with HMAC verification signature
  */
-async function dispatchWebhook(invoice: any, txTime: string, retryCount = 0) {
+export async function dispatchWebhook(invoice: any, txTime: string, retryCount = 0) {
   console.log(`[Webhook] Dispatching callback for invoice ${invoice.id} (Attempt ${retryCount + 1})...`);
 
   // Resolve target url and signing secret dynamically based on user creator settings

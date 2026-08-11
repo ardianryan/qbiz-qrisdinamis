@@ -14,7 +14,7 @@ import { renderToString } from 'react-dom/server';
 import { db } from './db/db.ts';
 import { merchants, invoices, mutations, users, regionalAdminMerchants } from './db/schema.ts';
 import { eq, desc, inArray, and, or, sql } from 'drizzle-orm';
-import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener } from './worker/puppeteer-listener.ts';
+import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener, dispatchWebhook } from './worker/puppeteer-listener.ts';
 import { authMiddleware, requireRole, hashPassword, COOKIE_SECRET, UserSession } from './src/middleware/auth.ts';
 import { generateDynamicQRIS, decodeQRISFromImage } from './src/utils/qris.ts';
 
@@ -1263,6 +1263,8 @@ app.post('/api/v1/invoices', async (c) => {
   let dynamicQrisString = '';
   try {
     const expiredAt = new Date(Date.now() + 5 * 60 * 1000);
+    const isSandbox = (body.sandbox === true || body.isSandbox === true || Deno.env.get("SANDBOX_MODE") === "true");
+
     await db.insert(invoices).values({
       id: newInvoiceId,
       merchantId,
@@ -1278,7 +1280,8 @@ app.post('/api/v1/invoices', async (c) => {
       customerEmail: body.customer_email || body.customerEmail || null,
       customerPhone: body.customer_phone || body.customerPhone || null,
       items: body.items ? JSON.stringify(body.items) : null,
-      expiredAt
+      expiredAt,
+      isSandbox
     });
 
     // Fetch the merchant to get their static QRIS payload
@@ -1308,6 +1311,51 @@ app.post('/api/v1/invoices', async (c) => {
 });
 
 // View: Secure Checkout Page
+// API Sandbox simulation endpoint
+app.post('/api/v1/sandbox/simulate-payment', async (c) => {
+  try {
+    const body = await c.req.json();
+    const invoiceId = body.invoiceId;
+    if (!invoiceId) {
+      return c.json({ success: false, error: 'Invoice ID is required' }, 400);
+    }
+
+    const invList = await db.select().from(invoices).where(eq(invoices.id, invoiceId));
+    if (invList.length === 0) {
+      return c.json({ success: false, error: 'Invoice not found' }, 404);
+    }
+    const invoice = invList[0];
+
+    const isSandboxGlobally = Deno.env.get("SANDBOX_MODE") === "true";
+    if (!invoice.isSandbox && !isSandboxGlobally) {
+      return c.json({ success: false, error: 'Payment simulation is only allowed for Sandbox invoices.' }, 400);
+    }
+
+    if (invoice.status !== 'PENDING') {
+      return c.json({ success: false, error: `Invoice is already ${invoice.status}` }, 400);
+    }
+
+    const paidAt = new Date();
+    await db.update(invoices)
+      .set({
+        status: 'PAID',
+        paidAt
+      })
+      .where(eq(invoices.id, invoiceId));
+
+    console.log(`[Sandbox] Invoice ${invoiceId} marked as PAID. Dispatching webhook...`);
+
+    // Dispatch webhook in the background
+    dispatchWebhook(invoice, paidAt.toISOString()).catch(err => {
+      console.error(`[Sandbox] Webhook dispatch error for invoice ${invoiceId}:`, err);
+    });
+
+    return c.json({ success: true, message: 'Simulated payment processed successfully.' });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
 app.get('/pay/:id', async (c) => {
   const id = c.req.param('id');
   try {
@@ -1349,7 +1397,8 @@ app.get('/pay/:id', async (c) => {
             customerName: invoice.customerName || '',
             customerEmail: invoice.customerEmail || '',
             customerPhone: invoice.customerPhone || '',
-            items: invoice.items || '[]'
+            items: invoice.items || '[]',
+            isSandbox: invoice.isSandbox
           }}
           merchant={{
             name: merchant.name,

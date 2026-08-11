@@ -54,6 +54,7 @@ export const invoices = pgTable('invoices', {
   items: text('items'), // JSON string representing purchase item details
   expiredAt: timestamp('expired_at', { withTimezone: true }).notNull(),
   paidAt: timestamp('paid_at', { withTimezone: true }),
+  isSandbox: boolean('is_sandbox').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

@@ -2,6 +2,18 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.0.2] - 2026-08-11
+
+### Added
+- **API Sandbox Testing Mode**: Introduced custom sandbox flag `isSandbox` for invoices. Sandbox invoices display a simulator banner on the checkout page allowing developers to trigger mock payment successes and dispatch realistic webhook signatures without actual money transfers.
+- **Headless Puppeteer Proxy Support**: Integrated dynamic SOCKS5/HTTP network proxy routing using the `PROXY_SERVER` environment variable, enabling secure traffic tunneling with optional username and password proxy authentication.
+- **Drizzle Configuration**: Added root config `drizzle.config.ts` and automated migration runner `db/migrate.ts` to manage schema alterations professionally.
+
+### Changed
+- **Drizzle Migration Tasks**: Transitioned database initialization from raw schema pushes (`drizzle-kit push`) to tracked migrations run via `deno task db:migrate`.
+
+---
+
 ## [1.0.1] - 2026-08-11
 
 ### Added
