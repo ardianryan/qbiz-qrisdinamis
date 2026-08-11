@@ -101,6 +101,22 @@ Open **`http://localhost:8000/`** in your browser.
 
 ## 📦 Production Deployment
 
+### 🖥️ Recommended Deployment Specifications
+
+Because QBiz utilizes **Puppeteer (headless Chromium)** in the background to sync transaction portals, the host server must have sufficient memory to prevent Chromium processes from being terminated by the operating system (Out-of-Memory / OOM crashes).
+
+| Metric | Minimum Requirement (Base) | Recommended Specification |
+| :--- | :--- | :--- |
+| **CPU** | 1 vCPU (shared core) | 2 vCPUs or higher |
+| **RAM** | 1 GB RAM (requires swap enabled) | 2 GB RAM or higher |
+| **Storage** | 10 GB SSD / NVMe | 20 GB SSD or higher |
+| **Operating System** | Ubuntu 22.04 LTS / Debian 11+ | Ubuntu 24.04 LTS / Docker Host |
+| **Swap Space** | 1 GB - 2 GB Swap (if RAM <= 1GB) | Not required if RAM >= 2GB |
+| **Bandwidth** | 10 Mbps symmetric | 100 Mbps or higher |
+
+> [!IMPORTANT]
+> **Swap Allocation Warning**: If you deploy QBiz on a entry-level VPS with only 1 GB of RAM (such as DigitalOcean Basic or Linode Shared Nano), you **must** configure at least 1 GB of virtual swap space, otherwise Puppeteer will crash under load due to OOM limits.
+
 * **One-Click Automated VPS Installer**:
   ```bash
   curl -fsSL https://raw.githubusercontent.com/ardianryan/qbiz-qrisdinamis/main/install.sh -o install.sh
