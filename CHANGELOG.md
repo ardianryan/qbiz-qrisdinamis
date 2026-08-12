@@ -36,7 +36,7 @@ All notable changes to the **QBiz Gateway Hub** project will be documented in th
 ### Added
 - **Initial Release of QBiz Gateway Hub**
 - **Dynamic QRIS Generation**: Implemented EMVCo parser, suffix calculator (+Rp 1 to +Rp 999), and CCITT CRC-16 re-calculator to enable dynamic QR code generation.
-- **GoBiz Interceptor Workers**: Headless Puppeteer Chromium worker for real-time GoBiz transaction scraping, XHR interception, and session authentication.
+- **QRIS Food Merchant Interceptor Workers**: Headless Puppeteer Chromium worker for real-time QRIS Food Merchant transaction scraping, XHR interception, and session authentication.
 - **WhatsApp OTP Integration**: Direct OTP forwarding to merchant's registered WhatsApp line for secure portal authentication.
 - **HMAC Webhook Dispatcher**: Signature validation payloads (HMAC-SHA256) sent immediately to POS clients upon payment detection.
 - **Admin Dashboard Console**: Multi-tenant RBAC panel supporting Super Admin, Operations Admin, Regional Admin, Merchant Owner, and cashier/employee scopes.

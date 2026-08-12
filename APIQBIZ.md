@@ -95,7 +95,7 @@ QBiz-hosted checkout page displaying the dynamic QRIS code alongside a **5-minut
 * **Params**: `:id` = Invoice ID (e.g. `inv_1785738263024_587`)
 * **Behavior**:
   * Returns a responsive, mobile-friendly HTML interface.
-  * Polls transaction status automatically. If payment is detected in GoBiz, redirects to the success screen instantly.
+  * Polls transaction status automatically. If payment is detected in the QRIS Food Merchant portal, redirects to the success screen instantly.
 
 ---
 

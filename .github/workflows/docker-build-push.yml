@@ -68,7 +68,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: ardianryan/qbiz-qrisdinamis
-          short-description: "An unofficial, self-hosted dynamic QRIS payment gateway for Gopay merchants—features automated GoBiz sync, POS integration, and HMAC webhooks."
+          short-description: "An unofficial, self-hosted dynamic QRIS payment gateway for QRIS Food Merchants—features automated transaction sync, POS integration, and HMAC webhooks."
           readme-filepath: ./README.md
 
   create-github-release:

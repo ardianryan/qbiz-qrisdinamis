@@ -221,7 +221,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               <div className="flex flex-col gap-3 mb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300">QRIS by Gopay Merchant</span>
+                    <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300">QRIS Food Merchant</span>
                     <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400 uppercase border border-sky-100 dark:border-sky-900/30">Dinamis</span>
                   </div>
                   {/* QRIS tiny logo */}

@@ -6,7 +6,7 @@
 
 ## 1. ARCHITECTURAL OVERVIEW
 
-The system operates as an **In-House Dynamic QRIS Payment Middleware**. It bridges external Point-of-Sale (POS) systems with GoBiz Merchant Web Portals without relying on paid third-party payment gateways like Midtrans.
+The system operates as an **In-House Dynamic QRIS Payment Middleware**. It bridges external Point-of-Sale (POS) systems with QRIS Food Merchant Portals without relying on paid third-party payment gateways like Midtrans.
 
 ```
 +-------------------+             +---------------------------------------+
@@ -21,8 +21,8 @@ The system operates as an **In-House Dynamic QRIS Payment Middleware**. It bridg
                                   | Headless Browser (Session Auth)
                                   v
                         +---------------------------------------+
-                        | GoBiz Merchant Web Portal             |
-                        | (portal.gofoodmerchant.co.id)         |
+                        | QRIS Food Merchant Portal             |
+                        | (portal.qris-food-merchant.local)     |
                         +---------------------------------------+
 ```
 
@@ -84,7 +84,7 @@ The background listener operates independently alongside the Hono server.
 
 ### 3.1 Network Interception Strategy
 
-Rather than parsing HTML/DOM trees (which frequently break on UI updates), Puppeteer intercepts internal XHR/Fetch API responses sent by the GoBiz web application:
+Rather than parsing HTML/DOM trees (which frequently break on UI updates), Puppeteer intercepts internal XHR/Fetch API responses sent by the QRIS Food Merchant web application:
 
 ```typescript
 // worker/puppeteer-listener.ts
@@ -120,7 +120,7 @@ export async function startMerchantListener(merchant: any) {
     }
   });
 
-  await page.goto('https://portal.gofoodmerchant.co.id/', { waitUntil: 'networkidle2' });
+  await page.goto('https://portal.qris-food-merchant.local/', { waitUntil: 'networkidle2' });
 
   // Session Expiration Handling
   if (page.url().includes('/login')) {
@@ -179,5 +179,5 @@ When `processIncomingMutations` finds an invoice matching `totalAmount` where `s
 * `POST /api/v1/invoices` - Create dynamic charge
 * `GET /api/v1/invoices/:id` - Fetch invoice status (Polling)
 * `GET /api/v1/merchants` - List connected QRIS accounts
-* `POST /api/v1/merchants/:id/otp/request` - Trigger GoBiz WhatsApp OTP
+* `POST /api/v1/merchants/:id/otp/request` - Trigger QRIS Food Merchant WhatsApp OTP
 * `POST /api/v1/merchants/:id/otp/verify` - Submit OTP & save session JSON

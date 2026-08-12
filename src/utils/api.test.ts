@@ -2,19 +2,19 @@ import { assertEquals, assertStringIncludes, assertExists } from "https://deno.l
 import { db } from "../../db/db.ts";
 import { merchants, invoices } from "../../db/schema.ts";
 import { eq } from "drizzle-orm";
+import { app } from "../../main.tsx";
 
-const BASE_URL = "http://localhost:8000";
 const API_KEY = "qbiz_api_key_live_2026_w8a2b3d9x7c"; // Super Admin API Key
 
 Deno.test("API - GET /login should return login page", async () => {
-  const res = await fetch(`${BASE_URL}/login`);
+  const res = await app.request("/login");
   assertEquals(res.status, 200);
   const text = await res.text();
   assertStringIncludes(text, "Access the Gateway");
 });
 
 Deno.test("API - POST /api/v1/invoices should reject unauthorized requests", async () => {
-  const res = await fetch(`${BASE_URL}/api/v1/invoices`, {
+  const res = await app.request("/api/v1/invoices", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -50,7 +50,7 @@ Deno.test("API - POST /api/v1/invoices and GET /pay/:id integration test", async
 
   // 2. Send API request to create invoice with customer profile and purchase items details
   const orderId = `ORD-INT-${Date.now()}`;
-  const res = await fetch(`${BASE_URL}/api/v1/invoices`, {
+  const res = await app.request("/api/v1/invoices", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${API_KEY}`,
@@ -79,17 +79,17 @@ Deno.test("API - POST /api/v1/invoices and GET /pay/:id integration test", async
   const invoiceId = data.invoice.id;
 
   // 3. Verify public secure pay view returns 200 OK without redirecting to login page
-  const payRes = await fetch(`${BASE_URL}/pay/${invoiceId}`);
+  const payRes = await app.request(`/pay/${invoiceId}`);
   assertEquals(payRes.status, 200);
   const payHtml = await payRes.text();
   assertStringIncludes(payHtml, "Test Integration Merchant"); // Should dynamically display merchant name in header
   assertStringIncludes(payHtml, "Coffee Late"); // Should display purchase items details list
   assertStringIncludes(payHtml, "Donut Glaze");
   assertStringIncludes(payHtml, "081122334455"); // Should display customer phone number
-  assertStringIncludes(payHtml, "QRIS by Gopay Merchant"); // Should show the Gopay Merchant label
+  assertStringIncludes(payHtml, "QRIS Food Merchant"); // Should show the brand label
 
   // 4. Verify polling status endpoint returns correct status details
-  const statusRes = await fetch(`${BASE_URL}/api/v1/invoices/${invoiceId}/status`);
+  const statusRes = await app.request(`/api/v1/invoices/${invoiceId}/status`);
   assertEquals(statusRes.status, 200);
   const statusJson = await statusRes.json();
   assertEquals(statusJson.status, "PENDING");

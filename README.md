@@ -5,7 +5,7 @@
 ![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat-square&logo=postgresql)
 ![Automation](https://img.shields.io/badge/Automation-Puppeteer-0097a7?style=flat-square&logo=puppeteer)
 
-**QBiz** is a modern, self-hosted dynamic QRIS payment gateway hub. It acts as an in-house middleware to connect GoBiz/GoFood merchant portals with custom Point-of-Sale (POS) systems, automates transaction synchronization via headless browser automation, and dispatches HMAC-SHA256 signed webhooks directly to your POS system without relying on third-party payment gateways.
+**QBiz** is a modern, self-hosted dynamic QRIS payment gateway hub. It acts as an in-house middleware to connect QRIS Food Merchant portals with custom Point-of-Sale (POS) systems, automates transaction synchronization via headless browser automation, and dispatches HMAC-SHA256 signed webhooks directly to your POS system without relying on third-party payment gateways.
 
 > [!WARNING]
 > **DISCLAIMER, RISK WARNING, & WARRANTY LIMITATION (UNOFFICIAL API)**
@@ -14,7 +14,7 @@
 > 
 > **Use this software entirely at your own risk (DWYOR - Do With Your Own Risk).** Any risks of account suspension, access restriction on the merchant portal, or other legal and financial implications arising from the use of this system are entirely the **user's own responsibility (as-is)**. The developers assume no liability.
 > 
-> **COMPATIBILITY LIMITATION**: Currently, this payment gateway hub **only supports QRIS Gopay Merchant / GoFood Merchant**.
+> **COMPATIBILITY LIMITATION**: Currently, this payment gateway hub **only supports QRIS Food Merchant**.
 
 ---
 
@@ -25,8 +25,8 @@
    * **Unique Suffixes**: Automatically appends minor unique codes (e.g., Rp 1 to Rp 999) to invoices to distinguish simultaneous payments of the same base amount.
    * **CRC-16 Re-computation**: Computes the CCITT checksum on-the-fly to compile valid dynamic QR codes.
 
-2. 🔄 **GoBiz Real-time Interception**
-   * **Puppeteer Worker**: Headless Chromium session intercepts transactions directly inside the GoBiz portal.
+2. 🔄 **QRIS Food Merchant Real-time Interception**
+   * **Puppeteer Worker**: Headless Chromium session intercepts transactions directly inside the QRIS Food Merchant portal.
    * **WhatsApp OTP Integration**: Forwards OTP requests to the merchant's registered WhatsApp account for two-factor authentication.
    * **Auto Webhook Dispatch**: Triggers target merchant webhooks with HMAC-SHA256 signature verification payloads.
    * **Session Security at Rest**: Encrypts browser session cookie files on disk using AES-256-GCM symmetric encryption derived via PBKDF2 (100,000 iterations).
@@ -53,8 +53,8 @@ Below is an overview of the key components and functions driving the gateway:
 - **`generateDynamicQRIS(staticPayload: string, amount: number, invoiceId: string)`**: Injects the target total amount, unique transaction suffix, and invoice identifiers directly into the dynamic QR payload.
 
 ### 2. Puppeteer Sync Workers (`worker/puppeteer-listener.ts`)
-- **`launchGoBizScraper(merchantId: string)`**: Spawns a headless Chromium instance to authenticate with the GoBiz portal, intercept mutation API feeds, and listen for incoming successful transactions.
-- **`promptOTPChallenge(merchantId: string, otpCode: string)`**: Relays GoBiz two-factor OTP challenges directly to the merchant owner via their registered WhatsApp line.
+- **`startMerchantListener(merchantId: string)`**: Spawns a headless Chromium instance to authenticate with the QRIS Food Merchant portal, intercept mutation API feeds, and listen for incoming successful transactions.
+- **`triggerMerchantOTP(merchantId: string)`**: Relays QRIS Food Merchant two-factor OTP challenges directly to the merchant owner via their registered WhatsApp line.
 
 ### 3. Middleware & Security Auth (`src/middleware/auth.ts`)
 - **`authMiddleware(c: any, next: any)`**: Inspects signed session cookies to protect dashboard pages while whitelisting public checkout routes, API endpoints, and crawler files.

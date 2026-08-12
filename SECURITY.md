@@ -39,7 +39,7 @@ The system enforces separation of duties across five distinct roles:
 * **MERCHANT_EMPLOYEE**: Cashier role restricted to creating dynamic checkout invoices and viewing matching transactions without developer settings.
 
 ### D. Headless Integration Security (Puppeteer Sessions)
-* **No Password Storage**: QBiz does not store GoBiz portal account passwords in the database. Authentication relies on one-time OTP tokens dispatched directly to the merchant's registered WhatsApp line.
+* **No Password Storage**: QBiz does not store QRIS Food Merchant portal account passwords in the database. Authentication relies on one-time OTP tokens dispatched directly to the merchant's registered WhatsApp line.
 * **Session Cookie Isolation**: Headless session files are stored in individual encrypted files inside the `sessions/` directory, excluded from public web assets.
 * **Automatic Disconnection**: If a headless session fails, terminates, or expires, the status is immediately flagged as `DISCONNECTED` or `NEEDS_OTP` to prevent unauthorized execution.
 
