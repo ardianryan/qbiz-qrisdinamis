@@ -499,6 +499,7 @@ export async function dispatchWebhook(invoice: any, txTime: string, retryCount =
   }
 
   const baseUrl = Deno.env.get("BASE_URL") || "http://localhost:8000";
+  const timestamp = Math.floor(Date.now() / 1000).toString();
 
   try {
     const response = await fetch(targetUrl, {
@@ -506,6 +507,7 @@ export async function dispatchWebhook(invoice: any, txTime: string, retryCount =
       headers: {
         'Content-Type': 'application/json',
         'X-QBiz-Signature': signature,
+        'X-QBiz-Timestamp': timestamp,
         'Referer': baseUrl,
         'Origin': baseUrl
       },
@@ -534,3 +536,25 @@ export async function dispatchWebhook(invoice: any, txTime: string, retryCount =
     }
   }
 }
+
+/**
+ * Gracefully close all running Puppeteer browser listeners
+ */
+export async function closeAllListeners() {
+  console.log('[Worker] Gracefully closing all running browser listeners...');
+  for (const [merchantId, listener] of activeListeners.entries()) {
+    try {
+      if (listener.intervalId) {
+        clearInterval(listener.intervalId);
+      }
+      if (listener.browser) {
+        await listener.browser.close();
+      }
+    } catch (err: any) {
+      console.warn(`[Worker] Error closing browser for ${merchantId}:`, err.message);
+    }
+  }
+  activeListeners.clear();
+  console.log('[Worker] All browser instances closed cleanly.');
+}
+

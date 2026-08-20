@@ -14,8 +14,9 @@ import { renderToString } from 'react-dom/server';
 import { db } from './db/db.ts';
 import { merchants, invoices, mutations, users, regionalAdminMerchants } from './db/schema.ts';
 import { eq, desc, inArray, and, or, sql } from 'drizzle-orm';
-import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener, dispatchWebhook } from './worker/puppeteer-listener.ts';
-import { authMiddleware, requireRole, hashPassword, COOKIE_SECRET, UserSession } from './src/middleware/auth.ts';
+import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener, dispatchWebhook, closeAllListeners } from './worker/puppeteer-listener.ts';
+import { authMiddleware, requireRole, hashPassword, verifyPassword, COOKIE_SECRET, UserSession } from './src/middleware/auth.ts';
+import { securityHeadersMiddleware, createRateLimiter, bodySizeLimiter } from './src/middleware/security.ts';
 import { generateDynamicQRIS, decodeQRISFromImage } from './src/utils/qris.ts';
 
 const DEFAULT_MOCK_STATIC_QRIS = "00020101021138590014ID.CO.QRIS.WWW0215ID10200845344330303UMI51440014ID.CO.QRIS.WWW0215ID10200845344330303UMI5204581253033605802ID5920Resto Ayam Bakar Cbk6009Mojokerto6105613006304D116";
@@ -151,9 +152,54 @@ async function bootActiveListeners() {
 }
 await bootActiveListeners();
 
+// Ensure runtime directories exist
+try {
+  await Deno.mkdir("sessions", { recursive: true });
+  await Deno.mkdir("static/uploads", { recursive: true });
+} catch (_e) {}
+
+// Graceful Shutdown Handler (Zombie Process Prevention)
+const handleShutdown = async (signal: string) => {
+  console.log(`\n[System] Received ${signal}. Initiating graceful shutdown...`);
+  await closeAllListeners();
+  Deno.exit(0);
+};
+
+try {
+  Deno.addSignalListener("SIGINT", () => handleShutdown("SIGINT"));
+  Deno.addSignalListener("SIGTERM", () => handleShutdown("SIGTERM"));
+} catch (_err) {
+  // Ignored in unsupported runtime environments
+}
+
 // =========================================================================
 // MIDDLEWARES & STATIC ROUTES
 // =========================================================================
+
+// 1. HTTP Security Headers Middleware (Helmet-like)
+app.use('*', securityHeadersMiddleware);
+
+// 2. Payload Body Size Limiter (1MB max)
+app.use('*', bodySizeLimiter(1024 * 1024));
+
+// 3. In-Memory Rate Limiters
+const loginRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: 'Too many login attempts. Please wait 1 minute before trying again.'
+});
+
+const invoiceApiRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: 'Rate limit exceeded: Maximum 100 invoice requests per minute.'
+});
+
+const invoiceStatusRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 120,
+  message: 'Rate limit exceeded for invoice status checks.'
+});
 
 // Serve static assets (Tailwind compiled CSS)
 app.use('/static/*', serveStatic({ root: './' }));
@@ -241,8 +287,8 @@ app.get('/login', (c) => {
   return c.render(<LoginPage error={error} />);
 });
 
-// POST: Process Login
-app.post('/login', async (c) => {
+// POST: Process Login (Protected with Rate Limiter & PBKDF2)
+app.post('/login', loginRateLimiter, async (c) => {
   const body = await c.req.parseBody();
   const email = body.email as string;
   const password = body.password as string;
@@ -251,14 +297,24 @@ app.post('/login', async (c) => {
     const userList = await db.select().from(users).where(eq(users.email, email));
     if (userList.length > 0) {
       const user = userList[0];
-      const inputHash = await hashPassword(password);
+      const isValid = await verifyPassword(password, user.password);
       
-      if (inputHash === user.password) {
+      if (isValid) {
+        // Transparently upgrade legacy single-round SHA-256 hash to PBKDF2
+        if (!user.password.startsWith('pbkdf2$')) {
+          try {
+            const upgradedHash = await hashPassword(password);
+            await db.update(users).set({ password: upgradedHash }).where(eq(users.id, user.id));
+          } catch (_upgradeErr) {}
+        }
+
+        const isHttps = c.req.url.startsWith('https://') || c.req.header('x-forwarded-proto') === 'https';
+
         // Set signed session cookie (valid for 1 week)
         await setSignedCookie(c, 'session', user.id, COOKIE_SECRET, {
           path: '/',
           httpOnly: true,
-          secure: false, // Set true in production over HTTPS
+          secure: isHttps,
           sameSite: 'Lax',
           maxAge: 60 * 60 * 24 * 7
         });
@@ -274,17 +330,19 @@ app.post('/login', async (c) => {
     console.error('[Login] Database authentication query error:', err.message);
   }
 
-  // Fallback check for demo mock login credentials in case database is offline
-  if (email === 'superadmin@qbiz.com' && password === 'SuperQBiz2026') {
-    await setSignedCookie(c, 'session', 'usr_superadmin', COOKIE_SECRET, {
-      path: '/', httpOnly: true, secure: false, sameSite: 'Lax', maxAge: 60 * 60 * 24 * 7
-    });
-    return c.redirect('/merchants');
-  } else if (email === 'merchant@qbiz.com' && password === 'MerchantQBiz2026') {
-    await setSignedCookie(c, 'session', 'usr_merchant', COOKIE_SECRET, {
-      path: '/', httpOnly: true, secure: false, sameSite: 'Lax', maxAge: 60 * 60 * 24 * 7
-    });
-    return c.redirect('/transactions');
+  // Fallback demo mock login credentials strictly guarded behind explicit environment variable
+  if (Deno.env.get("ALLOW_DEMO_LOGIN") === "true") {
+    if (email === 'superadmin@qbiz.com' && password === 'SuperQBiz2026') {
+      await setSignedCookie(c, 'session', 'usr_superadmin', COOKIE_SECRET, {
+        path: '/', httpOnly: true, secure: false, sameSite: 'Lax', maxAge: 60 * 60 * 24 * 7
+      });
+      return c.redirect('/merchants');
+    } else if (email === 'merchant@qbiz.com' && password === 'MerchantQBiz2026') {
+      await setSignedCookie(c, 'session', 'usr_merchant', COOKIE_SECRET, {
+        path: '/', httpOnly: true, secure: false, sameSite: 'Lax', maxAge: 60 * 60 * 24 * 7
+      });
+      return c.redirect('/transactions');
+    }
   }
 
   (c as any).set('title', 'Login');
@@ -1167,7 +1225,7 @@ app.post('/api/v1/developer/regenerate-key', requireRole(['SUPER_ADMIN', 'ADMIN'
 });
 
 // API: Create dynamic invoices (REST call from POS client - uses API Bearer Key)
-app.post('/api/v1/invoices', async (c) => {
+app.post('/api/v1/invoices', invoiceApiRateLimiter, async (c) => {
   const authHeader = c.req.header('Authorization');
   let isAuthorized = false;
   let authenticatedUserId: string | null = null;
@@ -1414,8 +1472,11 @@ app.get('/pay/:id', async (c) => {
 });
 
 // API: Get Invoice Status (For Checkout Polling)
-app.get('/api/v1/invoices/:id/status', async (c) => {
+app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ error: 'Invoice ID is required' }, 400);
+  }
   try {
     const invList = await db.select().from(invoices).where(eq(invoices.id, id));
     if (invList.length === 0) {

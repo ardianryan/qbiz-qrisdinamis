@@ -2,6 +2,19 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.0.4] - 2026-08-20
+
+### Security & Hardening
+- **PBKDF2 Password Cryptography**: Upgraded password hashing and verification to PBKDF2 (100,000 iterations via Web Crypto API) with dynamic random per-account salts and automatic legacy upgrade on login.
+- **HTTP Security Headers Middleware**: Added defense-in-depth protective headers (`X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy`, `Strict-Transport-Security`).
+- **In-Memory Sliding-Window Rate Limiting**: Added rate limit protection on login (`POST /login`, 10 req/min), charge creation (`POST /api/v1/invoices`, 100 req/min), and status polling (`GET /api/v1/invoices/:id/status`, 120 req/min).
+- **Payload Body Size Limiting**: Enforced a 1MB max payload size constraint to prevent buffer/memory exhaustion attacks.
+- **Webhook Anti-Replay Timestamp**: Added `X-QBiz-Timestamp` header to all outgoing webhook callbacks to facilitate replay attack verification on client endpoints.
+- **Zombie Process Prevention & Graceful Shutdown**: Registered `SIGINT`/`SIGTERM` process listeners to gracefully close all active headless Chromium browser instances on shutdown.
+- **Session Volume Persistence**: Ensured Docker Compose and Portainer volumes properly persist encrypted session files across container rebuilds.
+
+---
+
 ## [1.0.2] - 2026-08-11
 
 ### Added

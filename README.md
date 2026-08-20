@@ -1,4 +1,4 @@
-# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.0.0)
+# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.0.4)
 
 ![Runtime](https://img.shields.io/badge/Runtime-Deno-blue?style=flat-square&logo=deno)
 ![Framework](https://img.shields.io/badge/Framework-Hono.js-e36002?style=flat-square&logo=hono)
@@ -28,15 +28,21 @@
 2. 🔄 **QRIS Food Merchant Real-time Interception**
    * **Puppeteer Worker**: Headless Chromium session intercepts transactions directly inside the QRIS Food Merchant portal.
    * **WhatsApp OTP Integration**: Forwards OTP requests to the merchant's registered WhatsApp account for two-factor authentication.
-   * **Auto Webhook Dispatch**: Triggers target merchant webhooks with HMAC-SHA256 signature verification payloads.
+   * **Auto Webhook Dispatch**: Triggers target merchant webhooks with HMAC-SHA256 signature verification payloads and `X-QBiz-Timestamp` anti-replay headers.
    * **Session Security at Rest**: Encrypts browser session cookie files on disk using AES-256-GCM symmetric encryption derived via PBKDF2 (100,000 iterations).
 
-3. 👥 **Multi-Tenant & Role Management (RBAC)**
+3. 🛡️ **Enterprise Security & Hardening**
+   * **PBKDF2 Password Cryptography**: Passwords protected with PBKDF2-SHA256 (100,000 iterations) with dynamic unique salts.
+   * **HTTP Security Headers**: Defense-in-depth headers (`X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Strict-Transport-Security`).
+   * **Sliding-Window Rate Limiting**: Built-in in-memory rate limiting on login, charges API, and status check endpoints.
+   * **Graceful Process Termination**: Catches `SIGINT`/`SIGTERM` to safely terminate headless browser processes and prevent zombie processes.
+
+4. 👥 **Multi-Tenant & Role Management (RBAC)**
    * **Five System Roles**: Supports `SUPER_ADMIN`, `ADMIN`, `REGIONAL_ADMIN`, `MERCHANT`, and `MERCHANT_EMPLOYEE`.
-   * **Database Isolation**: Scopes transaction histories, cashier directories, and invoice parameters according to tenant boundaries (merchant owners only see their own store).
+   * **Database Isolation**: Scopes transaction histories, cashier directories, and invoice parameters according to tenant boundaries.
    * **API Key Rotation**: Allows merchants to independently rotate API keys and modify webhook secrets from the dashboard.
 
-4. 🔌 **Official Developer Integration**
+5. 🔌 **Official Developer Integration**
    * **Client SDKs**: Built-in client libraries for [PHP](sdk/qbiz.php), [Node.js](sdk/qbiz-node.js), [Python](sdk/qbiz.py), and [Rust](sdk/qbiz.rs).
    * **Pre-fixed IDs**: Protects resources from scraping using unguessable prefixes (`usr_`, `mrc_`, `inv_`).
 
@@ -56,8 +62,10 @@ Below is an overview of the key components and functions driving the gateway:
 - **`startMerchantListener(merchantId: string)`**: Spawns a headless Chromium instance to authenticate with the QRIS Food Merchant portal, intercept mutation API feeds, and listen for incoming successful transactions.
 - **`triggerMerchantOTP(merchantId: string)`**: Relays QRIS Food Merchant two-factor OTP challenges directly to the merchant owner via their registered WhatsApp line.
 
-### 3. Middleware & Security Auth (`src/middleware/auth.ts`)
+### 3. Middleware & Security Auth (`src/middleware/auth.ts` & `src/middleware/security.ts`)
 - **`authMiddleware(c: any, next: any)`**: Inspects signed session cookies to protect dashboard pages while whitelisting public checkout routes, API endpoints, and crawler files.
+- **`securityHeadersMiddleware(c: any, next: any)`**: Emits protective HTTP security headers across all incoming responses.
+- **`createRateLimiter(options)`**: Sliding-window in-memory limiter to defend against brute-force and DoS attempts.
 - **`requireRole(roles: string[])`**: Evaluates active user sessions to enforce Role-Based Access Control (RBAC).
 
 ### 4. Cryptographic Encryption at Rest (`src/utils/crypto.ts`)

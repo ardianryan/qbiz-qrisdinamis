@@ -17,15 +17,87 @@ export interface UserSession {
 }
 
 /**
- * Hash password helper using native SHA-256 Web Crypto API
+ * Cryptographically secure PBKDF2 Password Hashing with dynamic salt (100,000 iterations)
  */
-export async function hashPassword(password: string): Promise<string> {
+export async function hashPassword(password: string, customSalt?: Uint8Array): Promise<string> {
+  const encoder = new TextEncoder();
+  const salt = customSalt || crypto.getRandomValues(new Uint8Array(16));
+  const iterations = 100000;
+
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(password),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"]
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: salt as any,
+      iterations: iterations,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    256 // 32 bytes
+  );
+
+  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+  const hashHex = Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return `pbkdf2$${iterations}$${saltHex}$${hashHex}`;
+}
+
+/**
+ * Verify plaintext password against stored hash (supporting both modern PBKDF2 and legacy SHA-256)
+ */
+export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  if (!storedHash) return false;
+
+  // Modern PBKDF2 format: pbkdf2$<iterations>$<saltHex>$<hashHex>
+  if (storedHash.startsWith('pbkdf2$')) {
+    const parts = storedHash.split('$');
+    if (parts.length !== 4) return false;
+    const iterations = parseInt(parts[1], 10);
+    const saltHex = parts[2];
+    const expectedHashHex = parts[3];
+
+    const saltBytes = new Uint8Array(saltHex.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
+    const encoder = new TextEncoder();
+
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(password),
+      { name: "PBKDF2" },
+      false,
+      ["deriveBits"]
+    );
+
+    const derivedBits = await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        salt: saltBytes as any,
+        iterations: iterations,
+        hash: "SHA-256"
+      },
+      keyMaterial,
+      256
+    );
+
+    const computedHashHex = Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return computedHashHex === expectedHashHex;
+  }
+
+  // Legacy single-round SHA-256 fallback
   const encoder = new TextEncoder();
   const data = encoder.encode(password + "qbiz_password_salt_2026");
   const hashBuf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hashBuf))
+  const legacyHash = Array.from(new Uint8Array(hashBuf))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
+
+  return legacyHash === storedHash;
 }
 
 /**

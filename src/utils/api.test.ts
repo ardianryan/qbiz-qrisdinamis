@@ -98,3 +98,27 @@ Deno.test("API - POST /api/v1/invoices and GET /pay/:id integration test", async
   await db.delete(invoices).where(eq(invoices.id, invoiceId));
   await db.delete(merchants).where(eq(merchants.id, merchantId));
 });
+
+Deno.test("Security Headers - should send standard protective security headers on all responses", async () => {
+  const res = await app.request("/login");
+  assertEquals(res.headers.get("x-content-type-options"), "nosniff");
+  assertEquals(res.headers.get("x-frame-options"), "SAMEORIGIN");
+  assertEquals(res.headers.get("x-xss-protection"), "1; mode=block");
+  assertEquals(res.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+  assertEquals(res.headers.get("permissions-policy"), "camera=(), microphone=(), geolocation=()");
+});
+
+Deno.test("Payload Size Limiter - should reject oversized request payloads", async () => {
+  const res = await app.request("/login", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": (2 * 1024 * 1024).toString() // 2MB
+    },
+    body: JSON.stringify({ email: "test@test.com", password: "123" })
+  });
+  assertEquals(res.status, 413);
+  const json = await res.json();
+  assertStringIncludes(json.error, "Payload too large");
+});
+
