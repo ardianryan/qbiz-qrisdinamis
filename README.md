@@ -1,5 +1,9 @@
-# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.0.4)
+# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.0.5)
 
+[![Test & CI](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml)
+[![CodeQL Security](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml)
+[![Docker Build & Push](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/docker-build-push.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/docker-build-push.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 ![Runtime](https://img.shields.io/badge/Runtime-Deno-blue?style=flat-square&logo=deno)
 ![Framework](https://img.shields.io/badge/Framework-Hono.js-e36002?style=flat-square&logo=hono)
 ![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat-square&logo=postgresql)

@@ -2,6 +2,15 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.0.5] - 2026-08-22
+
+### Added
+- **Automated CI & Test Workflow**: Integrated GitHub Actions CI workflow (`.github/workflows/ci.yml`) to automatically validate TypeScript types and run all unit/integration tests on pushes and pull requests to `main`.
+- **CodeQL SAST Security Analysis**: Added GitHub Actions CodeQL Security Analysis workflow (`.github/workflows/codeql.yml`) to run automated static application security testing and vulnerability scanning.
+- **Status & Quality Badges**: Integrated live build, test, and CodeQL security status badges directly into the `README.md` header.
+
+---
+
 ## [1.0.4] - 2026-08-20
 
 ### Security & Hardening
