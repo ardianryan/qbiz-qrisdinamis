@@ -14,6 +14,21 @@ jobs:
     name: Run Test Suite
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: qrispaymti
+          POSTGRES_USER: qbiz_user
+          POSTGRES_PASSWORD: qbiz_secure_password_ci_2026
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -23,5 +38,14 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Run Drizzle Database Migrations
+        env:
+          DATABASE_URL: postgres://qbiz_user:qbiz_secure_password_ci_2026@localhost:5432/qrispaymti
+        run: deno task db:migrate
+
       - name: Run Deno Unit & Integration Tests
+        env:
+          DATABASE_URL: postgres://qbiz_user:qbiz_secure_password_ci_2026@localhost:5432/qrispaymti
+          COOKIE_SECRET: qbiz_cookie_signing_secret_key_2026
+          JWT_SECRET: qbiz_jwt_secret_key_2026
         run: deno task test

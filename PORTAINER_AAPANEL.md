@@ -23,7 +23,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgres://${DB_USER:-ardianryan}:${DB_PASSWORD:-your_secure_db_password}@db:5432/${DB_NAME:-qrispaymti}
+      - DATABASE_URL=postgres://${DB_USER:-qbiz_user}:${DB_PASSWORD:-your_secure_db_password}@db:5432/${DB_NAME:-qrispaymti}
       - COOKIE_SECRET=${COOKIE_SECRET:-qbiz_cookie_signing_secret_key_2026}
       - JWT_SECRET=${JWT_SECRET:-qbiz_jwt_secret_key_2026}
     depends_on:
@@ -39,14 +39,14 @@ services:
     restart: always
     environment:
       - POSTGRES_DB=${DB_NAME:-qrispaymti}
-      - POSTGRES_USER=${DB_USER:-ardianryan}
+      - POSTGRES_USER=${DB_USER:-qbiz_user}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-your_secure_db_password}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-ardianryan} -d ${DB_NAME:-qrispaymti}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-qbiz_user} -d ${DB_NAME:-qrispaymti}"]
       interval: 5s
       timeout: 5s
       retries: 5

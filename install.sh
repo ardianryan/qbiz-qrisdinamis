@@ -108,10 +108,10 @@ COOKIE_SECRET=$COOKIE_SECRET
 JWT_SECRET=$JWT_SECRET
 
 # --- PostgreSQL Database Config ---
-DB_USER=ardianryan
+DB_USER=qbiz_user
 DB_PASSWORD=$DB_PASSWORD
 DB_NAME=qrispaymti
-DATABASE_URL=postgres://ardianryan:$DB_PASSWORD@db:5432/qrispaymti
+DATABASE_URL=postgres://qbiz_user:$DB_PASSWORD@db:5432/qrispaymti
 EOF
   echo -e "${GREEN}[✔] .env file generated with secure credentials.${NC}"
 fi
