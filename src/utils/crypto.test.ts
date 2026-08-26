@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals } from "@std/assert";
 import { encryptSession, decryptSession } from "./crypto.ts";
 
 Deno.test("Session Encryption & Decryption - should securely encrypt and decrypt Puppeteer cookie JSON string", async () => {

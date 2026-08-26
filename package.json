@@ -1,6 +1,6 @@
 {
   "name": "qrispaymti",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -9,12 +9,12 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@hono/node-server": "^2.0.8",
-    "hono": "^4.12.27"
+    "@hono/node-server": "^2.0.12",
+    "hono": "^4.7.2"
   },
   "devDependencies": {
-    "@types/node": "^20.11.17",
-    "tsx": "^4.7.1",
+    "@types/node": "^22.13.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.8.3"
   }
 }

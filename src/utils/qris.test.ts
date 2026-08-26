@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals } from "@std/assert";
 import { parseEMVCo, serializeEMVCo, computeCRC16, generateDynamicQRIS } from "./qris.ts";
 
 Deno.test("parseEMVCo - should parse raw tags correctly", () => {

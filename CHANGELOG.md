@@ -2,6 +2,16 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.0.6] - 2026-08-26
+
+### Security & Dependency Updates
+- **Puppeteer 24.x Upgrade**: Upgraded `puppeteer` to `^24.2.1` to utilize modern Chrome DevTools Protocols (CDP/BiDi) and resolve legacy package deprecations.
+- **Framework & Driver Upgrades**: Upgraded `hono` to `^4.7.2`, `postgres` client to `^3.4.5`, and `lucide-react` to `^0.475.0`.
+- **Standard Library Modernization**: Migrated test suites to use `@std/assert` via JSR standard imports.
+- **Sanitized CI Credentials**: Fully scrubbed all sensitive username references across Docker configs, deployment guides, and CI workflows into generic identifiers.
+
+---
+
 ## [1.0.5] - 2026-08-22
 
 ### Added
