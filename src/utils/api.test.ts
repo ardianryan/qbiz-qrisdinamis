@@ -1,6 +1,6 @@
 import { assertEquals, assertStringIncludes, assertExists } from "@std/assert";
 import { db } from "../../db/db.ts";
-import { merchants, invoices } from "../../db/schema.ts";
+import { merchants, invoices, users } from "../../db/schema.ts";
 import { eq } from "drizzle-orm";
 import { app } from "../../main.tsx";
 
@@ -31,7 +31,25 @@ Deno.test("API - POST /api/v1/invoices should reject unauthorized requests", asy
 });
 
 Deno.test("API - POST /api/v1/invoices and GET /pay/:id integration test", async () => {
-  // 1. Fetch or create a test merchant in database to bind the invoice
+  // 1. Fetch or create a test super admin user to support Bearer API_KEY authentication in fresh DBs
+  const testUserId = "usr_test_integration_admin";
+  const existingUser = await db.select().from(users).where(eq(users.id, testUserId));
+  if (existingUser.length === 0) {
+    // Also check if any user has this API_KEY
+    const existingKeyUser = await db.select().from(users).where(eq(users.apiKey, API_KEY));
+    if (existingKeyUser.length === 0) {
+      await db.insert(users).values({
+        id: testUserId,
+        name: "Integration Test Admin",
+        email: "test-admin-ci@qbiz.internal",
+        password: "pbkdf2_hashed_dummy_password",
+        role: "SUPER_ADMIN",
+        apiKey: API_KEY
+      });
+    }
+  }
+
+  // 2. Fetch or create a test merchant in database to bind the invoice
   let merchantId = "mrc_test_integration";
   const existingMerchant = await db.select().from(merchants).where(eq(merchants.id, merchantId));
   
@@ -48,7 +66,7 @@ Deno.test("API - POST /api/v1/invoices and GET /pay/:id integration test", async
     });
   }
 
-  // 2. Send API request to create invoice with customer profile and purchase items details
+  // 3. Send API request to create invoice with customer profile and purchase items details
   const orderId = `ORD-INT-${Date.now()}`;
   const res = await app.request("/api/v1/invoices", {
     method: "POST",
@@ -78,7 +96,7 @@ Deno.test("API - POST /api/v1/invoices and GET /pay/:id integration test", async
 
   const invoiceId = data.invoice.id;
 
-  // 3. Verify public secure pay view returns 200 OK without redirecting to login page
+  // 4. Verify public secure pay view returns 200 OK without redirecting to login page
   const payRes = await app.request(`/pay/${invoiceId}`);
   assertEquals(payRes.status, 200);
   const payHtml = await payRes.text();
@@ -88,15 +106,16 @@ Deno.test("API - POST /api/v1/invoices and GET /pay/:id integration test", async
   assertStringIncludes(payHtml, "081122334455"); // Should display customer phone number
   assertStringIncludes(payHtml, "QRIS Food Merchant"); // Should show the brand label
 
-  // 4. Verify polling status endpoint returns correct status details
+  // 5. Verify polling status endpoint returns correct status details
   const statusRes = await app.request(`/api/v1/invoices/${invoiceId}/status`);
   assertEquals(statusRes.status, 200);
   const statusJson = await statusRes.json();
   assertEquals(statusJson.status, "PENDING");
 
-  // Cleanup: delete the created test invoice and merchant
+  // Cleanup: delete the created test invoice, merchant, and test user
   await db.delete(invoices).where(eq(invoices.id, invoiceId));
   await db.delete(merchants).where(eq(merchants.id, merchantId));
+  await db.delete(users).where(eq(users.id, testUserId));
 });
 
 Deno.test("Security Headers - should send standard protective security headers on all responses", async () => {
