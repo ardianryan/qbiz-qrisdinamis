@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   web:
+    image: ardianryan/qbiz-qrisdinamis:latest
     build: .
     container_name: qbiz-qris-app
     restart: always
