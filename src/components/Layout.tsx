@@ -573,8 +573,9 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
               if (body) body.classList.add('scale-95');
             }
 
-            if (deskWorkspaceTrigger) deskWorkspaceTrigger.addEventListener('click', openWorkspaceModal);
-            if (mobWorkspaceTrigger) mobWorkspaceTrigger.addEventListener('click', openWorkspaceModal);
+            document.querySelectorAll('#desktop-workspace-trigger, #mobile-workspace-trigger, .trigger-workspace-modal, #dashboard-btn-switch-store').forEach(el => {
+              el.addEventListener('click', openWorkspaceModal);
+            });
 
             document.querySelectorAll('.modal-close-trigger, .modal-backdrop-trigger').forEach(btn => {
               btn.addEventListener('click', closeWorkspaceModal);

@@ -47,15 +47,61 @@ export function DashboardPage({ stats, recentActivities, currentUser, activeMerc
               Dashboard Overview
             </h1>
             <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-              Welcome back, <span className="font-medium text-slate-700 dark:text-zinc-200">{currentUser.name}</span>. Here is the operational payment summary.
+              Welcome back, <span className="font-medium text-slate-700 dark:text-zinc-200">{currentUser.name}</span>. Real-time transaction analytics and gateway feed.
             </p>
           </div>
           
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded border border-slate-200 dark:border-zinc-800 text-xs font-medium text-slate-600 dark:text-zinc-400 bg-white dark:bg-zinc-900 shadow-sm">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-slate-200 dark:border-zinc-800 text-xs font-medium text-slate-600 dark:text-zinc-400 bg-white dark:bg-zinc-900 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             Role: {currentUser.role.replace('_', ' ')}
           </div>
         </div>
+
+        {/* Multi-Merchant Store Context Banner */}
+        {activeMerchant && (
+          <div className="bg-gradient-to-r from-sky-500/10 via-sky-500/5 to-transparent border border-sky-200 dark:border-sky-900/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3.5">
+              {activeMerchant.logoUrl ? (
+                <img src={activeMerchant.logoUrl} alt="" className="w-12 h-12 rounded-xl object-contain bg-white dark:bg-zinc-900 p-1 border border-slate-200 dark:border-zinc-700 shadow-sm shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-sky-600 text-white font-bold text-lg flex items-center justify-center shrink-0 shadow-sm">
+                  {activeMerchant.name.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 px-2 py-0.5 rounded-md border border-sky-200 dark:border-sky-800">
+                    Active Store
+                  </span>
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md ${
+                    activeMerchant.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400' :
+                    activeMerchant.status === 'NEEDS_OTP' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400' :
+                    'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${activeMerchant.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : activeMerchant.status === 'NEEDS_OTP' ? 'bg-amber-500' : 'bg-red-500'}`}></span>
+                    {activeMerchant.status === 'ACTIVE' ? 'Listener Active' : activeMerchant.status === 'NEEDS_OTP' ? 'Syncing OTP' : 'Disconnected'}
+                  </span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-zinc-50 mt-0.5">
+                  {activeMerchant.name}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 font-mono mt-0.5">
+                  Phone: {activeMerchant.phoneNumber}
+                </p>
+              </div>
+            </div>
+
+            {accessibleMerchants && accessibleMerchants.length > 1 && (
+              <button
+                id="dashboard-btn-switch-store"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-700/70 transition-all shadow-sm cursor-pointer"
+              >
+                <svg className="w-4 h-4 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                Switch Store ({accessibleMerchants.length} stores)
+              </button>
+            )}
+          </div>
+        )}
 
         {/* 1. METRICS GRID */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -99,7 +145,7 @@ export function DashboardPage({ stats, recentActivities, currentUser, activeMerc
           {/* Active Scrapers */}
           <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg p-6 shadow-sm">
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-wider">Active Scrapers</span>
+              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-wider">Active Listeners</span>
               <span className="p-1 rounded bg-slate-50 dark:bg-zinc-800 border border-slate-100 dark:border-zinc-700 text-slate-600 dark:text-zinc-300">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </span>
@@ -109,7 +155,7 @@ export function DashboardPage({ stats, recentActivities, currentUser, activeMerc
                 {stats.activeScrapers}
               </div>
               <span className="text-[9px] font-semibold text-slate-400 dark:text-zinc-500 mt-1.5 block">
-                Running GoBiz bot listeners
+                Running background listeners
               </span>
             </div>
           </div>
