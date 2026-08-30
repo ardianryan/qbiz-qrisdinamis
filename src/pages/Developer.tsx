@@ -1073,34 +1073,34 @@ println!("{:#?}", data);`
       </section>
 
       {/* ========================================================================= */}
-      {/* 5. MODALS: CREATE API KEY & SECRET REVEAL */}
+      {/* 5. MODALS: CREATE API KEY & SECRET REVEAL & CREATE WEBHOOK */}
       {/* ========================================================================= */}
 
       {/* MODAL 1: CREATE ENTERPRISE API KEY */}
-      <div id="modal-create-api-key" className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-          <div className="p-5 border-b border-slate-100 dark:border-zinc-800/80 flex items-center justify-between">
+      <div id="modal-create-api-key" className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto hidden">
+        <div className="relative my-auto bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden max-h-[88vh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
+          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-sm">
                 🔑
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-50">Create Enterprise API Key</h3>
-                <p className="text-[11px] text-slate-500 dark:text-zinc-400">Configure store scope and granular permissions</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-zinc-50">Create Enterprise API Key</h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Configure store scope and granular permissions</p>
               </div>
             </div>
             <button 
               type="button" 
               className="btn-close-modal text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
 
-          <form id="form-create-api-key" className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+          <form id="form-create-api-key" className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
             {/* Key Name */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                 Key Label / Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -1108,37 +1108,37 @@ println!("{:#?}", data);`
                 name="name"
                 required
                 placeholder="e.g. POS Tablet Kasir Cabang 1 / WooCommerce Plugin"
-                className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-zinc-50 placeholder-slate-400 outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="w-full bg-slate-50 dark:bg-zinc-800/90 border border-slate-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 outline-none focus:ring-2 focus:ring-sky-500"
               />
             </div>
 
             {/* Merchant Store Scoping */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+              <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                 Store Workspace Scope <span className="text-red-500">*</span>
               </label>
               <select
                 name="merchantId"
-                className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-zinc-50 outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="w-full bg-slate-50 dark:bg-zinc-800/90 border border-slate-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-sky-500"
               >
                 {isSuperOrAdmin && (
                   <option value="ALL">🌐 All Stores (Global Super Admin Scope)</option>
                 )}
                 {accessibleMerchants.map(m => (
-                  <option key={m.id} value={m.id}>
+                  <option key={m.id} value={m.id} selected={activeMerchant?.id === m.id}>
                     🏪 {m.name} ({m.id})
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] text-slate-500 dark:text-zinc-400 leading-tight">
+              <span className="text-[10px] text-slate-400 leading-tight">
                 Integrations using this key will automatically bind to the selected store without needing <code className="font-mono">merchant_id</code> in request bodies.
               </span>
             </div>
 
             {/* Granular Scopes */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-zinc-800/80">
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-zinc-800">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
+                <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                   Permission Scopes (Access Control) <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center gap-1.5">
@@ -1201,17 +1201,17 @@ println!("{:#?}", data);`
             </div>
 
             {/* Action Buttons */}
-            <div className="pt-3 flex justify-end gap-2.5 border-t border-slate-100 dark:border-zinc-800/80">
+            <div className="pt-3 flex justify-end gap-2.5 border-t border-slate-100 dark:border-zinc-800 shrink-0">
               <button
                 type="button"
-                className="btn-close-modal px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 cursor-pointer"
+                className="btn-close-modal px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 id="btn-submit-create-key"
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-xs transition-all active:scale-95 cursor-pointer"
               >
                 Generate API Key
               </button>
@@ -1221,8 +1221,8 @@ println!("{:#?}", data);`
       </div>
 
       {/* MODAL 2: SECRET REVEAL DIALOG (ONE-TIME VIEW) */}
-      <div id="modal-reveal-api-key" className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 hidden">
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+      <div id="modal-reveal-api-key" className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto hidden">
+        <div className="relative my-auto bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-lg font-bold">
               ✅
@@ -1274,9 +1274,9 @@ println!("{:#?}", data);`
       </div>
 
       {/* MODAL 3: ADD ENTERPRISE WEBHOOK ENDPOINT */}
-      <div id="modal-create-webhook" className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 hidden">
-        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
+      <div id="modal-create-webhook" className="fixed inset-0 z-50 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 overflow-y-auto hidden">
+        <div className="relative my-auto bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden max-h-[88vh] flex flex-col animate-in fade-in zoom-in-95 duration-150">
+          <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-sm">
                 ⚡
@@ -1291,7 +1291,7 @@ println!("{:#?}", data);`
             </button>
           </div>
 
-          <form id="form-create-webhook" className="space-y-4">
+          <form id="form-create-webhook" className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
             {/* Target Store Scope */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
@@ -1394,7 +1394,7 @@ println!("{:#?}", data);`
               />
             </div>
 
-            <div className="pt-3 flex gap-2 justify-end border-t border-slate-100 dark:border-zinc-800">
+            <div className="pt-3 flex gap-2 justify-end border-t border-slate-100 dark:border-zinc-800 shrink-0">
               <button
                 type="button"
                 className="btn-close-modal px-4 py-2.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer"

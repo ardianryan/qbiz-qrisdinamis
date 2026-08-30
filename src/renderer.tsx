@@ -151,17 +151,11 @@ export const renderer = reactRenderer(async ({ children, title, ...props }: any)
             @keyframes spaViewEnter {
               0% {
                 opacity: 0;
-                transform: translateY(14px) scale(0.992);
-                filter: blur(4px);
-              }
-              60% {
-                opacity: 0.95;
-                filter: blur(0px);
+                transform: translateY(10px);
               }
               100% {
                 opacity: 1;
-                transform: translateY(0) scale(1);
-                filter: blur(0);
+                transform: none;
               }
             }
 
@@ -173,8 +167,7 @@ export const renderer = reactRenderer(async ({ children, title, ...props }: any)
             }
 
             .animate-view-enter {
-              animation: spaViewEnter 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-              will-change: transform, opacity, filter;
+              animation: spaViewEnter 200ms cubic-bezier(0.16, 1, 0.3, 1);
             }
 
             .tab-spring-tap {
@@ -186,7 +179,7 @@ export const renderer = reactRenderer(async ({ children, title, ...props }: any)
             }
 
             #main-content {
-              transition: opacity 120ms cubic-bezier(0.16, 1, 0.3, 1), transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+              transition: opacity 120ms ease;
             }
 
             #spa-progress-bar {
