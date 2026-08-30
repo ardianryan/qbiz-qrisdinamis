@@ -19,14 +19,25 @@ import { authMiddleware, requireRole, hashPassword, verifyPassword, COOKIE_SECRE
 import { securityHeadersMiddleware, createRateLimiter, bodySizeLimiter } from './src/middleware/security.ts';
 import { generateDynamicQRIS, decodeQRISFromImage } from './src/utils/qris.ts';
 import { dispatchMerchantNotifications, testChannelNotification, DEFAULT_TEMPLATES } from './src/services/notification.ts';
+import { migrate } from 'npm:drizzle-orm/postgres-js/migrator';
 
 const DEFAULT_MOCK_STATIC_QRIS = "00020101021138590014ID.CO.QRIS.WWW0215ID10200845344330303UMI51440014ID.CO.QRIS.WWW0215ID10200845344330303UMI5204581253033605802ID5920Resto Ayam Bakar Cbk6009Mojokerto6105613006304D116";
 
 export const app = new Hono();
 
 // =========================================================================
-// DEFAULT DATA SEEDING (Run on startup)
+// AUTO-MIGRATIONS & DEFAULT DATA SEEDING (Run on startup)
 // =========================================================================
+async function runAutoMigrations() {
+  try {
+    console.log('[Boot] Checking database schema migrations...');
+    await migrate(db, { migrationsFolder: './db/migrations' });
+    console.log('[Boot] Database schema is up to date.');
+  } catch (err: any) {
+    console.warn('[Boot] Auto-migration notice:', err.message);
+  }
+}
+
 async function seedDefaultUsers() {
   try {
     const userList = await db.select().from(users);
@@ -129,7 +140,6 @@ async function seedDefaultUsers() {
     console.warn('[Seed] Seeding skipped (or database connection not ready):', err.message);
   }
 }
-await seedDefaultUsers();
 
 // Auto-start active merchant listeners on application boot
 async function bootActiveListeners() {
@@ -151,7 +161,17 @@ async function bootActiveListeners() {
     console.error(`[Boot] Failed to query active merchants:`, err.message);
   }
 }
-await bootActiveListeners();
+
+if (import.meta.main) {
+  // 1. Auto-run pending database migrations
+  await runAutoMigrations();
+
+  // 2. Auto-seed default RBAC users if empty
+  await seedDefaultUsers();
+
+  // 3. Auto-start active merchant listeners
+  await bootActiveListeners();
+}
 
 // Ensure runtime directories exist
 try {
@@ -1651,5 +1671,7 @@ app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
   }
 });
 
-// Start Deno Serve
-Deno.serve({ port: 8000 }, app.fetch);
+// Start Deno Serve (Only when run directly as main script)
+if (import.meta.main) {
+  Deno.serve({ port: 8000 }, app.fetch);
+}
