@@ -61,142 +61,213 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
       {/* ========================================================================= */}
       {/* 1. MOBILE HEADER (Sticky, Top) */}
       {/* ========================================================================= */}
-      <header className="sticky top-0 z-40 w-full md:hidden h-16 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 px-4 flex items-center justify-between shadow-sm">
+      <header className="sticky top-0 z-30 w-full md:hidden h-14 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 px-4 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+          <div className="w-7 h-7 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
             Q
           </div>
-          
+          <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-zinc-50">QBiz Gateway</span>
+        </div>
+        
+        <div className="flex items-center gap-2">
           {/* Mobile Active Merchant Switcher Button */}
           {accessibleMerchants.length > 0 && (
             <button
               id="mobile-workspace-trigger"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700/60 text-xs font-semibold text-slate-800 dark:text-zinc-200 max-w-[170px] truncate transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-xs font-semibold text-slate-800 dark:text-zinc-200 max-w-[150px] truncate transition-colors cursor-pointer"
             >
               <span className={`w-2 h-2 rounded-full shrink-0 ${
                 currentStore?.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' :
                 currentStore?.status === 'NEEDS_OTP' ? 'bg-amber-500' : 'bg-red-500'
               }`}></span>
               <span className="truncate">{currentStore?.name || 'Select Store'}</span>
-              <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+              <svg className="w-3 h-3 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
             </button>
           )}
-        </div>
-        
-        <div className="flex items-center gap-1.5">
+
           {/* Theme Toggle Mobile */}
           <button 
             id="mobile-theme-toggle"
             aria-label="Toggle Dark Mode"
-            className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-50 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-50 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
-            <svg id="sun-icon-mobile" className="w-5 h-5 hidden dark:block text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg id="sun-icon-mobile" className="w-4 h-4 hidden dark:block text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.364l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
             </svg>
-            <svg id="moon-icon-mobile" className="w-5 h-5 block dark:hidden text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg id="moon-icon-mobile" className="w-4 h-4 block dark:hidden text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
-          </button>
-
-          {/* Hamburger Menu Button */}
-          <button 
-            id="mobile-menu-open"
-            aria-label="Open navigation menu"
-            aria-expanded="false"
-            className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-50 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
         </div>
       </header>
 
       {/* ========================================================================= */}
-      {/* 2. MOBILE DRAWER OVERLAY & MENU */}
+      {/* 2. MOBILE "MORE" BOTTOM SHEET (Sliding from bottom) */}
       {/* ========================================================================= */}
-      <div id="mobile-drawer" className="fixed inset-0 z-50 hidden md:hidden">
-        <div id="mobile-drawer-backdrop" className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-300 opacity-0"></div>
-        <aside id="mobile-drawer-body" className="absolute top-0 right-0 w-80 max-w-[85vw] h-full bg-white dark:bg-zinc-900 shadow-2xl flex flex-col p-6 transition-transform duration-300 translate-x-full">
-          <div className="flex items-center justify-between mb-6">
+      <div id="mobile-drawer" className="fixed inset-0 z-50 md:hidden flex items-end justify-center hidden" role="dialog" aria-modal="true">
+        <div id="mobile-drawer-backdrop" className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-300 opacity-0"></div>
+        <div id="mobile-drawer-body" className="relative z-10 w-full max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-3xl border-t border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col p-5 pb-8 transition-transform duration-300 translate-y-full overflow-y-auto">
+          {/* Drag Handle */}
+          <div className="w-12 h-1.5 bg-slate-300 dark:bg-zinc-700 rounded-full mx-auto mb-4 shrink-0"></div>
+
+          {/* Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800 mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded bg-sky-600 text-white font-bold text-sm flex items-center justify-center">Q</div>
-              <span className="font-bold text-lg text-slate-900 dark:text-zinc-50">QBiz Hub</span>
+              <div className="w-6 h-6 rounded bg-sky-600 text-white font-bold text-xs flex items-center justify-center">Q</div>
+              <span className="font-bold text-sm text-slate-900 dark:text-zinc-50">Menu & More Options</span>
             </div>
             <button 
               id="mobile-menu-close"
-              aria-label="Close navigation menu"
-              className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-50 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+              aria-label="Close menu"
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 cursor-pointer"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
 
-          {/* Active Store in Mobile View */}
+          {/* Active Store Widget in Sheet (Clickable) */}
           {currentStore && (
-            <div className="mb-4 p-3 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-900/50 rounded-xl">
-              <div className="text-[10px] font-bold text-sky-800 dark:text-sky-300 uppercase tracking-wider mb-1">Active Store Context</div>
-              <div className="font-bold text-sm text-slate-900 dark:text-zinc-100 truncate">{currentStore.name}</div>
-              <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-600 dark:text-zinc-400">
-                <span className={`w-2 h-2 rounded-full ${currentStore.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
-                <span>{currentStore.status === 'ACTIVE' ? 'Listener Active' : 'Needs Sync'}</span>
+            <button 
+              id="mobile-sheet-workspace-trigger"
+              className="w-full text-left mb-4 p-3 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-900/50 rounded-2xl flex items-center justify-between group cursor-pointer"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {currentStore.logoUrl ? (
+                  <img src={currentStore.logoUrl} alt="" className="w-8 h-8 rounded-lg object-contain bg-white dark:bg-zinc-900 p-0.5 border border-slate-200 dark:border-zinc-700 shrink-0" />
+                ) : (
+                  <div className="w-8 h-8 rounded-lg bg-sky-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                    {currentStore.name.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <span className="text-[9px] font-bold text-sky-700 dark:text-sky-300 uppercase tracking-wider block">Active Store (Tap to Switch)</span>
+                  <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 truncate block mt-0.5">{currentStore.name}</span>
+                </div>
               </div>
-            </div>
+              <div className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200 dark:border-zinc-700 shrink-0">
+                Switch <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </div>
+            </button>
           )}
 
-          {/* User profile details in mobile view */}
-          <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-zinc-800/40 rounded-xl mb-6">
-            <div className="w-9 h-9 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400 font-bold text-sm flex items-center justify-center uppercase">
-              {currentUser.name.slice(0, 2)}
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 truncate">{currentUser.name}</span>
-              <span className="text-[10px] text-slate-500 truncate">{currentUser.email}</span>
-              <span className="w-max mt-1 text-[9px] font-semibold bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                {roleLabels[currentUser.role]}
-              </span>
-            </div>
+          {/* Nav Items in Sheet */}
+          <div className="space-y-1.5 mb-4">
+            {currentUser.role !== 'MERCHANT_EMPLOYEE' && (
+              <a
+                href="/users"
+                className={`flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all ${
+                  activePath === '/users' 
+                    ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-400 font-bold border border-sky-200/60 dark:border-sky-900/60' 
+                    : 'text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-5 h-5 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                  </span>
+                  User Directory & Permissions
+                </div>
+                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </a>
+            )}
+
+            {currentUser.role !== 'MERCHANT_EMPLOYEE' && (
+              <a
+                href="/developer"
+                className={`flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all ${
+                  activePath === '/developer' 
+                    ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-400 font-bold border border-sky-200/60 dark:border-sky-900/60' 
+                    : 'text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-5 h-5 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                  </span>
+                  Developer Hub & Webhooks
+                </div>
+                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </a>
+            )}
           </div>
 
-          <nav className="flex flex-col gap-2 flex-grow">
-            {navItems.map((item) => {
-              const isActive = activePath === item.path;
-              return (
-                <a
-                  key={item.path}
-                  href={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-all ${
-                    isActive 
-                      ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400' 
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-zinc-400 dark:hover:text-zinc-50 dark:hover:bg-zinc-800/60'
-                  }`}
-                >
-                  <span className="w-5 h-5 flex items-center justify-center">
-                    {item.icon === 'LayoutDashboard' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 14a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg>}
-                    {item.icon === 'Store' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}
-                    {item.icon === 'Receipt' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>}
-                    {item.icon === 'Users' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
-                    {item.icon === 'Code2' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>}
-                  </span>
-                  {item.label}
-                </a>
-              );
-            })}
-          </nav>
+          {/* User Profile & Logout */}
+          <div className="mt-auto pt-4 border-t border-slate-100 dark:border-zinc-800 space-y-3">
+            <div className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-zinc-800/40 rounded-xl">
+              <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400 font-bold text-xs flex items-center justify-center uppercase">
+                {currentUser.name.slice(0, 2)}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 truncate">{currentUser.name}</span>
+                <span className="text-[10px] text-slate-400 truncate">{currentUser.email} • {roleLabels[currentUser.role]}</span>
+              </div>
+            </div>
 
-          <div className="border-t border-slate-100 dark:border-zinc-800/80 pt-4">
             <a 
               href="/logout"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-red-600 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               Logout Session
             </a>
           </div>
-        </aside>
+        </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 2B. MOBILE BOTTOM NAVIGATION BAR (Sticky, Bottom) */}
+      {/* ========================================================================= */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-zinc-800 px-2 py-1.5 flex items-center justify-around shadow-2xl safe-area-pb">
+        <a 
+          href="/dashboard"
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
+            activePath === '/dashboard' 
+              ? 'text-sky-600 dark:text-sky-400 font-bold' 
+              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 14a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg>
+          <span className="text-[10px] leading-none">Dashboard</span>
+        </a>
+
+        {isPrivileged && (
+          <a 
+            href="/merchants"
+            className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
+              activePath === '/merchants' 
+                ? 'text-sky-600 dark:text-sky-400 font-bold' 
+                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            <span className="text-[10px] leading-none">Stores</span>
+          </a>
+        )}
+
+        <a 
+          href="/transactions"
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
+            activePath === '/transactions' 
+              ? 'text-sky-600 dark:text-sky-400 font-bold' 
+              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+          <span className="text-[10px] leading-none">Invoices</span>
+        </a>
+
+        <button 
+          id="mobile-more-trigger"
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all cursor-pointer ${
+            activePath === '/users' || activePath === '/developer'
+              ? 'text-sky-600 dark:text-sky-400 font-bold' 
+              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+          <span className="text-[10px] leading-none">More</span>
+        </button>
+      </nav>
 
       {/* ========================================================================= */}
       {/* 3. DESKTOP SIDEBAR (Collapsible) */}
@@ -333,7 +404,7 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
       {/* ========================================================================= */}
       <main 
         id="main-content" 
-        className="flex-grow flex flex-col min-w-0 transition-all duration-300"
+        className="flex-grow flex flex-col min-w-0 transition-all duration-300 pb-20 md:pb-0"
         tabIndex={-1}
       >
         <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
@@ -342,19 +413,21 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
       </main>
 
       {/* ========================================================================= */}
-      {/* 5. GLOBAL STORE WORKSPACE SWITCHER MODAL */}
+      {/* 5. GLOBAL STORE WORKSPACE SWITCHER MODAL (Bottom Sheet on Mobile) */}
       {/* ========================================================================= */}
-      <div id="modal-workspace-switcher" className="fixed inset-0 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+      <div id="modal-workspace-switcher" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200">
         <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm modal-backdrop-trigger cursor-pointer"></div>
-        <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl z-10 w-full max-w-md overflow-hidden transform transition-all duration-200 scale-95 modal-body flex flex-col max-h-[85vh]">
-          
+        <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-2xl shadow-2xl z-10 w-full max-w-md overflow-hidden transform transition-all duration-200 translate-y-4 sm:translate-y-0 sm:scale-95 modal-body flex flex-col max-h-[85vh]">
+          {/* Mobile Drag Indicator */}
+          <div className="w-12 h-1.5 bg-slate-300 dark:bg-zinc-700 rounded-full mx-auto my-2.5 sm:hidden shrink-0"></div>
+
           {/* Modal Header */}
           <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-zinc-800/80 flex items-center justify-between">
             <div>
               <h3 className="font-bold text-base text-slate-900 dark:text-zinc-50">Switch Store Workspace</h3>
               <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Select active merchant store to view analytics & feeds</p>
             </div>
-            <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 modal-close-trigger p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
+            <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 modal-close-trigger p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
@@ -520,46 +593,55 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
               });
             }
 
-            // --- C. Mobile Drawer Menu ---
+            // --- C. Mobile Bottom Sheet Menu ("More") ---
             const drawer = document.getElementById('mobile-drawer');
             const drawerBackdrop = document.getElementById('mobile-drawer-backdrop');
             const drawerBody = document.getElementById('mobile-drawer-body');
-            const menuOpenBtn = document.getElementById('mobile-menu-open');
+            const moreTriggerBtn = document.getElementById('mobile-more-trigger');
             const menuCloseBtn = document.getElementById('mobile-menu-close');
+            const sheetWorkspaceBtn = document.getElementById('mobile-sheet-workspace-trigger');
 
             function openDrawer() {
               if (!drawer) return;
               drawer.classList.remove('hidden');
               setTimeout(() => {
-                drawerBackdrop.classList.remove('opacity-0');
-                drawerBody.classList.remove('translate-x-full');
+                if (drawerBackdrop) drawerBackdrop.classList.remove('opacity-0');
+                if (drawerBody) drawerBody.classList.remove('translate-y-full');
               }, 10);
             }
 
             function closeDrawer() {
               if (!drawer) return;
-              drawerBackdrop.classList.add('opacity-0');
-              drawerBody.classList.add('translate-x-full');
+              if (drawerBackdrop) drawerBackdrop.classList.add('opacity-0');
+              if (drawerBody) drawerBody.classList.add('translate-y-full');
               setTimeout(() => {
                 drawer.classList.add('hidden');
               }, 300);
             }
 
-            if (menuOpenBtn) menuOpenBtn.addEventListener('click', openDrawer);
+            if (moreTriggerBtn) moreTriggerBtn.addEventListener('click', openDrawer);
             if (menuCloseBtn) menuCloseBtn.addEventListener('click', closeDrawer);
             if (drawerBackdrop) drawerBackdrop.addEventListener('click', closeDrawer);
 
+            if (sheetWorkspaceBtn) {
+              sheetWorkspaceBtn.addEventListener('click', () => {
+                closeDrawer();
+                setTimeout(openWorkspaceModal, 250);
+              });
+            }
+
             // --- D. Global Workspace Switcher Modal ---
             const modalSwitcher = document.getElementById('modal-workspace-switcher');
-            const deskWorkspaceTrigger = document.getElementById('desktop-workspace-trigger');
-            const mobWorkspaceTrigger = document.getElementById('mobile-workspace-trigger');
             const searchInput = document.getElementById('workspace-search-input');
 
             function openWorkspaceModal() {
               if (!modalSwitcher) return;
               modalSwitcher.classList.remove('opacity-0', 'pointer-events-none');
               const body = modalSwitcher.querySelector('.modal-body');
-              if (body) body.classList.remove('scale-95');
+              if (body) {
+                body.classList.remove('scale-95', 'translate-y-4');
+                body.classList.add('translate-y-0');
+              }
               if (searchInput) {
                 searchInput.value = '';
                 setTimeout(() => searchInput.focus(), 100);
@@ -570,7 +652,10 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
               if (!modalSwitcher) return;
               modalSwitcher.classList.add('opacity-0', 'pointer-events-none');
               const body = modalSwitcher.querySelector('.modal-body');
-              if (body) body.classList.add('scale-95');
+              if (body) {
+                body.classList.add('scale-95', 'translate-y-4');
+                body.classList.remove('translate-y-0');
+              }
             }
 
             document.querySelectorAll('#desktop-workspace-trigger, #mobile-workspace-trigger, .trigger-workspace-modal, #dashboard-btn-switch-store').forEach(el => {
