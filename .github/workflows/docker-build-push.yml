@@ -88,5 +88,14 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: false
+          files: |
+            sdk/QBizClient.java
+            sdk/qbiz-node.js
+            sdk/qbiz.dart
+            sdk/qbiz.go
+            sdk/qbiz.php
+            sdk/qbiz.py
+            sdk/qbiz.rs
+            sdk/qbiz.ts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
