@@ -2,6 +2,33 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.1.0-beta] - 2026-08-30
+
+### Added
+- **Contextual Multi-Merchant Workspace Switcher**:
+  - Global Top Navigation Store Switcher allowing users to seamlessly switch active merchant store workspaces (similar to social media account switchers and multi-store SaaS).
+  - Contextual Scoping across all application views: Dashboard statistics, live transaction feeds, QRIS settings, and Developer API SDK snippets automatically scope to the selected store.
+  - Store search filter and quick-access status badges (`Active Listener`, `OTP Syncing`, `Session Dead`).
+  - Active workspace session persistence via signed secure cookies (`POST /api/v1/workspaces/switch`).
+- **Multi-Channel Store Notifications (Telegram, Discord, WhatsApp GOWA)**:
+  - **Telegram Bot Channel**: Real-time payment success delivery via Telegram Bot API (`/sendMessage`) to private chats or merchant staff groups.
+  - **Discord Webhook Channel**: Rich Embed status cards with customizable color badges, total amount, order ID, and transaction breakdown.
+  - **WhatsApp API (GOWA by Aldinokemal)**: Native integration with Go WhatsApp HTTP API gateway (`/send/message`) with support for No Auth, Bearer Token, and Basic Auth.
+  - **Customizable Message Templates**: Support for dynamic template interpolation (`{merchant_name}`, `{order_id}`, `{amount_formatted}`, `{customer_name}`, `{paid_at}`).
+  - **Interactive In-Dashboard Testing**: 1-click test button per channel with live feedback status banners.
+  - **Asynchronous Non-Blocking Dispatch**: Background notification delivery using `Promise.allSettled` alongside POS webhooks.
+- **Database Schema & Migrations**:
+  - Added `merchant_notifications` table to persist per-store channel credentials with cascading cleanup on store deletion.
+  - Generated and executed Drizzle migration `0002_serious_lady_bullseye.sql`.
+- **Expanded Multi-Language Client SDKs**:
+  - 🦫 **Go (Golang)** ([`sdk/qbiz.go`](file:///Users/ardianryan/Documents/qrispaymti/sdk/qbiz.go)): Idiomatic Go client with zero external dependencies (`net/http`, `crypto/hmac`).
+  - 🔷 **TypeScript** ([`sdk/qbiz.ts`](file:///Users/ardianryan/Documents/qrispaymti/sdk/qbiz.ts)): Fully typed client with Web Crypto API and rich interfaces for Next.js, Nuxt, SvelteKit, NestJS, Bun, and Deno.
+  - 🎯 **Dart / Flutter** ([`sdk/qbiz.dart`](file:///Users/ardianryan/Documents/qrispaymti/sdk/qbiz.dart)): Client for Flutter mobile POS and Android POS terminals.
+  - ☕ **Java** ([`sdk/QBizClient.java`](file:///Users/ardianryan/Documents/qrispaymti/sdk/QBizClient.java)): Java 11+ `HttpClient` client with HMAC-SHA256 verification.
+  - 💻 **Developer Hub Tabs**: Added tab switchers for Go, TypeScript, and PHP in the Developer Hub dashboard.
+
+---
+
 ## [1.0.6] - 2026-08-26
 
 ### Security & Dependency Updates

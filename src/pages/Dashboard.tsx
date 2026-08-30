@@ -1,6 +1,8 @@
 import React from 'react';
 import { Layout } from '../components/Layout.tsx';
 
+import { MerchantContext } from '../middleware/auth.ts';
+
 interface DashboardPageProps {
   stats: {
     totalVolume: number;
@@ -20,20 +22,22 @@ interface DashboardPageProps {
     createdAt: string;
   }>;
   currentUser: any;
+  activeMerchant?: MerchantContext | null;
+  accessibleMerchants?: MerchantContext[];
 }
 
 function formatRupiah(amount: number): string {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
 }
 
-export function DashboardPage({ stats, recentActivities, currentUser }: DashboardPageProps) {
+export function DashboardPage({ stats, recentActivities, currentUser, activeMerchant, accessibleMerchants }: DashboardPageProps) {
   const total = stats.totalInvoices || 1;
   const paidPercent = Math.round((stats.paidInvoices / total) * 100);
   const pendingPercent = Math.round((stats.pendingInvoices / total) * 100);
   const expiredPercent = Math.round((stats.expiredInvoices / total) * 100);
 
   return (
-    <Layout activePath="/dashboard" user={currentUser}>
+    <Layout activePath="/dashboard" user={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants}>
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Welcome Header */}

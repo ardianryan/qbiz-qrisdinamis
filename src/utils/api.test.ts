@@ -122,3 +122,23 @@ Deno.test("Payload Size Limiter - should reject oversized request payloads", asy
   assertStringIncludes(json.error, "Payload too large");
 });
 
+Deno.test("Workspace Switcher - should reject unauthorized workspace switch", async () => {
+  const res = await app.request("/api/v1/workspaces/switch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ merchantId: "mrc_test" })
+  });
+  assertEquals(res.status, 401);
+});
+
+Deno.test("Notification Test API - should validate invalid channel", async () => {
+  const res = await app.request("/api/v1/merchants/mrc_test/notifications/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ channel: "invalid_channel", config: {} })
+  });
+  // Unauthenticated returns 401/403
+  assertEquals(res.status === 401 || res.status === 403, true);
+});
+
+

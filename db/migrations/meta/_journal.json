@@ -15,6 +15,13 @@
       "when": 1786415695512,
       "tag": "0001_dazzling_stingray",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788073733008,
+      "tag": "0002_serious_lady_bullseye",
+      "breakpoints": true
     }
   ]
 }

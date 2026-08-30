@@ -68,3 +68,31 @@ export const mutations = pgTable('mutations', {
   invoiceId: text('invoice_id').references(() => invoices.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+// 6. Multi-Channel Merchant Notifications (Telegram, Discord, WhatsApp GOWA)
+export const merchantNotifications = pgTable('merchant_notifications', {
+  id: text('id').primaryKey(), // e.g. 'notif_mrc_xxx'
+  merchantId: text('merchant_id').references(() => merchants.id, { onDelete: 'cascade' }).unique().notNull(),
+  
+  // Telegram Bot Settings
+  telegramEnabled: boolean('telegram_enabled').default(false).notNull(),
+  telegramBotToken: text('telegram_bot_token'),
+  telegramChatId: text('telegram_chat_id'),
+  telegramTemplate: text('telegram_template'),
+
+  // Discord Webhook Settings
+  discordEnabled: boolean('discord_enabled').default(false).notNull(),
+  discordWebhookUrl: text('discord_webhook_url'),
+  discordTemplate: text('discord_template'),
+
+  // WhatsApp (GOWA by Aldinokemal) Settings
+  whatsappEnabled: boolean('whatsapp_enabled').default(false).notNull(),
+  whatsappApiUrl: text('whatsapp_api_url'), // e.g. http://localhost:3000
+  whatsappAuthType: text('whatsapp_auth_type').$type<'NONE' | 'BEARER' | 'BASIC'>().default('NONE').notNull(),
+  whatsappAuthKey: text('whatsapp_auth_key'), // API Key or Basic Auth
+  whatsappRecipient: text('whatsapp_recipient'), // Target phone: 628123456789 or Group JID
+  whatsappTemplate: text('whatsapp_template'),
+
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});

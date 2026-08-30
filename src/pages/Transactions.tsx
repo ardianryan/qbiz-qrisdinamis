@@ -19,15 +19,19 @@ interface Transaction {
   timestamp: string;
 }
 
+import { MerchantContext } from '../middleware/auth.ts';
+
 interface TransactionsPageProps {
   merchants: Merchant[];
   transactions: Transaction[];
   currentUser?: any;
+  activeMerchant?: MerchantContext | null;
+  accessibleMerchants?: MerchantContext[];
 }
 
-export function TransactionsPage({ merchants, transactions, currentUser }: TransactionsPageProps) {
+export function TransactionsPage({ merchants, transactions, currentUser, activeMerchant, accessibleMerchants }: TransactionsPageProps) {
   return (
-    <Layout activePath="/transactions" user={currentUser}>
+    <Layout activePath="/transactions" user={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants}>
       
       {/* ========================================================================= */}
       {/* 1. HEADER */}

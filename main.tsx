@@ -12,12 +12,13 @@ import { DashboardPage } from './src/pages/Dashboard.tsx';
 import QRCode from 'npm:qrcode';
 import { renderToString } from 'react-dom/server';
 import { db } from './db/db.ts';
-import { merchants, invoices, mutations, users, regionalAdminMerchants } from './db/schema.ts';
+import { merchants, invoices, mutations, users, regionalAdminMerchants, merchantNotifications } from './db/schema.ts';
 import { eq, desc, inArray, and, or, sql } from 'drizzle-orm';
 import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener, dispatchWebhook, closeAllListeners } from './worker/puppeteer-listener.ts';
-import { authMiddleware, requireRole, hashPassword, verifyPassword, COOKIE_SECRET, UserSession } from './src/middleware/auth.ts';
+import { authMiddleware, requireRole, hashPassword, verifyPassword, COOKIE_SECRET, UserSession, MerchantContext } from './src/middleware/auth.ts';
 import { securityHeadersMiddleware, createRateLimiter, bodySizeLimiter } from './src/middleware/security.ts';
 import { generateDynamicQRIS, decodeQRISFromImage } from './src/utils/qris.ts';
+import { dispatchMerchantNotifications, testChannelNotification, DEFAULT_TEMPLATES } from './src/services/notification.ts';
 
 const DEFAULT_MOCK_STATIC_QRIS = "00020101021138590014ID.CO.QRIS.WWW0215ID10200845344330303UMI51440014ID.CO.QRIS.WWW0215ID10200845344330303UMI5204581253033605802ID5920Resto Ayam Bakar Cbk6009Mojokerto6105613006304D116";
 
@@ -371,15 +372,18 @@ app.get('/', (c) => {
 // PAGE 0: Dashboard (SUPER_ADMIN, ADMIN, REGIONAL_ADMIN, MERCHANT, MERCHANT_EMPLOYEE)
 app.get('/dashboard', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT', 'MERCHANT_EMPLOYEE']), async (c) => {
   const user = (c as any).get('user') as UserSession;
+  const activeMerchant = (c as any).get('activeMerchant') as MerchantContext | null;
+  const accessibleMerchants = ((c as any).get('accessibleMerchants') as MerchantContext[]) || [];
 
-  // Let's filter queries based on role (row-level security)
+  // Filter queries based on active merchant context or role
   let allowedMerchantIds: string[] | null = null;
-  if (user.role === 'REGIONAL_ADMIN') {
+  if (activeMerchant) {
+    allowedMerchantIds = [activeMerchant.id];
+  } else if (user.role === 'REGIONAL_ADMIN') {
     const mappings = await db.select({ id: regionalAdminMerchants.merchantId })
       .from(regionalAdminMerchants)
       .where(eq(regionalAdminMerchants.userId, user.id));
     allowedMerchantIds = mappings.map(m => m.id).filter(Boolean) as string[];
-    // If regional admin has no mapped merchants, they have 0 allowed
     if (allowedMerchantIds.length === 0) {
       allowedMerchantIds = ['none'];
     }
@@ -488,6 +492,8 @@ app.get('/dashboard', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'ME
       }}
       recentActivities={recentActivities}
       currentUser={user}
+      activeMerchant={activeMerchant}
+      accessibleMerchants={accessibleMerchants}
     />
   );
 });
@@ -495,11 +501,12 @@ app.get('/dashboard', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'ME
 // PAGE 1: Multi-Merchant Manager (SUPER_ADMIN, ADMIN, REGIONAL_ADMIN)
 app.get('/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN']), async (c) => {
   const user = (c as any).get('user') as UserSession;
+  const activeMerchant = (c as any).get('activeMerchant') as MerchantContext | null;
+  const accessibleMerchants = ((c as any).get('accessibleMerchants') as MerchantContext[]) || [];
   let list: any[] = [];
   
   try {
     if (user.role === 'REGIONAL_ADMIN') {
-      // REGIONAL_ADMIN: Only select merchants mapped to this specific user
       const mappedMerchants = await db.select({ merchantId: regionalAdminMerchants.merchantId })
         .from(regionalAdminMerchants)
         .where(eq(regionalAdminMerchants.userId, user.id));
@@ -509,18 +516,15 @@ app.get('/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN']), a
         list = await db.select().from(merchants).where(inArray(merchants.id, mrcIds));
       }
     } else {
-      // SUPER_ADMIN / ADMIN: Access to all merchants
       list = await db.select().from(merchants);
     }
   } catch (_e) {
-    // Fallback Mock data in case DB offline
     list = [
       { id: 'mrc_toko_1', name: 'Warung Kopi Mojokerto', phoneNumber: '081234567890', qrisImageUrl: 'https://picsum.photos/seed/qris1/300/300', status: 'ACTIVE' as const, todayTransactions: 12, lastSync: '2026-08-03 10:20:15' },
       { id: 'mrc_toko_2', name: 'Resto Ayam Bakar Cobek', phoneNumber: '089988776655', qrisImageUrl: 'https://picsum.photos/seed/qris2/300/300', status: 'NEEDS_OTP' as const, todayTransactions: 0, lastSync: '2026-08-03 09:12:44' }
     ];
   }
 
-  // Format list for renderer
   const formattedMerchants = list.map(m => ({
     id: m.id,
     name: m.name,
@@ -535,13 +539,15 @@ app.get('/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN']), a
 
   (c as any).set('title', 'Multi-Merchant Manager');
   return c.render(
-    <MerchantsPage merchants={formattedMerchants} currentUser={user} />
+    <MerchantsPage merchants={formattedMerchants} currentUser={user} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants} />
   );
 });
 
 // PAGE 2: Live Transaction Monitor (All roles, scoped)
 app.get('/transactions', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT', 'MERCHANT_EMPLOYEE']), async (c) => {
   const user = (c as any).get('user') as UserSession;
+  const activeMerchant = (c as any).get('activeMerchant') as MerchantContext | null;
+  const accessibleMerchants = ((c as any).get('accessibleMerchants') as MerchantContext[]) || [];
   
   let txList = [];
   let merchantList = [];
@@ -564,7 +570,9 @@ app.get('/transactions', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 
 
     // 2. Scoping transactions table query
     let dbInvoices: any[] = [];
-    if (user.role === 'REGIONAL_ADMIN') {
+    if (activeMerchant) {
+      dbInvoices = await db.select().from(invoices).where(eq(invoices.merchantId, activeMerchant.id)).orderBy(desc(invoices.createdAt));
+    } else if (user.role === 'REGIONAL_ADMIN') {
       const mapped = await db.select({ merchantId: regionalAdminMerchants.merchantId })
         .from(regionalAdminMerchants)
         .where(eq(regionalAdminMerchants.userId, user.id));
@@ -596,7 +604,6 @@ app.get('/transactions', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 
       };
     });
   } catch (_e) {
-    // Fallback Mock Transactions
     merchantList = [
       { id: 'mrc_toko_1', name: 'Warung Kopi Mojokerto' },
       { id: 'mrc_toko_2', name: 'Resto Ayam Bakar Cobek' }
@@ -605,23 +612,20 @@ app.get('/transactions', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 
       { id: 'inv_10923840', merchantId: 'mrc_toko_1', merchantName: 'Warung Kopi Mojokerto', orderId: 'ORDER-100230', baseAmount: 50000, uniqueCode: 123, totalAmount: 50123, status: 'PAID' as const, webhookStatus: '200 OK' as const, timestamp: '2026-08-03 10:28:15' },
       { id: 'inv_10923841', merchantId: 'mrc_toko_1', merchantName: 'Warung Kopi Mojokerto', orderId: 'ORDER-100231', baseAmount: 12000, uniqueCode: 15, totalAmount: 12015, status: 'PENDING' as const, webhookStatus: 'N/A' as const, timestamp: '2026-08-03 10:30:00' }
     ];
-
-    // Filter mock data manually based on role in dev mode
-    if (user.role === 'MERCHANT' || user.role === 'MERCHANT_EMPLOYEE') {
-      merchantList = merchantList.filter(m => m.id === 'mrc_toko_1');
-      txList = txList.filter(tx => tx.merchantId === 'mrc_toko_1');
-    }
   }
 
   (c as any).set('title', 'Live Transaction Monitor');
   return c.render(
-    <TransactionsPage merchants={merchantList} transactions={txList} currentUser={user} />
+    <TransactionsPage merchants={merchantList} transactions={txList} currentUser={user} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants} />
   );
 });
 
 // PAGE 3: Developer Hub (All authenticated users)
 app.get('/developer', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT']), async (c) => {
   const user = (c as any).get('user') as UserSession;
+  const activeMerchant = (c as any).get('activeMerchant') as MerchantContext | null;
+  const accessibleMerchants = ((c as any).get('accessibleMerchants') as MerchantContext[]) || [];
+
   const userList = await db.select().from(users).where(eq(users.id, user.id));
   const dbUser = userList[0] || { apiKey: '', webhookUrl: '', webhookSecret: '' };
 
@@ -635,6 +639,8 @@ app.get('/developer', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'ME
       webhookSecret={dbUser.webhookSecret || ''} 
       baseUrl={baseUrl}
       currentUser={user}
+      activeMerchant={activeMerchant}
+      accessibleMerchants={accessibleMerchants}
     />
   );
 });
@@ -642,11 +648,12 @@ app.get('/developer', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'ME
 // PAGE 4: User & Role Directory (SUPER_ADMIN, ADMIN, REGIONAL_ADMIN, MERCHANT)
 app.get('/users', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT']), async (c) => {
   const currentUser = (c as any).get('user') as UserSession;
+  const activeMerchant = (c as any).get('activeMerchant') as MerchantContext | null;
+  const accessibleMerchants = ((c as any).get('accessibleMerchants') as MerchantContext[]) || [];
   let userList: any[] = [];
   let merchantList: any[] = [];
 
   try {
-    // 1. Fetch allowed merchants list based on role (for User creation dropdown)
     if (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN') {
       merchantList = await db.select().from(merchants);
     } else if (currentUser.role === 'REGIONAL_ADMIN') {
@@ -660,7 +667,6 @@ app.get('/users', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHA
       merchantList = await db.select().from(merchants).where(eq(merchants.id, currentUser.merchantId || 'none'));
     }
 
-    // 2. Fetch users list based on role
     let dbUsers: any[] = [];
     if (currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN') {
       dbUsers = await db.select().from(users);
@@ -671,7 +677,6 @@ app.get('/users', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHA
       let allowedIds = mappings.map(m => m.merchantId).filter(Boolean) as string[];
       if (allowedIds.length === 0) allowedIds = ['none'];
       
-      // Regional Admin can see users under their managed merchants, OR themselves
       dbUsers = await db.select().from(users).where(
         or(
           eq(users.id, currentUser.id),
@@ -679,7 +684,6 @@ app.get('/users', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHA
         )
       );
     } else if (currentUser.role === 'MERCHANT') {
-      // Merchant Owner can only see themselves, and employees under their merchant
       dbUsers = await db.select().from(users).where(
         or(
           eq(users.id, currentUser.id),
@@ -688,7 +692,6 @@ app.get('/users', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHA
       );
     }
 
-    // Fetch counts of mapped regional merchants
     const regionalMappings = await db.select().from(regionalAdminMerchants);
     const globalMerchantList = await db.select().from(merchants);
 
@@ -706,7 +709,6 @@ app.get('/users', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHA
       };
     });
   } catch (_e) {
-    // Fallback Mock Users list in case DB is offline
     merchantList = [
       { id: 'mrc_toko_1', name: 'Warung Kopi Mojokerto' }
     ];
@@ -717,7 +719,7 @@ app.get('/users', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHA
 
   (c as any).set('title', 'User Directory');
   return c.render(
-    <UsersPage users={userList} merchants={merchantList} currentUser={currentUser} />
+    <UsersPage users={userList} merchants={merchantList} currentUser={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants} />
   );
 });
 
@@ -966,6 +968,147 @@ app.post('/api/v1/merchants/:id/disconnect', requireRole(['SUPER_ADMIN', 'ADMIN'
     console.error(`[API] Disconnect failed for ${id}:`, err);
     return c.json({ success: false, error: err.message });
   }
+});
+
+// =========================================================================
+// ACTIVE WORKSPACE SWITCHER (v1.1.0)
+// =========================================================================
+app.post('/api/v1/workspaces/switch', async (c) => {
+  const user = (c as any).get('user') as UserSession | undefined;
+  if (!user) {
+    return c.json({ success: false, error: 'Unauthorized' }, 401);
+  }
+
+  const accessibleMerchants = ((c as any).get('accessibleMerchants') as MerchantContext[]) || [];
+  const body = await c.req.json().catch(() => ({}));
+  const merchantId = body.merchantId || c.req.query('merchantId');
+
+  if (!merchantId) {
+    return c.json({ success: false, error: 'Merchant ID is required.' }, 400);
+  }
+
+  const isAllowed = accessibleMerchants.some((m) => m.id === merchantId);
+  if (!isAllowed) {
+    return c.json({ success: false, error: 'Forbidden: You do not have permission to switch to this store workspace.' }, 403);
+  }
+
+  const isHttps = c.req.url.startsWith('https://') || c.req.header('x-forwarded-proto') === 'https';
+  await setSignedCookie(c, 'active_merchant_id', merchantId, COOKIE_SECRET, {
+    path: '/',
+    httpOnly: true,
+    secure: isHttps,
+    sameSite: 'Lax',
+    maxAge: 60 * 60 * 24 * 30 // 30 days
+  });
+
+  return c.json({ success: true, activeMerchantId: merchantId });
+});
+
+// =========================================================================
+// MULTI-CHANNEL STORE NOTIFICATIONS API (v1.1.0)
+// =========================================================================
+// 1. Get Notification Configuration for a Merchant
+app.get('/api/v1/merchants/:id/notifications', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN']), async (c) => {
+  const id = c.req.param('id');
+  const accessibleMerchants = ((c as any).get('accessibleMerchants') as MerchantContext[]) || [];
+  if (!accessibleMerchants.some(m => m.id === id)) {
+    return c.json({ success: false, error: 'Access denied to merchant store.' }, 403);
+  }
+
+  try {
+    const list = await db.select().from(merchantNotifications).where(eq(merchantNotifications.merchantId, id));
+    if (list.length === 0) {
+      return c.json({
+        success: true,
+        config: {
+          merchantId: id,
+          telegramEnabled: false,
+          telegramBotToken: '',
+          telegramChatId: '',
+          telegramTemplate: DEFAULT_TEMPLATES.telegram,
+          discordEnabled: false,
+          discordWebhookUrl: '',
+          discordTemplate: DEFAULT_TEMPLATES.discord,
+          whatsappEnabled: false,
+          whatsappApiUrl: '',
+          whatsappAuthType: 'NONE',
+          whatsappAuthKey: '',
+          whatsappRecipient: '',
+          whatsappTemplate: DEFAULT_TEMPLATES.whatsapp,
+        }
+      });
+    }
+
+    return c.json({ success: true, config: list[0] });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
+// 2. Save / Update Notification Configuration for a Merchant
+app.post('/api/v1/merchants/:id/notifications', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN']), async (c) => {
+  const id = c.req.param('id');
+  const accessibleMerchants = ((c as any).get('accessibleMerchants') as MerchantContext[]) || [];
+  if (!accessibleMerchants.some(m => m.id === id)) {
+    return c.json({ success: false, error: 'Access denied to merchant store.' }, 403);
+  }
+
+  try {
+    const body = await c.req.json();
+    const existing = await db.select().from(merchantNotifications).where(eq(merchantNotifications.merchantId, id));
+
+    const payload = {
+      telegramEnabled: !!body.telegramEnabled,
+      telegramBotToken: body.telegramBotToken ? body.telegramBotToken.trim() : null,
+      telegramChatId: body.telegramChatId ? body.telegramChatId.trim() : null,
+      telegramTemplate: body.telegramTemplate ? body.telegramTemplate.trim() : null,
+
+      discordEnabled: !!body.discordEnabled,
+      discordWebhookUrl: body.discordWebhookUrl ? body.discordWebhookUrl.trim() : null,
+      discordTemplate: body.discordTemplate ? body.discordTemplate.trim() : null,
+
+      whatsappEnabled: !!body.whatsappEnabled,
+      whatsappApiUrl: body.whatsappApiUrl ? body.whatsappApiUrl.trim() : null,
+      whatsappAuthType: (['NONE', 'BEARER', 'BASIC'].includes(body.whatsappAuthType) ? body.whatsappAuthType : 'NONE') as 'NONE' | 'BEARER' | 'BASIC',
+      whatsappAuthKey: body.whatsappAuthKey ? body.whatsappAuthKey.trim() : null,
+      whatsappRecipient: body.whatsappRecipient ? body.whatsappRecipient.trim() : null,
+      whatsappTemplate: body.whatsappTemplate ? body.whatsappTemplate.trim() : null,
+      updatedAt: new Date(),
+    };
+
+    if (existing.length > 0) {
+      await db.update(merchantNotifications)
+        .set(payload)
+        .where(eq(merchantNotifications.merchantId, id));
+    } else {
+      await db.insert(merchantNotifications).values({
+        id: `notif_${id}_${Date.now()}`,
+        merchantId: id,
+        ...payload,
+        createdAt: new Date(),
+      });
+    }
+
+    return c.json({ success: true, message: 'Notification settings saved successfully.' });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
+// 3. Test Channel Notification
+app.post('/api/v1/merchants/:id/notifications/test', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN']), async (c) => {
+  const id = c.req.param('id');
+  const body = await c.req.json();
+  const channel = body.channel as 'telegram' | 'discord' | 'whatsapp';
+  const config = body.config || {};
+  const merchantName = body.merchantName || 'QRIS Merchant Store';
+
+  if (!channel || !['telegram', 'discord', 'whatsapp'].includes(channel)) {
+    return c.json({ success: false, error: 'Valid channel (telegram, discord, whatsapp) is required.' }, 400);
+  }
+
+  const result = await testChannelNotification(merchantName, channel, config);
+  return c.json(result);
 });
 
 // API: Delete Merchant permanently from database (stops listener, deletes session, deletes DB row)
@@ -1403,10 +1546,17 @@ app.post('/api/v1/sandbox/simulate-payment', async (c) => {
 
     console.log(`[Sandbox] Invoice ${invoiceId} marked as PAID. Dispatching webhook...`);
 
-    // Dispatch webhook in the background
+    // 1. Dispatch webhook in the background
     dispatchWebhook(invoice, paidAt.toISOString()).catch(err => {
       console.error(`[Sandbox] Webhook dispatch error for invoice ${invoiceId}:`, err);
     });
+
+    // 2. Dispatch Multi-Channel Notifications (Telegram, Discord, WhatsApp GOWA)
+    if (invoice.merchantId) {
+      dispatchMerchantNotifications(invoice.merchantId, invoice, paidAt.toISOString()).catch(err => {
+        console.error(`[Sandbox] Notification dispatch error for invoice ${invoiceId}:`, err);
+      });
+    }
 
     return c.json({ success: true, message: 'Simulated payment processed successfully.' });
   } catch (err: any) {

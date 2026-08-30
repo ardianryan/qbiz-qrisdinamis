@@ -1,4 +1,4 @@
-# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.0.6)
+# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.1.0-beta)
 
 [![Test & CI](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml)
 [![CodeQL Security](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml)
@@ -9,7 +9,7 @@
 ![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat-square&logo=postgresql)
 ![Automation](https://img.shields.io/badge/Automation-Puppeteer-0097a7?style=flat-square&logo=puppeteer)
 
-**QBiz** is a modern, self-hosted dynamic QRIS payment gateway hub. It acts as an in-house middleware to connect QRIS Food Merchant portals with custom Point-of-Sale (POS) systems, automates transaction synchronization via headless browser automation, and dispatches HMAC-SHA256 signed webhooks directly to your POS system without relying on third-party payment gateways.
+**QBiz** is a modern, self-hosted dynamic QRIS payment gateway hub. It acts as an in-house middleware to connect QRIS Food Merchant portals with custom Point-of-Sale (POS) systems, automates transaction synchronization via headless browser automation, dispatches instant multi-channel alerts (Telegram, Discord, WhatsApp GOWA), and sends HMAC-SHA256 signed webhooks directly to your POS system without relying on third-party payment gateways.
 
 > [!WARNING]
 > **DISCLAIMER, RISK WARNING, & WARRANTY LIMITATION (UNOFFICIAL API)**
@@ -29,25 +29,37 @@
    * **Unique Suffixes**: Automatically appends minor unique codes (e.g., Rp 1 to Rp 999) to invoices to distinguish simultaneous payments of the same base amount.
    * **CRC-16 Re-computation**: Computes the CCITT checksum on-the-fly to compile valid dynamic QR codes.
 
-2. 🔄 **QRIS Food Merchant Real-time Interception**
+2. 🏪 **Contextual Multi-Merchant Workspace Switcher (v1.1.0)**
+   * **Global Store Switcher**: Top navbar dropdown for instant 1-click switching between store locations and merchant profiles (similar to modern multi-tenant SaaS & social media account switchers).
+   * **Scoped Experience**: Dashboard revenue metrics, live transaction logs, QRIS static configurations, and Developer Hub SDK code snippets automatically scope to the active store.
+   * **Store Search & Health Badges**: Quickly filter stores with real-time status pills (`Active Listener`, `OTP Syncing`, `Session Dead`).
+
+3. 🔔 **Multi-Channel Store Notifications (v1.1.0)**
+   * ✈️ **Telegram Bot**: Real-time payment confirmation alerts delivered directly to private chats or merchant staff groups via the Telegram Bot API.
+   * 💬 **Discord Webhook**: Rich embedded cards displaying store branding, payment status colors, amount breakdowns, and timestamps.
+   * 📱 **WhatsApp API (GOWA by Aldinokemal)**: Native support for the open-source Go WhatsApp HTTP API gateway (`/send/message`) supporting No Auth, Bearer Token, and Basic Auth.
+   * 🎨 **Custom Template Engine**: Dynamic variable interpolation (`{merchant_name}`, `{order_id}`, `{amount_formatted}`, `{customer_name}`, `{paid_at}`).
+   * 🚀 **Interactive Test Sandbox**: Trigger 1-click test notifications directly from the dashboard with live delivery status badges.
+
+4. 🔄 **QRIS Food Merchant Real-time Interception**
    * **Puppeteer Worker**: Headless Chromium session intercepts transactions directly inside the QRIS Food Merchant portal.
    * **WhatsApp OTP Integration**: Forwards OTP requests to the merchant's registered WhatsApp account for two-factor authentication.
    * **Auto Webhook Dispatch**: Triggers target merchant webhooks with HMAC-SHA256 signature verification payloads and `X-QBiz-Timestamp` anti-replay headers.
    * **Session Security at Rest**: Encrypts browser session cookie files on disk using AES-256-GCM symmetric encryption derived via PBKDF2 (100,000 iterations).
 
-3. 🛡️ **Enterprise Security & Hardening**
+5. 🛡️ **Enterprise Security & Hardening**
    * **PBKDF2 Password Cryptography**: Passwords protected with PBKDF2-SHA256 (100,000 iterations) with dynamic unique salts.
    * **HTTP Security Headers**: Defense-in-depth headers (`X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Strict-Transport-Security`).
    * **Sliding-Window Rate Limiting**: Built-in in-memory rate limiting on login, charges API, and status check endpoints.
    * **Graceful Process Termination**: Catches `SIGINT`/`SIGTERM` to safely terminate headless browser processes and prevent zombie processes.
 
-4. 👥 **Multi-Tenant & Role Management (RBAC)**
+6. 👥 **Multi-Tenant & Role Management (RBAC)**
    * **Five System Roles**: Supports `SUPER_ADMIN`, `ADMIN`, `REGIONAL_ADMIN`, `MERCHANT`, and `MERCHANT_EMPLOYEE`.
    * **Database Isolation**: Scopes transaction histories, cashier directories, and invoice parameters according to tenant boundaries.
    * **API Key Rotation**: Allows merchants to independently rotate API keys and modify webhook secrets from the dashboard.
 
-5. 🔌 **Official Developer Integration**
-   * **Client SDKs**: Built-in client libraries for [PHP](sdk/qbiz.php), [Node.js](sdk/qbiz-node.js), [Python](sdk/qbiz.py), and [Rust](sdk/qbiz.rs).
+7. 🔌 **Official Developer Integration**
+   * **Multi-Language Client SDKs**: Built-in zero-dependency client libraries for [Go (Golang)](sdk/qbiz.go), [TypeScript](sdk/qbiz.ts), [PHP](sdk/qbiz.php), [Node.js](sdk/qbiz-node.js), [Python](sdk/qbiz.py), [Dart / Flutter](sdk/qbiz.dart), [Java](sdk/QBizClient.java), and [Rust](sdk/qbiz.rs).
    * **Pre-fixed IDs**: Protects resources from scraping using unguessable prefixes (`usr_`, `mrc_`, `inv_`).
 
 ---
@@ -163,6 +175,61 @@ Because QBiz utilizes **Puppeteer (headless Chromium)** in the background to syn
   docker compose up -d --build
   ```
 * **Portainer & aaPanel Deployment**: Detailed configurations for reverse proxy and SSL Let's Encrypt are available in the [aaPanel & Portainer Deployment Guide](PORTAINER_AAPANEL.md).
+
+---
+
+## 🏪 Multi-Merchant Workspace Switcher Guide
+
+In **v1.1.0**, QBiz introduces a modern **Contextual Workspace Switcher** inspired by social media account switchers and multi-store SaaS platforms:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  [Q] QBiz Gateway   │  🏪 Resto Ayam Bakar Cobek 🟢 Active [ ▼ Switch Store ] │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### How the Workspace Switcher Works:
+1. **Top Navbar / Sidebar Store Pill**:
+   - Displays the active merchant's avatar/logo, store name, and real-time listener health status (`🟢 Active Listener` / `🟡 OTP Syncing` / `🔴 Session Dead`).
+2. **Instant 1-Click Switch**:
+   - Clicking the store pill opens a search-enabled modal listing all accessible stores. Selecting a store immediately switches your active workspace context without losing your current page.
+3. **Automatic Contextual Scoping Across All Menus**:
+   * 📊 **Dashboard (`/dashboard`)**: Displays transaction volume, total revenue, success rates, and recent activity scoped to the active store.
+   * 🧾 **Transactions (`/transactions`)**: Live invoice monitoring and mutation feeds filtered to the active store.
+   * 🔔 **Store Notifications (`/merchants`)**: Configures Telegram, Discord, and WhatsApp alert channels specifically for that store.
+   * 💻 **Developer Hub (`/developer`)**: Pre-fills SDK code snippets (curl, Node.js, Python, Rust) with the active merchant's ID.
+
+---
+
+## 🔔 Multi-Channel Payment Notifications Setup
+
+Whenever a customer successfully completes a QRIS payment, QBiz immediately dispatches formatted transaction alerts to all enabled channels in the background (`Promise.allSettled`).
+
+### 1. 📱 WhatsApp API — GOWA (Go WhatsApp by Aldinokemal)
+QBiz integrates natively with **GOWA**, an open-source WhatsApp Multi-Device HTTP API gateway built in Go by [Aldino Kemal](https://github.com/aldinokemal):
+* **Official Repository**: [github.com/aldinokemal/go-whatsapp-web-multidevice](https://github.com/aldinokemal/go-whatsapp-web-multidevice)
+* **Quick Setup with Docker**:
+  ```bash
+  docker run -d \
+    --name gowa-service \
+    -p 3000:3000 \
+    -v $(pwd)/gowa_sessions:/app/storages \
+    aldinokemal/go-whatsapp-web-multidevice:latest
+  ```
+* **QBiz Configuration Parameters**:
+  * **API Base URL**: `http://127.0.0.1:3000` (or `http://gowa:3000` in Docker networks).
+  * **Auth Scheme**: `No Authentication`, `Bearer Token`, or `Basic Auth` (matching your GOWA config).
+  * **Target Recipient**: Phone number in international format (`628123456789`) or WhatsApp Group JID (`120363xxx@g.us`).
+  * **Custom Template**: Supports dynamic variable interpolation (`{merchant_name}`, `{order_id}`, `{amount_formatted}`, `{customer_name}`, `{paid_at}`).
+
+### 2. ✈️ Telegram Bot
+* **Bot Token**: Create a bot via [@BotFather](https://t.me/BotFather) on Telegram and copy the API token.
+* **Target Chat ID**: Send `/start` to your bot and forward a message to [@userinfobot](https://t.me/userinfobot) to get your Chat ID, or add the bot to your merchant staff Telegram group.
+* **Custom Template**: Supports full HTML styling (`<b>`, `<i>`, `<code>`).
+
+### 3. 💬 Discord Webhook
+* **Webhook URL**: Go to Discord Server Settings > **Integrations** > **Webhooks** > **New Webhook** > Copy Webhook URL.
+* **Rich Embeds**: Dispatches beautiful emerald green embedded cards displaying store name, invoice ID, amount, and timestamp.
 
 ---
 

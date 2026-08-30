@@ -135,42 +135,84 @@ To prevent webhook spoofing, verify the `X-QBiz-Signature` header using the **HM
 
 All official SDK clients are hosted in the git repository:
 
-### A. Node.js / JavaScript SDK
-Use the Node.js client file [`sdk/qbiz-node.js`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz-node.js) inside your backend script:
+### A. Go (Golang) SDK
+Use the official Go client package [`sdk/qbiz.go`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.go) (zero external dependencies, using standard library `net/http` and `crypto/hmac`):
 
-```javascript
-import QBiz from './sdk/qbiz-node.js';
+```go
+package main
 
-const qbiz = new QBiz({
-  apiKey: 'YOUR_API_KEY',
-  baseUrl: 'http://localhost:8000' // optional
-});
+import (
+	"context"
+	"fmt"
+	"log"
+	"qbiz" // import from your sdk path
+)
 
-// 1. Create a payment invoice
-try {
-  const result = await qbiz.createInvoice({
-    amount: 15000,
-    orderId: 'ORDER-9921',
-    merchantId: 'mrc_toko_1'
-  });
-  console.log("QRIS Payload:", result.invoice.qris_payload);
-  console.log("Checkout URL:", result.invoice.checkout_url);
-} catch (err) {
-  console.error("Failed creating invoice:", err.message);
-}
+func main() {
+	client := qbiz.NewClient("YOUR_API_KEY", "http://localhost:8000")
 
-// 2. Verify incoming webhook signature in your express/hono controller
-const isVerified = qbiz.verifyWebhook(
-  rawRequestBodyString,
-  req.headers['x-qbiz-signature'],
-  'YOUR_WEBHOOK_SECRET'
-);
-if (isVerified) {
-  // Signature is valid. Update your POS order status to PAID safely.
+	// 1. Create a dynamic QRIS invoice
+	invoice, err := client.CreateInvoice(context.Background(), qbiz.CreateInvoiceParams{
+		OrderID:     "ORDER-GO-1002",
+		Amount:      50000,
+		MerchantID:  "mrc_toko_1",
+		CallbackURL: "https://mypos.com/api/webhooks/qris",
+	})
+	if err != nil {
+		log.Fatalf("Error creating invoice: %v", err)
+	}
+
+	fmt.Printf("Dynamic QRIS Payload: %s\n", invoice.QRISPayload)
+	fmt.Printf("Checkout URL: %s\n", invoice.CheckoutURL)
+
+	// 2. Fetch payment status
+	status, err := client.GetInvoiceStatus(context.Background(), invoice.ID)
+	if err != nil {
+		log.Fatalf("Error querying status: %v", err)
+	}
+	fmt.Printf("Payment Status: %s (Total: Rp %d)\n", status.Status, status.TotalAmount)
+
+	// 3. Verify incoming webhook signature
+	// qbiz.VerifyWebhookSignature(rawBodyBytes, signatureHeader, webhookSecret, timestampInt64)
 }
 ```
 
-### B. PHP SDK
+### B. TypeScript (ESM) SDK
+Use the strongly typed client [`sdk/qbiz.ts`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.ts) in Next.js, Nuxt, SvelteKit, NestJS, Bun, or Deno:
+
+```typescript
+import { QBizClient } from './sdk/qbiz.ts';
+
+const client = new QBizClient({
+  apiKey: 'YOUR_API_KEY',
+  baseUrl: 'http://localhost:8000'
+});
+
+// 1. Create a dynamic QRIS invoice
+const invoice = await client.createInvoice({
+  orderId: 'ORDER-TS-1002',
+  amount: 50000,
+  merchantId: 'mrc_toko_1',
+  callbackUrl: 'https://mypos.com/api/webhooks/qris'
+});
+
+console.log('Dynamic QRIS Payload:', invoice.qrisPayload);
+console.log('Checkout URL:', invoice.checkoutUrl);
+
+// 2. Query status
+const status = await client.getInvoiceStatus(invoice.id);
+console.log('Status:', status.status);
+
+// 3. Cryptographically verify incoming webhook signature
+const isValid = await QBizClient.verifyWebhookSignature(
+  rawBody,
+  signatureHeader,
+  'YOUR_WEBHOOK_SECRET',
+  timestampHeader
+);
+```
+
+### C. PHP SDK
 Use the PHP client library [`sdk/qbiz.php`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.php) in your Laravel, CodeIgniter, or native PHP project:
 
 ```php
@@ -192,7 +234,6 @@ $signature = isset($headers['X-QBiz-Signature']) ? $headers['X-QBiz-Signature'] 
 
 $isVerified = $qbiz->verifyWebhook($rawBody, $signature, 'YOUR_WEBHOOK_SECRET');
 if ($isVerified) {
-    // Signature verified. Process success status.
     http_response_code(200);
     echo json_encode(["status" => "ok"]);
 } else {
@@ -201,13 +242,34 @@ if ($isVerified) {
 }
 ```
 
-### C. Python SDK
-Use the Python client file [`sdk/qbiz.py`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.py) inside your Python project:
+### D. Node.js / JavaScript SDK
+Use the Node.js client file [`sdk/qbiz-node.js`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz-node.js) inside your Express or Fastify backend:
+
+```javascript
+const QBizClient = require('./sdk/qbiz-node.js');
+
+const client = new QBizClient({
+  apiKey: 'YOUR_API_KEY',
+  baseUrl: 'http://localhost:8000'
+});
+
+// 1. Create a payment invoice
+const invoice = await client.createInvoice({
+  amount: 15000,
+  orderId: 'ORDER-9921',
+  merchantId: 'mrc_toko_1'
+});
+
+console.log("QRIS Payload:", invoice.qris_payload);
+console.log("Checkout URL:", invoice.checkout_url);
+```
+
+### E. Python SDK
+Use the Python client file [`sdk/qbiz.py`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.py) inside your FastAPI, Django, or Flask project:
 
 ```python
 from sdk.qbiz import QBizClient
 
-# Initialize Client
 client = QBizClient(api_key="YOUR_API_KEY", base_url="http://localhost:8000")
 
 # 1. Create a payment invoice
@@ -218,32 +280,42 @@ invoice = client.create_invoice({
 })
 print("QRIS Payload:", invoice["qr_string"])
 print("Checkout URL:", f"http://localhost:8000/pay/{invoice['id']}")
-
-# 2. Fetch payment status
-status = client.get_invoice_status(invoice["id"])
-print("Invoice Status:", status["status"])
-
-# 3. Verify incoming webhook signature
-is_verified = client.verify_webhook(
-    payload_raw_body=raw_request_body_string,
-    signature_header=headers.get("X-QBiz-Signature"),
-    webhook_secret="YOUR_WEBHOOK_SECRET"
-)
-if is_verified:
-    # Signature is valid. Process payment.
-    pass
 ```
 
-### D. Rust SDK
-Use the Rust module file [`sdk/qbiz.rs`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.rs) inside your Rust project (requires `reqwest`, `serde`, `hmac`, `sha2`, and `hex` crates):
+### F. Dart / Flutter SDK
+Use the Dart client [`sdk/qbiz.dart`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.dart) in your Flutter Mobile POS app:
+
+```dart
+import 'sdk/qbiz.dart';
+
+final client = QBizClient(apiKey: 'YOUR_API_KEY', baseUrl: 'http://localhost:8000');
+
+final invoice = await client.createInvoice(
+  orderId: 'ORDER-FLUTTER-1002',
+  amount: 35000,
+  merchantId: 'mrc_toko_1',
+);
+print('Dynamic QRIS: ${invoice['qris_payload']}');
+```
+
+### G. Java SDK
+Use the Java client [`sdk/QBizClient.java`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/QBizClient.java) in Spring Boot or Android Native:
+
+```java
+import com.qbiz.sdk.QBizClient;
+
+QBizClient client = new QBizClient("YOUR_API_KEY", "http://localhost:8000");
+String invoiceJson = client.createInvoice("{\"order_id\":\"ORD-JAVA-1\",\"amount\":50000}");
+System.out.println(invoiceJson);
+```
+
+### H. Rust SDK
+Use the Rust module file [`sdk/qbiz.rs`](https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.rs) inside your Rust project:
 
 ```rust
 use sdk::qbiz::{QBizClient, CreateInvoiceParams};
 
-// Initialize Client
 let client = QBizClient::new("YOUR_API_KEY", Some("http://localhost:8000")).unwrap();
-
-// 1. Create a payment invoice
 let params = CreateInvoiceParams {
     order_id: "ORDER-RUST-1002".to_string(),
     amount: 25000,
@@ -255,23 +327,8 @@ let params = CreateInvoiceParams {
     customer_phone: None,
     items: None,
 };
-
 let invoice = client.create_invoice(params).await.unwrap();
 println!("QRIS Payload: {}", invoice.qr_string);
-
-// 2. Fetch payment status
-let status = client.get_invoice_status(&invoice.id).await.unwrap();
-println!("Invoice Status: {}", status.status);
-
-// 3. Verify incoming webhook signature
-let is_verified = client.verify_webhook(
-    &raw_request_body_string,
-    signature_header_value,
-    "YOUR_WEBHOOK_SECRET"
-);
-if is_verified {
-    // Signature verified. Process payment.
-}
 ```
 
 ---

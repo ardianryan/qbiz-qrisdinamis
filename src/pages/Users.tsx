@@ -15,13 +15,17 @@ interface UserListItem {
   mappedMerchantsCount: number;
 }
 
+import { MerchantContext } from '../middleware/auth.ts';
+
 interface UsersPageProps {
   users: UserListItem[];
   merchants: Merchant[];
   currentUser: any;
+  activeMerchant?: MerchantContext | null;
+  accessibleMerchants?: MerchantContext[];
 }
 
-export function UsersPage({ users, merchants, currentUser }: UsersPageProps) {
+export function UsersPage({ users, merchants, currentUser, activeMerchant, accessibleMerchants }: UsersPageProps) {
   const roleLabels: Record<string, string> = {
     SUPER_ADMIN: 'Super Admin',
     ADMIN: 'Admin',
@@ -31,7 +35,7 @@ export function UsersPage({ users, merchants, currentUser }: UsersPageProps) {
   };
 
   return (
-    <Layout activePath="/users" user={currentUser}>
+    <Layout activePath="/users" user={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants}>
       
       {/* ========================================================================= */}
       {/* 1. HEADER */}

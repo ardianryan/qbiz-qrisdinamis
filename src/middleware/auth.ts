@@ -1,7 +1,7 @@
 import { getSignedCookie } from 'hono/cookie';
 import { db } from '../../db/db.ts';
-import { users } from '../../db/schema.ts';
-import { eq } from 'drizzle-orm';
+import { users, merchants, regionalAdminMerchants } from '../../db/schema.ts';
+import { eq, inArray } from 'drizzle-orm';
 
 // Secret key for cookie signing
 export const COOKIE_SECRET = Deno.env.get("COOKIE_SECRET") || "qbiz_cookie_signing_secret_key_2026";
@@ -14,6 +14,71 @@ export interface UserSession {
   email: string;
   role: UserRole;
   merchantId: string | null;
+}
+
+export interface MerchantContext {
+  id: string;
+  name: string;
+  phoneNumber: string;
+  logoUrl?: string | null;
+  status: 'ACTIVE' | 'NEEDS_OTP' | 'DISCONNECTED';
+  qrisImageUrl: string;
+  qrisPayload?: string | null;
+}
+
+/**
+ * Resolve all merchant stores accessible by the given user based on their RBAC role
+ */
+export async function resolveAccessibleMerchants(user: UserSession): Promise<MerchantContext[]> {
+  try {
+    if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
+      const list = await db.select().from(merchants);
+      return list.map(m => ({
+        id: m.id,
+        name: m.name,
+        phoneNumber: m.phoneNumber,
+        logoUrl: m.logoUrl,
+        status: m.status as any,
+        qrisImageUrl: m.qrisImageUrl,
+        qrisPayload: m.qrisPayload
+      }));
+    }
+
+    if (user.role === 'REGIONAL_ADMIN') {
+      const mappings = await db.select().from(regionalAdminMerchants).where(eq(regionalAdminMerchants.userId, user.id));
+      const mIds = mappings.map(m => m.merchantId);
+      if (mIds.length === 0) return [];
+      const list = await db.select().from(merchants).where(inArray(merchants.id, mIds));
+      return list.map(m => ({
+        id: m.id,
+        name: m.name,
+        phoneNumber: m.phoneNumber,
+        logoUrl: m.logoUrl,
+        status: m.status as any,
+        qrisImageUrl: m.qrisImageUrl,
+        qrisPayload: m.qrisPayload
+      }));
+    }
+
+    if (user.merchantId) {
+      const list = await db.select().from(merchants).where(eq(merchants.id, user.merchantId));
+      if (list.length > 0) {
+        const m = list[0];
+        return [{
+          id: m.id,
+          name: m.name,
+          phoneNumber: m.phoneNumber,
+          logoUrl: m.logoUrl,
+          status: m.status as any,
+          qrisImageUrl: m.qrisImageUrl,
+          qrisPayload: m.qrisPayload
+        }];
+      }
+    }
+  } catch (err: any) {
+    console.error('[AuthMiddleware] resolveAccessibleMerchants query error:', err.message);
+  }
+  return [];
 }
 
 /**
@@ -139,6 +204,23 @@ export async function authMiddleware(c: any, next: any) {
         };
         
         c.set('user', sessionUser);
+
+        // Resolve accessible merchants and active merchant workspace context
+        const accessibleMerchants = await resolveAccessibleMerchants(sessionUser);
+        c.set('accessibleMerchants', accessibleMerchants);
+
+        let activeMerchant: MerchantContext | null = null;
+        const requestedActiveId = await getSignedCookie(c, COOKIE_SECRET, 'active_merchant_id');
+
+        if (requestedActiveId) {
+          activeMerchant = accessibleMerchants.find(m => m.id === requestedActiveId) || null;
+        }
+
+        if (!activeMerchant && accessibleMerchants.length > 0) {
+          activeMerchant = accessibleMerchants[0];
+        }
+
+        c.set('activeMerchant', activeMerchant);
         return await next();
       }
     }

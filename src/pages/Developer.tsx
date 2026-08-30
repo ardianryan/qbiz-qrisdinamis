@@ -1,15 +1,21 @@
 import React from 'react';
 import { Layout } from '../components/Layout.tsx';
 
+import { MerchantContext } from '../middleware/auth.ts';
+
 interface DeveloperPageProps {
   apiKey: string;
   webhookUrl: string;
   webhookSecret: string;
   baseUrl: string;
   currentUser?: any;
+  activeMerchant?: MerchantContext | null;
+  accessibleMerchants?: MerchantContext[];
 }
 
-export function DeveloperPage({ apiKey, webhookUrl, webhookSecret, baseUrl, currentUser }: DeveloperPageProps) {
+export function DeveloperPage({ apiKey, webhookUrl, webhookSecret, baseUrl, currentUser, activeMerchant, accessibleMerchants }: DeveloperPageProps) {
+  const currentMerchantId = activeMerchant?.id || 'mrc_toko_cabang_1';
+
   // Static code snippets for code tabs
   const codeSnippets = {
     curl: `curl -X POST ${baseUrl}/api/v1/invoices \\
@@ -18,8 +24,48 @@ export function DeveloperPage({ apiKey, webhookUrl, webhookSecret, baseUrl, curr
   -d '{
     "order_id": "ORDER-100239",
     "amount": 50000,
+    "merchant_id": "${currentMerchantId}",
     "callback_url": "${webhookUrl || 'https://yourserver.com/webhooks/qris'}"
   }'`,
+    go: `package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"qbiz" // import "your-project/sdk"
+)
+
+func main() {
+	client := qbiz.NewClient("${apiKey || 'qbiz_api_key_demo_2026'}", "${baseUrl}")
+
+	invoice, err := client.CreateInvoice(context.Background(), qbiz.CreateInvoiceParams{
+		OrderID:     "ORDER-100239",
+		Amount:      50000,
+		MerchantID:  "${currentMerchantId}",
+		CallbackURL: "${webhookUrl || 'https://yourserver.com/webhooks/qris'}",
+	})
+	if err != nil {
+		log.Fatalf("Failed creating invoice: %v", err)
+	}
+
+	fmt.Printf("Invoice ID: %s | Dynamic QR URL: %s\\n", invoice.ID, invoice.CheckoutURL)
+}`,
+    ts: `import { QBizClient } from './sdk/qbiz.ts';
+
+const client = new QBizClient({
+  apiKey: '${apiKey || 'qbiz_api_key_demo_2026'}',
+  baseUrl: '${baseUrl}'
+});
+
+const invoice = await client.createInvoice({
+  orderId: 'ORDER-100239',
+  amount: 50000,
+  merchantId: '${currentMerchantId}',
+  callbackUrl: '${webhookUrl || 'https://yourserver.com/webhooks/qris'}'
+});
+
+console.log('Dynamic QRIS Checkout URL:', invoice.checkoutUrl);`,
     node: `const response = await fetch('${baseUrl}/api/v1/invoices', {
   method: 'POST',
   headers: {
@@ -29,6 +75,7 @@ export function DeveloperPage({ apiKey, webhookUrl, webhookSecret, baseUrl, curr
   body: JSON.stringify({
     order_id: 'ORDER-100239',
     amount: 50000,
+    merchant_id: '${currentMerchantId}',
     callback_url: '${webhookUrl || 'https://yourserver.com/webhooks/qris'}'
   })
 });
@@ -39,6 +86,7 @@ console.log(data);`,
 payload = {
     "order_id": "ORDER-100239",
     "amount": 50000,
+    "merchant_id": "${currentMerchantId}",
     "callback_url": "${webhookUrl || 'https://yourserver.com/webhooks/qris'}"
 }
 
@@ -53,6 +101,22 @@ response = requests.post(
     headers=headers
 )
 print(response.json())`,
+    php: `<?php
+require_once __DIR__ . '/sdk/qbiz.php';
+
+$client = new QBizClient(
+    apiKey: '${apiKey || 'qbiz_api_key_demo_2026'}',
+    baseUrl: '${baseUrl}'
+);
+
+$invoice = $client->createInvoice([
+    'order_id' => 'ORDER-100239',
+    'amount' => 50000,
+    'merchant_id' => '${currentMerchantId}',
+    'callback_url' => '${webhookUrl || 'https://yourserver.com/webhooks/qris'}'
+]);
+
+echo "Dynamic QRIS URL: " . $invoice['checkout_url'];`,
     rust: `// Cargo.toml dependencies: reqwest, serde, serde_json
 let client = reqwest::Client::new();
 let response = client.post("${baseUrl}/api/v1/invoices")
@@ -61,6 +125,7 @@ let response = client.post("${baseUrl}/api/v1/invoices")
     .json(&serde_json::json!({
         "order_id": "ORDER-100239",
         "amount": 50000,
+        "merchant_id": "${currentMerchantId}",
         "callback_url": "${webhookUrl || 'https://yourserver.com/webhooks/qris'}"
     }))
     .send()
@@ -71,7 +136,7 @@ println!("{:#?}", data);`
   };
 
   return (
-    <Layout activePath="/developer" user={currentUser}>
+    <Layout activePath="/developer" user={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants}>
       
       {/* ========================================================================= */}
       {/* 1. HEADER */}
@@ -246,33 +311,51 @@ println!("{:#?}", data);`
             <div className="mt-3 bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800 rounded-lg p-2.5 flex items-start gap-2">
               <span className="text-[14px]">💡</span>
               <span className="text-[10px] text-slate-600 dark:text-zinc-400 leading-relaxed">
-                <strong>Official SDKs available!</strong> Prebuilt clients for <strong>PHP</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.php" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.php</a>), <strong>Node.js</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz-node.js" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz-node.js</a>), <strong>Python</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.py" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.py</a>), and <strong>Rust</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.rs" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.rs</a>) are ready in the <code>sdk/</code> folder!
+                <strong>Official Client SDKs available!</strong> Ready in the <code>sdk/</code> folder: <strong>Go</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.go" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.go</a>), <strong>TypeScript</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.ts" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.ts</a>), <strong>PHP</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.php" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.php</a>), <strong>Node.js</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz-node.js" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz-node.js</a>), <strong>Python</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.py" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.py</a>), <strong>Dart/Flutter</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.dart" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.dart</a>), <strong>Java</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/QBizClient.java" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/QBizClient.java</a>), and <strong>Rust</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.rs" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.rs</a>).
               </span>
             </div>
           </div>
 
           {/* Tab Switcher Headers */}
-          <div className="flex border-b border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/50">
+          <div className="flex flex-wrap border-b border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/50">
             <button 
-              className="px-4 py-2.5 text-xs font-semibold border-b-2 border-sky-600 text-sky-600 dark:border-sky-400 dark:text-sky-400 tab-btn outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="px-3.5 py-2 text-xs font-semibold border-b-2 border-sky-600 text-sky-600 dark:border-sky-400 dark:text-sky-400 tab-btn outline-none"
               data-tab="curl"
             >
               cURL
             </button>
             <button 
-              className="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100 tab-btn outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="px-3.5 py-2 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100 tab-btn outline-none"
+              data-tab="go"
+            >
+              Go
+            </button>
+            <button 
+              className="px-3.5 py-2 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100 tab-btn outline-none"
+              data-tab="ts"
+            >
+              TypeScript
+            </button>
+            <button 
+              className="px-3.5 py-2 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100 tab-btn outline-none"
+              data-tab="php"
+            >
+              PHP
+            </button>
+            <button 
+              className="px-3.5 py-2 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100 tab-btn outline-none"
               data-tab="node"
             >
               Node.js
             </button>
             <button 
-              className="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100 tab-btn outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="px-3.5 py-2 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100 tab-btn outline-none"
               data-tab="python"
             >
               Python
             </button>
             <button 
-              className="px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100 tab-btn outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+              className="px-3.5 py-2 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-zinc-100 tab-btn outline-none"
               data-tab="rust"
             >
               Rust
@@ -294,6 +377,15 @@ println!("{:#?}", data);`
             <div className="flex-grow">
               <pre id="panel-curl" className="text-xs text-zinc-300 font-mono overflow-auto max-h-[320px] whitespace-pre-wrap">
                 <code>{codeSnippets.curl}</code>
+              </pre>
+              <pre id="panel-go" className="text-xs text-zinc-300 font-mono overflow-auto max-h-[320px] whitespace-pre-wrap hidden">
+                <code>{codeSnippets.go}</code>
+              </pre>
+              <pre id="panel-ts" className="text-xs text-zinc-300 font-mono overflow-auto max-h-[320px] whitespace-pre-wrap hidden">
+                <code>{codeSnippets.ts}</code>
+              </pre>
+              <pre id="panel-php" className="text-xs text-zinc-300 font-mono overflow-auto max-h-[320px] whitespace-pre-wrap hidden">
+                <code>{codeSnippets.php}</code>
               </pre>
               <pre id="panel-node" className="text-xs text-zinc-300 font-mono overflow-auto max-h-[320px] whitespace-pre-wrap hidden">
                 <code>{codeSnippets.node}</code>
@@ -434,12 +526,9 @@ println!("{:#?}", data);`
                 this.classList.replace('dark:border-transparent', 'dark:border-sky-400');
 
                 // Toggle display blocks
-                document.getElementById('panel-curl').classList.add('hidden');
-                document.getElementById('panel-node').classList.add('hidden');
-                document.getElementById('panel-python').classList.add('hidden');
-                document.getElementById('panel-rust').classList.add('hidden');
-
-                document.getElementById('panel-' + targetTab).classList.remove('hidden');
+                document.querySelectorAll('[id^="panel-"]').forEach(p => p.classList.add('hidden'));
+                const targetPanel = document.getElementById('panel-' + targetTab);
+                if (targetPanel) targetPanel.classList.remove('hidden');
               });
             });
 

@@ -31,7 +31,7 @@ The system operates as an **In-House Dynamic QRIS Payment Middleware**. It bridg
 ## 2. DATABASE SCHEMA (Drizzle ORM / PostgreSQL)
 
 Using Drizzle ORM mapping to a local/remote PostgreSQL instance (`qrispaymti` database) with credentials:
-- Username: `ardianryan`
+- Username: `postgres`
 - Password: `your_secure_db_password`
 
 ```typescript

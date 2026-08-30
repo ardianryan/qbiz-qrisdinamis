@@ -1,5 +1,6 @@
 import React from 'react';
 import { Layout } from '../components/Layout.tsx';
+import { MerchantContext } from '../middleware/auth.ts';
 
 interface Merchant {
   id: string;
@@ -16,11 +17,13 @@ interface Merchant {
 interface MerchantsPageProps {
   merchants: Merchant[];
   currentUser?: any;
+  activeMerchant?: MerchantContext | null;
+  accessibleMerchants?: MerchantContext[];
 }
 
-export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
+export function MerchantsPage({ merchants, currentUser, activeMerchant, accessibleMerchants }: MerchantsPageProps) {
   return (
-    <Layout activePath="/merchants" user={currentUser}>
+    <Layout activePath="/merchants" user={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants}>
       
       {/* ========================================================================= */}
       {/* 1. HEADER SECTION */}
@@ -31,12 +34,12 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
             Multi-Merchant Manager
           </h1>
           <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">
-            Manage your GoBiz accounts, track session health, and connect dynamic QRIS feeds.
+            Manage your QRIS Food Merchant stores, track live session health, and configure multi-channel alerts.
           </p>
         </div>
         <button 
           id="btn-add-merchant"
-          className="inline-flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white font-medium text-sm px-4 py-2.5 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-500 w-full sm:w-auto"
+          className="inline-flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white font-medium text-sm px-4 py-2.5 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-500 w-full sm:w-auto shadow-sm"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
           Add QRIS Merchant
@@ -47,17 +50,17 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
       {/* 2. MERCHANTS GRID */}
       {/* ========================================================================= */}
       {merchants.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl max-w-lg mx-auto text-center">
+        <div className="flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl max-w-lg mx-auto text-center shadow-sm">
           <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-4">
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
           </div>
           <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-50">No Merchants Connected</h2>
           <p className="text-sm text-slate-500 dark:text-zinc-400 mt-2 max-w-xs">
-            Start by connecting a GoBiz merchant account to begin intercepting dynamic transactions.
+            Start by connecting a QRIS merchant store to begin intercepting dynamic transactions and sending multi-channel alerts.
           </p>
           <button 
             id="btn-add-merchant-empty"
-            className="mt-5 inline-flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors"
+            className="mt-5 inline-flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white font-medium text-sm px-4 py-2 rounded-lg transition-colors shadow-sm"
           >
             Connect First Merchant
           </button>
@@ -83,7 +86,7 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
                       {merchant.name}
                     </h3>
                     <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider bg-slate-100 text-slate-800 dark:bg-zinc-800 dark:text-zinc-300 px-2 py-0.5 rounded">
-                      GoBiz
+                      QRIS Store
                     </span>
                   </div>
 
@@ -156,6 +159,17 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
                   >
                     Auth OTP
                   </button>
+
+                  {/* Notification Channels Button (v1.1.0) */}
+                  <button
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-sky-600 dark:text-zinc-400 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors btn-notif-merchant"
+                    data-id={merchant.id}
+                    data-name={merchant.name}
+                    title="Notification Alerts (Telegram, Discord, WhatsApp GOWA)"
+                    aria-label="Notification Alerts"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                  </button>
                   
                   {/* Pause Worker button with active visual indicator */}
                   <button 
@@ -191,6 +205,13 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
                     </button>
                     {/* Settings Dropdown menu */}
                     <div className="absolute right-0 bottom-full mb-2 w-48 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg shadow-lg py-1 hidden dropdown-menu z-10">
+                      <button 
+                        className="w-full text-left block px-4 py-2 text-xs text-sky-600 dark:text-sky-400 font-semibold hover:bg-sky-50 dark:hover:bg-sky-950/40 btn-notif-merchant border-b border-slate-100 dark:border-zinc-800/60"
+                        data-id={merchant.id}
+                        data-name={merchant.name}
+                      >
+                        🔔 Notification Alerts
+                      </button>
                       <a href={`/developer?merchant=${merchant.id}`} className="block px-4 py-2 text-xs text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 border-b border-slate-100 dark:border-zinc-800/60">
                         Webhook Settings
                       </a>
@@ -232,477 +253,515 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
 
       {/* A. ZOOM QRIS CODE SHEET */}
       <div id="sheet-zoom" className="fixed inset-0 z-50 flex md:items-stretch items-end md:justify-end justify-center opacity-0 pointer-events-none transition-opacity duration-300" role="dialog" aria-modal="true">
-        {/* Backdrop */}
         <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm sheet-close-trigger cursor-pointer"></div>
-        
-        {/* Sheet Panel */}
         <div className="relative bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 md:border-l md:border-t-0 shadow-2xl z-10 w-full md:max-w-md h-auto md:h-full max-h-[85vh] md:max-h-full rounded-t-2xl md:rounded-t-none flex flex-col transform transition-transform duration-300 ease-out translate-y-full md:translate-y-0 md:translate-x-full sheet-panel">
-          
           <div className="w-12 h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full mx-auto my-3 md:hidden"></div>
-
           <div className="p-6 border-b border-slate-100 dark:border-zinc-800/60 flex items-center justify-between">
-            <div>
-              <h3 id="zoom-title" className="font-bold text-xl text-slate-900 dark:text-zinc-50">QRIS Merchant Code</h3>
-            </div>
+            <h3 id="zoom-title" className="font-bold text-xl text-slate-900 dark:text-zinc-50">QRIS Merchant Code</h3>
             <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 sheet-close-trigger p-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer" aria-label="Close panel">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
-
-          <div className="p-6 flex-grow overflow-y-auto flex flex-col items-center justify-center bg-slate-50 dark:bg-zinc-950/30">
-            <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 shadow-md w-full max-w-[320px] aspect-square flex items-center justify-center">
-              <img id="zoom-image" src="" alt="Zoomed QRIS Code" className="max-h-full max-w-full object-contain" />
-            </div>
-            <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-4 text-center">Scan this static code using any dynamic QRIS compatible e-wallet/bank.</p>
+          <div className="p-6 flex-grow flex items-center justify-center overflow-y-auto">
+            <img id="zoom-image" src="" alt="QRIS Zoom" className="w-full max-w-xs object-contain border border-slate-100 dark:border-zinc-800 rounded-xl shadow-lg p-2 bg-white" />
           </div>
         </div>
       </div>
 
-      {/* B. EDIT MERCHANT DETAILS SHEET */}
+      {/* B. MULTI-CHANNEL STORE NOTIFICATIONS SHEET (v1.1.0) */}
+      <div id="sheet-notifications" className="fixed inset-0 z-50 flex md:items-stretch items-end md:justify-end justify-center opacity-0 pointer-events-none transition-opacity duration-300" role="dialog" aria-modal="true">
+        <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm sheet-close-trigger cursor-pointer"></div>
+        <div className="relative bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 md:border-l md:border-t-0 shadow-2xl z-10 w-full md:max-w-xl h-auto md:h-full max-h-[90vh] md:max-h-full rounded-t-2xl md:rounded-t-none flex flex-col transform transition-transform duration-300 ease-out translate-y-full md:translate-y-0 md:translate-x-full sheet-panel">
+          
+          {/* Header */}
+          <div className="p-6 border-b border-slate-100 dark:border-zinc-800/60 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                </span>
+                <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-50">Notification Channels</h3>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">Configure real-time payment alerts for <span id="notif-modal-merchant-name" className="font-bold text-slate-800 dark:text-zinc-200"></span></p>
+            </div>
+            <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 sheet-close-trigger p-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-lg transition-colors">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          {/* Loading Indicator inside modal */}
+          <div id="notif-loading" className="p-12 flex flex-col items-center justify-center text-center">
+            <div className="w-8 h-8 border-3 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-xs text-slate-500 mt-3 font-medium">Loading channel settings...</span>
+          </div>
+
+          {/* Body Content */}
+          <div id="notif-content" className="p-6 flex-grow overflow-y-auto space-y-6 hidden">
+            
+            {/* Inline Alert / Feedback Box */}
+            <div id="notif-feedback-box" className="hidden p-3.5 rounded-xl text-xs flex items-start gap-2.5">
+              <div id="notif-feedback-icon" className="shrink-0 mt-0.5"></div>
+              <div id="notif-feedback-text" className="font-medium"></div>
+            </div>
+
+            {/* Channel Tabs */}
+            <div className="flex p-1 bg-slate-100 dark:bg-zinc-800/80 rounded-xl gap-1">
+              <button 
+                id="tab-btn-telegram" 
+                type="button" 
+                className="flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white dark:bg-zinc-900 text-sky-600 dark:text-sky-400 shadow-sm notif-tab-btn" 
+                data-tab="tab-panel-telegram"
+              >
+                <span>✈️</span> Telegram
+              </button>
+              <button 
+                id="tab-btn-discord" 
+                type="button" 
+                className="flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-600 dark:text-zinc-400 hover:text-slate-900 notif-tab-btn" 
+                data-tab="tab-panel-discord"
+              >
+                <span>💬</span> Discord
+              </button>
+              <button 
+                id="tab-btn-whatsapp" 
+                type="button" 
+                className="flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-600 dark:text-zinc-400 hover:text-slate-900 notif-tab-btn" 
+                data-tab="tab-panel-whatsapp"
+              >
+                <span>📱</span> WhatsApp
+              </button>
+            </div>
+
+            {/* TAB 1: TELEGRAM BOT */}
+            <div id="tab-panel-telegram" className="space-y-4 notif-tab-panel">
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-zinc-800/40 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+                <div>
+                  <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 block">Telegram Bot Alerts</span>
+                  <span className="text-[11px] text-slate-500">Deliver payment notifications to private or group chat</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notif-tg-enabled" className="sr-only peer" />
+                  <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-zinc-600 peer-checked:bg-sky-600"></div>
+                </label>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="notif-tg-token" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Bot Token</label>
+                  <input 
+                    type="password" 
+                    id="notif-tg-token" 
+                    placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
+                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">Get a bot token by creating a bot via <code className="bg-slate-200 dark:bg-zinc-800 px-1 py-0.5 rounded">@BotFather</code> on Telegram.</span>
+                </div>
+
+                <div>
+                  <label htmlFor="notif-tg-chatid" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Target Chat ID / Group ID</label>
+                  <input 
+                    type="text" 
+                    id="notif-tg-chatid" 
+                    placeholder="-1001234567890 or @channelusername"
+                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">Your personal user ID or supergroup ID (starts with <code className="bg-slate-200 dark:bg-zinc-800 px-1 py-0.5 rounded">-100</code>).</span>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="notif-tg-template" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Custom Message Template (HTML)</label>
+                    <span className="text-[10px] text-slate-400">Click variable to insert:</span>
+                  </div>
+                  
+                  {/* Variable Chips */}
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {['{merchant_name}', '{order_id}', '{amount_formatted}', '{customer_name}', '{paid_at}'].map(chip => (
+                      <button 
+                        key={chip} 
+                        type="button" 
+                        className="text-[10px] font-mono bg-slate-100 hover:bg-sky-100 dark:bg-zinc-800 dark:hover:bg-sky-950 text-slate-700 dark:text-zinc-300 hover:text-sky-700 dark:hover:text-sky-400 px-2 py-0.5 rounded border border-slate-200 dark:border-zinc-700 transition-colors btn-insert-chip"
+                        data-target="notif-tg-template"
+                        data-chip={chip}
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+
+                  <textarea 
+                    id="notif-tg-template" 
+                    rows={4}
+                    placeholder="Leave empty to use clean default HTML template"
+                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg p-3 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
+                  ></textarea>
+                </div>
+
+                <div className="pt-2">
+                  <button 
+                    type="button" 
+                    id="btn-test-telegram" 
+                    className="w-full py-2 px-3 rounded-lg border border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 bg-sky-50/50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-950/80 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                    Send Telegram Test Message
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* TAB 2: DISCORD WEBHOOK */}
+            <div id="tab-panel-discord" className="space-y-4 notif-tab-panel hidden">
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-zinc-800/40 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+                <div>
+                  <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 block">Discord Webhook Alerts</span>
+                  <span className="text-[11px] text-slate-500">Send rich embed cards to your Discord channel</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notif-dc-enabled" className="sr-only peer" />
+                  <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-zinc-600 peer-checked:bg-sky-600"></div>
+                </label>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label htmlFor="notif-dc-url" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Discord Webhook URL</label>
+                  <input 
+                    type="url" 
+                    id="notif-dc-url" 
+                    placeholder="https://discord.com/api/webhooks/123456789/abcdef..."
+                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">In Discord: Channel Settings &gt; Integrations &gt; Webhooks &gt; New Webhook.</span>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="notif-dc-template" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Custom Alert Content (Markdown)</label>
+                    <span className="text-[10px] text-slate-400">Click variable:</span>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {['{merchant_name}', '{order_id}', '{amount_formatted}', '{customer_name}', '{paid_at}'].map(chip => (
+                      <button 
+                        key={chip} 
+                        type="button" 
+                        className="text-[10px] font-mono bg-slate-100 hover:bg-sky-100 dark:bg-zinc-800 dark:hover:bg-sky-950 text-slate-700 dark:text-zinc-300 hover:text-sky-700 dark:hover:text-sky-400 px-2 py-0.5 rounded border border-slate-200 dark:border-zinc-700 transition-colors btn-insert-chip"
+                        data-target="notif-dc-template"
+                        data-chip={chip}
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+
+                  <textarea 
+                    id="notif-dc-template" 
+                    rows={3}
+                    placeholder="Leave empty to use standard rich embed card"
+                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg p-3 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
+                  ></textarea>
+                </div>
+
+                <div className="pt-2">
+                  <button 
+                    type="button" 
+                    id="btn-test-discord" 
+                    className="w-full py-2 px-3 rounded-lg border border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 bg-sky-50/50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-950/80 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                    Send Discord Test Webhook
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* TAB 3: WHATSAPP GOWA (Aldinokemal) */}
+            <div id="tab-panel-whatsapp" className="space-y-4 notif-tab-panel hidden">
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-zinc-800/40 rounded-xl border border-slate-200/80 dark:border-zinc-800">
+                <div>
+                  <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 block">WhatsApp Alerts (GOWA)</span>
+                  <span className="text-[11px] text-slate-500">Integrate with Go WhatsApp Multi-Device HTTP API (Aldinokemal)</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="notif-wa-enabled" className="sr-only peer" />
+                  <div className="w-10 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-zinc-600 peer-checked:bg-sky-600"></div>
+                </label>
+              </div>
+
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="notif-wa-url" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">GOWA API Base URL</label>
+                    <input 
+                      type="url" 
+                      id="notif-wa-url" 
+                      placeholder="http://127.0.0.1:3000"
+                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="notif-wa-recipient" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Target Phone / Group JID</label>
+                    <input 
+                      type="text" 
+                      id="notif-wa-recipient" 
+                      placeholder="628123456789 or 120363xxx@g.us"
+                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="notif-wa-authtype" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Auth Scheme</label>
+                    <select 
+                      id="notif-wa-authtype" 
+                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
+                    >
+                      <option value="NONE">No Authentication</option>
+                      <option value="BEARER">Bearer Token</option>
+                      <option value="BASIC">Basic Auth (user:pass)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="notif-wa-authkey" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Auth Key / Token (Optional)</label>
+                    <input 
+                      type="password" 
+                      id="notif-wa-authkey" 
+                      placeholder="Enter API token or credentials"
+                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="notif-wa-template" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Custom WhatsApp Template</label>
+                    <span className="text-[10px] text-slate-400">Click variable:</span>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {['{merchant_name}', '{order_id}', '{amount_formatted}', '{customer_name}', '{paid_at}'].map(chip => (
+                      <button 
+                        key={chip} 
+                        type="button" 
+                        className="text-[10px] font-mono bg-slate-100 hover:bg-sky-100 dark:bg-zinc-800 dark:hover:bg-sky-950 text-slate-700 dark:text-zinc-300 hover:text-sky-700 dark:hover:text-sky-400 px-2 py-0.5 rounded border border-slate-200 dark:border-zinc-700 transition-colors btn-insert-chip"
+                        data-target="notif-wa-template"
+                        data-chip={chip}
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                  </div>
+
+                  <textarea 
+                    id="notif-wa-template" 
+                    rows={4}
+                    placeholder="Leave empty to use clean default WhatsApp message"
+                    className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg p-3 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
+                  ></textarea>
+                </div>
+
+                <div className="pt-2">
+                  <button 
+                    type="button" 
+                    id="btn-test-whatsapp" 
+                    className="w-full py-2 px-3 rounded-lg border border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 bg-sky-50/50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-950/80 text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                    Send WhatsApp Test Message
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Footer Actions */}
+          <div className="p-6 border-t border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/30 flex gap-3">
+            <button 
+              type="button" 
+              className="flex-grow h-10 inline-flex items-center justify-center border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold px-4 rounded-lg transition-colors sheet-close-trigger"
+            >
+              Cancel
+            </button>
+            <button 
+              id="btn-save-notifications" 
+              type="button" 
+              className="flex-grow h-10 inline-flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-4 rounded-lg transition-all shadow-sm"
+            >
+              Save Notification Settings
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* C. EDIT MERCHANT DETAILS SHEET */}
       <div id="sheet-edit-merchant" className="fixed inset-0 z-50 flex md:items-stretch items-end md:justify-end justify-center opacity-0 pointer-events-none transition-opacity duration-300" role="dialog" aria-modal="true">
         <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm sheet-close-trigger cursor-pointer"></div>
-        
-        <div className="relative bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 md:border-l md:border-t-0 shadow-2xl z-10 w-full md:max-w-md h-auto md:h-full max-h-[85vh] md:max-h-full rounded-t-2xl md:rounded-t-none flex flex-col transform transition-transform duration-300 ease-out translate-y-full md:translate-y-0 md:translate-x-full sheet-panel">
-          
+        <div className="relative bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 md:border-l md:border-t-0 shadow-2xl z-10 w-full md:max-w-lg h-auto md:h-full max-h-[85vh] md:max-h-full rounded-t-2xl md:rounded-t-none flex flex-col transform transition-transform duration-300 ease-out translate-y-full md:translate-y-0 md:translate-x-full sheet-panel">
           <div className="w-12 h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full mx-auto my-3 md:hidden"></div>
-
           <div className="p-6 border-b border-slate-100 dark:border-zinc-800/60 flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-50">Edit Merchant Details</h3>
-              <p className="text-xs text-slate-500 mt-1">Modify registered data and static QRIS parameters.</p>
-            </div>
+            <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-50">Edit Merchant Details</h3>
             <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 sheet-close-trigger p-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer" aria-label="Close panel">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
-
-          <form id="edit-merchant-form" action="" method="POST" className="flex flex-col flex-grow overflow-hidden" encType="multipart/form-data">
-            <div className="p-6 flex-grow overflow-y-auto space-y-4">
-              {/* Merchant Title */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="edit-merchant-name" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                  Merchant / Store Title
-                </label>
-                <input 
-                  type="text" 
-                  id="edit-merchant-name" 
-                  name="name" 
-                  required 
-                  placeholder="e.g. Warung Kopi Mojokerto"
-                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all"
-                />
+          <form id="edit-merchant-form" method="POST" action="" encType="multipart/form-data" className="flex-grow flex flex-col justify-between overflow-hidden">
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div>
+                <label htmlFor="edit-merchant-name" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Store / Merchant Name</label>
+                <input type="text" id="edit-merchant-name" name="name" required className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none" />
               </div>
-
-              {/* GoBiz Registered Phone */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="edit-merchant-phone" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                  GoBiz Registered Phone (WhatsApp OTP Target)
-                </label>
-                <input 
-                  type="tel" 
-                  id="edit-merchant-phone" 
-                  name="phoneNumber" 
-                  required 
-                  placeholder="e.g. 081234567890"
-                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all"
-                />
+              <div>
+                <label htmlFor="edit-merchant-phone" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Registered Phone</label>
+                <input type="tel" id="edit-merchant-phone" name="phone_number" required className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none" />
               </div>
-
-              {/* File dropzone for QRIS Image */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                  Upload New Static QRIS QR Image (Optional)
-                </label>
-                <div className="border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl p-6 text-center hover:bg-slate-50 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer group">
-                  <input 
-                    type="file" 
-                    name="qrisImage" 
-                    accept="image/*"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                    id="edit-qris-file-input"
-                  />
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <svg className="w-8 h-8 text-slate-400 dark:text-zinc-500 group-hover:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <span className="text-xs text-slate-600 dark:text-zinc-300 font-medium">Click to upload new QR or drag here</span>
-                    <span className="text-[10px] text-slate-400 dark:text-zinc-500" id="edit-file-name-preview">Leave empty to keep existing image</span>
-                  </div>
-                </div>
+              <div>
+                <label htmlFor="edit-merchant-qris-payload" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Static QRIS Payload</label>
+                <textarea id="edit-merchant-qris-payload" name="qris_payload" rows={3} className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg p-3 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"></textarea>
               </div>
-
-              {/* File dropzone for Merchant Logo */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                  Upload Merchant Logo (Optional)
-                </label>
-                <div className="border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl p-4 text-center hover:bg-slate-50 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer group">
-                  <input 
-                    type="file" 
-                    name="logoImage" 
-                    accept="image/*"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                    id="edit-logo-file-input"
-                  />
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <svg className="w-6 h-6 text-slate-400 dark:text-zinc-500 group-hover:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <span className="text-xs text-slate-600 dark:text-zinc-300 font-medium">Click to upload logo image</span>
-                    <span className="text-[9px] text-slate-400 dark:text-zinc-500" id="edit-logo-name-preview">PNG or JPG up to 2MB</span>
-                  </div>
-                </div>
+              <div>
+                <label htmlFor="edit-qris-file-input" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Replace QRIS Image</label>
+                <input type="file" id="edit-qris-file-input" name="qris_image" accept="image/*" className="w-full text-xs text-slate-500" />
+                <span id="edit-file-name-preview" className="text-[10px] text-slate-400 mt-1 block">Leave empty to keep existing image</span>
               </div>
-
-              {/* Raw Static QRIS Payload */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="edit-merchant-qris-payload" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                  Raw Static QRIS Payload (Optional - Autodetected)
-                </label>
-                <textarea 
-                  id="edit-merchant-qris-payload" 
-                  name="qrisPayload" 
-                  rows={2}
-                  placeholder="Optional. Automatically extracted if you upload a new image."
-                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all font-mono text-[11px] resize-none"
-                ></textarea>
+              <div>
+                <label htmlFor="edit-logo-file-input" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Replace Brand Logo</label>
+                <input type="file" id="edit-logo-file-input" name="logo_image" accept="image/*" className="w-full text-xs text-slate-500" />
+                <span id="edit-logo-name-preview" className="text-[10px] text-slate-400 mt-1 block">Leave empty to keep existing logo</span>
               </div>
             </div>
-
             <div className="p-6 border-t border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/30 flex gap-3">
-              <button 
-                type="button" 
-                className="flex-grow h-10 inline-flex items-center justify-center border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold px-4 rounded-lg transition-colors sheet-close-trigger cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit"
-                className="flex-grow h-10 inline-flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-4 rounded-lg transition-colors cursor-pointer"
-              >
-                Save Changes
-              </button>
+              <button type="button" className="flex-grow h-10 inline-flex items-center justify-center border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold rounded-lg sheet-close-trigger">Cancel</button>
+              <button type="submit" className="flex-grow h-10 inline-flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow-sm">Save Changes</button>
             </div>
           </form>
         </div>
       </div>
 
-      {/* C. CONNECT QRIS MERCHANT (ADD) SHEET */}
+      {/* D. ADD MERCHANT SHEET */}
       <div id="sheet-add-merchant" className="fixed inset-0 z-50 flex md:items-stretch items-end md:justify-end justify-center opacity-0 pointer-events-none transition-opacity duration-300" role="dialog" aria-modal="true">
         <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm sheet-close-trigger cursor-pointer"></div>
-        
-        <div className="relative bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 md:border-l md:border-t-0 shadow-2xl z-10 w-full md:max-w-md h-auto md:h-full max-h-[85vh] md:max-h-full rounded-t-2xl md:rounded-t-none flex flex-col transform transition-transform duration-300 ease-out translate-y-full md:translate-y-0 md:translate-x-full sheet-panel">
-          
+        <div className="relative bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 md:border-l md:border-t-0 shadow-2xl z-10 w-full md:max-w-lg h-auto md:h-full max-h-[85vh] md:max-h-full rounded-t-2xl md:rounded-t-none flex flex-col transform transition-transform duration-300 ease-out translate-y-full md:translate-y-0 md:translate-x-full sheet-panel">
           <div className="w-12 h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full mx-auto my-3 md:hidden"></div>
-
           <div className="p-6 border-b border-slate-100 dark:border-zinc-800/60 flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-50">Connect QRIS Merchant</h3>
-              <p className="text-xs text-slate-500 mt-1">Add a new GoBiz account to synchronize mutations.</p>
-            </div>
+            <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-50">Connect QRIS Merchant</h3>
             <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 sheet-close-trigger p-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer" aria-label="Close panel">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
-
-          <form action="/api/v1/merchants" method="POST" className="flex flex-col flex-grow overflow-hidden" encType="multipart/form-data">
-            <div className="p-6 flex-grow overflow-y-auto space-y-4">
-              {/* Merchant Title */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="merchant-name" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                  Merchant / Store Title
-                </label>
-                <input 
-                  type="text" 
-                  id="merchant-name" 
-                  name="name" 
-                  required 
-                  placeholder="e.g. Toko Cabang Surabaya"
-                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all"
-                />
+          <form method="POST" action="/api/v1/merchants" encType="multipart/form-data" className="flex-grow flex flex-col justify-between overflow-hidden">
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div>
+                <label htmlFor="add-merchant-name" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Store / Merchant Name</label>
+                <input type="text" id="add-merchant-name" name="name" required placeholder="e.g. Resto Cabang Surabaya" className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none" />
               </div>
-
-              {/* GoBiz Registered Phone */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="merchant-phone" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                  GoBiz Registered Phone (WhatsApp OTP Target)
-                </label>
-                <input 
-                  type="tel" 
-                  id="merchant-phone" 
-                  name="phoneNumber" 
-                  required 
-                  placeholder="e.g. 081234567890"
-                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all"
-                />
-                <span className="text-[10px] text-slate-500 dark:text-zinc-400 leading-normal">Must include the active WhatsApp account number for OTP delivery.</span>
+              <div>
+                <label htmlFor="add-merchant-phone" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Registered WhatsApp Phone</label>
+                <input type="tel" id="add-merchant-phone" name="phone_number" required placeholder="08123456789" className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none" />
               </div>
-
-              {/* File dropzone for QRIS Image */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                  Upload Static QRIS QR Image
-                </label>
-                <div className="border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl p-6 text-center hover:bg-slate-50 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer group">
-                  <input 
-                    type="file" 
-                    name="qrisImage" 
-                    accept="image/*"
-                    required 
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                    id="qris-file-input"
-                  />
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <svg className="w-8 h-8 text-slate-400 dark:text-zinc-500 group-hover:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <span className="text-xs text-slate-600 dark:text-zinc-300 font-medium">Click to upload or drag image here</span>
-                    <span className="text-[10px] text-slate-400 dark:text-zinc-500" id="file-name-preview">PNG, JPG or SVG up to 5MB</span>
-                  </div>
-                </div>
+              <div>
+                <label htmlFor="add-qris-file-input" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Upload Static QRIS Image</label>
+                <input type="file" id="add-qris-file-input" name="qris_image" required accept="image/*" className="w-full text-xs text-slate-500" />
               </div>
-
-              {/* File dropzone for Merchant Logo */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                  Upload Merchant Logo (Optional)
-                </label>
-                <div className="border-2 border-dashed border-slate-200 dark:border-zinc-800 rounded-xl p-4 text-center hover:bg-slate-50 dark:hover:bg-zinc-800/40 transition-colors relative cursor-pointer group">
-                  <input 
-                    type="file" 
-                    name="logoImage" 
-                    accept="image/*"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                    id="logo-file-input"
-                  />
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <svg className="w-6 h-6 text-slate-400 dark:text-zinc-500 group-hover:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <span className="text-xs text-slate-600 dark:text-zinc-300 font-medium">Click to upload logo image</span>
-                    <span className="text-[9px] text-slate-400 dark:text-zinc-500" id="logo-name-preview">PNG or JPG up to 2MB</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Raw Static QRIS Payload */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="merchant-qris-payload" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                  Raw Static QRIS Payload (Optional)
-                </label>
-                <textarea 
-                  id="merchant-qris-payload" 
-                  name="qrisPayload" 
-                  rows={2}
-                  placeholder="Optional. Decoded automatically from QR image if left empty."
-                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all font-mono text-[11px] resize-none"
-                ></textarea>
+              <div>
+                <label htmlFor="add-logo-file-input" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Upload Store Logo (Optional)</label>
+                <input type="file" id="add-logo-file-input" name="logo_image" accept="image/*" className="w-full text-xs text-slate-500" />
               </div>
             </div>
-
             <div className="p-6 border-t border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/30 flex gap-3">
-              <button 
-                type="button" 
-                className="flex-grow h-10 inline-flex items-center justify-center border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold px-4 rounded-lg transition-colors sheet-close-trigger cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit"
-                className="flex-grow h-10 inline-flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold px-4 rounded-lg transition-colors cursor-pointer"
-              >
-                Proceed to Auth
-              </button>
+              <button type="button" className="flex-grow h-10 inline-flex items-center justify-center border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold rounded-lg sheet-close-trigger">Cancel</button>
+              <button type="submit" className="flex-grow h-10 inline-flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow-sm">Save & Connect</button>
             </div>
           </form>
         </div>
       </div>
 
-      {/* D. OTP AUTHENTICATION SHEET */}
+      {/* E. OTP DIALOG SHEET */}
       <div id="sheet-otp" className="fixed inset-0 z-50 flex md:items-stretch items-end md:justify-end justify-center opacity-0 pointer-events-none transition-opacity duration-300" role="dialog" aria-modal="true">
         <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm sheet-close-trigger cursor-pointer"></div>
-        
         <div className="relative bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 md:border-l md:border-t-0 shadow-2xl z-10 w-full md:max-w-md h-auto md:h-full max-h-[85vh] md:max-h-full rounded-t-2xl md:rounded-t-none flex flex-col transform transition-transform duration-300 ease-out translate-y-full md:translate-y-0 md:translate-x-full sheet-panel">
-          
           <div className="w-12 h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full mx-auto my-3 md:hidden"></div>
-
           <div className="p-6 border-b border-slate-100 dark:border-zinc-800/60 flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-50">GoBiz Verification</h3>
-              <p className="text-xs text-slate-500 mt-1">Authenticate session using WhatsApp OTP challenge.</p>
-            </div>
+            <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-50">Two-Factor OTP Sync</h3>
             <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 sheet-close-trigger p-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer" aria-label="Close panel">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
-
-          <div className="p-6 flex-grow overflow-y-auto space-y-6">
-            {/* STEP 1: Phone Trigger */}
-            <div id="otp-step-1" className="space-y-4">
-              <p className="text-sm text-slate-500 dark:text-zinc-400 leading-relaxed">
-                We will trigger an OTP session by opening a headless browser on GoBiz portal for your registered phone number.
-              </p>
-              <div className="flex flex-col gap-1 w-full bg-slate-50 dark:bg-zinc-950/40 p-4 border border-slate-100 dark:border-zinc-800 rounded-xl text-center">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-zinc-500">TARGET PHONE NUMBER</span>
-                <span id="otp-phone-display" className="text-lg font-bold text-slate-800 dark:text-zinc-100 font-mono tracking-wide">0812••••3456</span>
-              </div>
-              <button 
-                id="btn-trigger-otp"
-                className="w-full h-11 inline-flex items-center justify-center gap-2 bg-slate-900 text-white dark:bg-zinc-800 dark:hover:bg-zinc-700 hover:bg-slate-800 font-semibold text-sm rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer"
-              >
-                <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.003 5.176 5.252-.003 11.7-.003c3.128 0 6.07 1.218 8.284 3.432 2.214 2.214 3.43 5.158 3.429 8.277-.005 6.524-5.253 11.703-11.701 11.703-2.005 0-3.974-.512-5.714-1.488L0 24zm6.26-4.577c1.642.975 3.256 1.489 4.904 1.49 5.347 0 9.697-4.237 9.7-9.448.002-2.525-.99-4.901-2.795-6.697C16.32 2.972 13.93 1.98 11.4 1.981 6.05 1.982 1.7 6.22 1.698 11.43c0 1.716.467 3.39 1.353 4.887l-.995 3.635 3.824-.986-.163-.086z"/></svg>
-                Send WhatsApp OTP
-              </button>
+          <div className="p-6 flex-grow space-y-4">
+            <p className="text-xs text-slate-500">Enter the 4-digit verification code sent to your registered WhatsApp.</p>
+            <div className="flex gap-2 justify-center py-4">
+              <input type="text" id="otp-input-code" maxLength={4} placeholder="1234" className="w-36 text-center text-2xl font-bold tracking-widest bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg py-2 text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none" />
             </div>
-
-            {/* STEP 2: Submit OTP (Initially Hidden) */}
-            <div id="otp-step-2" className="space-y-5 hidden">
-              <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/60 rounded-lg p-4 flex gap-3">
-                <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <div className="text-xs text-slate-700 dark:text-zinc-300">
-                  <p className="font-semibold text-emerald-800 dark:text-emerald-400">OTP Sent successfully!</p>
-                  <p className="mt-0.5">Please check WhatsApp message containing the GoBiz verification code.</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label htmlFor="otp-code" className="text-xs font-semibold text-slate-700 dark:text-zinc-300 text-center">
-                  ENTER VERIFICATION CODE
-                </label>
-                <input 
-                  type="text" 
-                  id="otp-code" 
-                  maxLength={6} 
-                  required 
-                  placeholder="000 000"
-                  className="w-full text-center bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-4 py-3 text-2xl font-bold tracking-[0.4em] text-slate-900 dark:text-zinc-50 placeholder-slate-300 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all font-mono"
-                />
-              </div>
-
-              <div className="flex justify-between items-center text-xs text-slate-500 dark:text-zinc-400">
-                <span>Code expires in:</span>
-                <span id="otp-timer" className="font-bold text-red-600 dark:text-red-400 font-mono">60s</span>
-              </div>
-
-              <button 
-                id="btn-verify-otp"
-                className="w-full h-11 inline-flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-sky-500 cursor-pointer"
-              >
-                Verify & Complete Auth
-              </button>
-            </div>
+            <button id="btn-submit-otp" className="w-full h-10 inline-flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow-sm">Verify OTP</button>
           </div>
         </div>
       </div>
 
-      {/* E. CONFIRM DISCONNECT SHEET */}
+      {/* F. DISCONNECT SHEET */}
       <div id="sheet-confirm-disconnect" className="fixed inset-0 z-50 flex md:items-stretch items-end md:justify-end justify-center opacity-0 pointer-events-none transition-opacity duration-300" role="dialog" aria-modal="true">
         <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm sheet-close-trigger cursor-pointer"></div>
-        
         <div className="relative bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 md:border-l md:border-t-0 shadow-2xl z-10 w-full md:max-w-md h-auto md:h-full max-h-[85vh] md:max-h-full rounded-t-2xl md:rounded-t-none flex flex-col transform transition-transform duration-300 ease-out translate-y-full md:translate-y-0 md:translate-x-full sheet-panel">
-          
-          <div className="w-12 h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full mx-auto my-3 md:hidden"></div>
-
           <div className="p-6 border-b border-slate-100 dark:border-zinc-800/60 flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-50">Disconnect Merchant</h3>
-              <p className="text-xs text-slate-500 mt-1">Suspend payment listener integration.</p>
-            </div>
-            <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 sheet-close-trigger p-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer" aria-label="Close panel">
+            <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-50">Disconnect Account</h3>
+            <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 sheet-close-trigger p-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-lg">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
-
-          <div className="p-6 flex-grow overflow-y-auto space-y-4">
-            <p className="text-sm text-slate-500 dark:text-zinc-400 leading-relaxed">
-              Are you sure you want to disconnect <span id="disconnect-merchant-name-display" className="font-bold text-slate-800 dark:text-zinc-200"></span>? This will stop transaction synchronization and clear cookie sessions.
-            </p>
+          <div className="p-6 flex-grow space-y-4">
+            <p className="text-xs text-slate-500">Are you sure you want to disconnect this store account session?</p>
           </div>
-
-          <div className="p-6 border-t border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/30 flex gap-3">
-            <button 
-              type="button" 
-              className="flex-grow h-10 inline-flex items-center justify-center border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold px-4 rounded-lg transition-colors sheet-close-trigger cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button 
-              id="btn-confirm-disconnect-submit"
-              type="button"
-              className="flex-grow h-10 inline-flex items-center justify-center bg-slate-900 hover:bg-slate-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white text-xs font-bold px-4 rounded-lg transition-colors cursor-pointer"
-            >
-              Disconnect
-            </button>
+          <div className="p-6 border-t border-slate-100 dark:border-zinc-800/60 flex gap-3">
+            <button className="flex-grow h-10 border rounded-lg text-xs font-semibold sheet-close-trigger">Cancel</button>
+            <button id="btn-confirm-disconnect-submit" className="flex-grow h-10 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold">Disconnect</button>
           </div>
         </div>
       </div>
 
-      {/* F. CONFIRM DELETE MERCHANT SHEET */}
+      {/* G. DELETE SHEET */}
       <div id="sheet-confirm-delete" className="fixed inset-0 z-50 flex md:items-stretch items-end md:justify-end justify-center opacity-0 pointer-events-none transition-opacity duration-300" role="dialog" aria-modal="true">
         <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm sheet-close-trigger cursor-pointer"></div>
-        
         <div className="relative bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 md:border-l md:border-t-0 shadow-2xl z-10 w-full md:max-w-md h-auto md:h-full max-h-[85vh] md:max-h-full rounded-t-2xl md:rounded-t-none flex flex-col transform transition-transform duration-300 ease-out translate-y-full md:translate-y-0 md:translate-x-full sheet-panel">
-          
-          <div className="w-12 h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-full mx-auto my-3 md:hidden"></div>
-
           <div className="p-6 border-b border-slate-100 dark:border-zinc-800/60 flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-xl text-red-600 dark:text-red-400">Delete Merchant</h3>
-              <p className="text-xs text-slate-500 mt-1">This action is highly destructive and irreversible.</p>
-            </div>
-            <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 sheet-close-trigger p-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer" aria-label="Close panel">
+            <h3 className="font-bold text-xl text-slate-900 dark:text-zinc-50">Permanently Delete Store</h3>
+            <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 sheet-close-trigger p-1.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-lg">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
-
-          <div className="p-6 flex-grow overflow-y-auto space-y-6">
-            <div className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/60 rounded-xl p-4 flex gap-3">
-              <svg className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-              <div className="text-xs text-red-800 dark:text-red-400 leading-relaxed">
-                <p className="font-bold">Permanently Delete Store?</p>
-                <p className="mt-1">This will permanently delete <span id="delete-merchant-name-warning" className="font-bold"></span>, including all associated transaction history, invoices, mutations, and disconnect the sync bot forever. This action cannot be undone!</p>
-              </div>
+          <div className="p-6 flex-grow space-y-4">
+            <div className="bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/60 rounded-xl p-4 text-xs text-red-800 dark:text-red-400 leading-relaxed">
+              <p className="font-bold">Permanently Delete Store?</p>
+              <p className="mt-1">This will permanently delete <span id="delete-merchant-name-warning" className="font-bold"></span> and all associated transaction history.</p>
             </div>
-
-            <div className="space-y-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="confirm-delete-merchant-text" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                  Please type <span id="delete-merchant-target-match" className="font-bold font-mono text-red-600 dark:text-red-400"></span> to confirm
-                </label>
-                <input 
-                  type="text" 
-                  id="confirm-delete-merchant-text" 
-                  placeholder="Type match text here" 
-                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:border-transparent outline-none transition-all font-mono"
-                />
-              </div>
+            <div>
+              <label htmlFor="confirm-delete-merchant-text" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+                Please type <span id="delete-merchant-target-match" className="font-bold font-mono text-red-600 dark:text-red-400"></span> to confirm
+              </label>
+              <input type="text" id="confirm-delete-merchant-text" className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 mt-1 font-mono focus:ring-2 focus:ring-red-500 outline-none" />
             </div>
           </div>
-
-          <div className="p-6 border-t border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/30 flex gap-3">
-            <button 
-              type="button" 
-              className="flex-grow h-10 inline-flex items-center justify-center border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold px-4 rounded-lg transition-colors sheet-close-trigger cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button 
-              id="btn-confirm-delete-submit"
-              type="button"
-              disabled
-              className="flex-grow h-10 inline-flex items-center justify-center bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:hover:bg-red-600 disabled:cursor-not-allowed text-white text-xs font-bold px-4 rounded-lg transition-all cursor-pointer"
-            >
-              Permanently Delete
-            </button>
+          <div className="p-6 border-t border-slate-100 dark:border-zinc-800/60 flex gap-3">
+            <button className="flex-grow h-10 border rounded-lg text-xs font-semibold sheet-close-trigger">Cancel</button>
+            <button id="btn-confirm-delete-submit" disabled className="flex-grow h-10 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white rounded-lg text-xs font-bold">Permanently Delete</button>
           </div>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 4. CLIENT INTERACTIVITY SCRIPT */}
+      {/* 4. CLIENT INTERACTION SCRIPT */}
       {/* ========================================================================= */}
       <script dangerouslySetInnerHTML={{
         __html: `
           (function() {
-            // --- Sheets Helpers ---
+            // Sheets Helpers
             function openSheet(id) {
               const sheet = document.getElementById(id);
               if (sheet) {
                 sheet.classList.remove('pointer-events-none', 'opacity-0');
                 sheet.classList.add('pointer-events-auto', 'opacity-100');
-                
                 const panel = sheet.querySelector('.sheet-panel');
                 if (panel) {
                   panel.classList.remove('translate-y-full', 'md:translate-x-full');
@@ -716,7 +775,6 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
               if (sheet) {
                 sheet.classList.remove('pointer-events-auto', 'opacity-100');
                 sheet.classList.add('pointer-events-none', 'opacity-0');
-                
                 const panel = sheet.querySelector('.sheet-panel');
                 if (panel) {
                   panel.classList.remove('translate-x-0', 'translate-y-0');
@@ -725,7 +783,6 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
               }
             }
 
-            // Bind all close triggers
             document.querySelectorAll('.sheet-close-trigger').forEach(el => {
               el.addEventListener('click', function(e) {
                 const sheet = e.target.closest('[role="dialog"]');
@@ -733,7 +790,22 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
               });
             });
 
-            // --- A. Zoom QRIS Dialog ---
+            // Dropdowns
+            document.querySelectorAll('.btn-dropdown-trigger').forEach(btn => {
+              btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const menu = this.nextElementSibling;
+                document.querySelectorAll('.dropdown-menu').forEach(m => {
+                  if (m !== menu) m.classList.add('hidden');
+                });
+                if (menu) menu.classList.toggle('hidden');
+              });
+            });
+            document.addEventListener('click', () => {
+              document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
+            });
+
+            // Zoom
             document.querySelectorAll('.btn-zoom-qris').forEach(btn => {
               btn.addEventListener('click', function() {
                 const imgUrl = this.getAttribute('data-img');
@@ -746,239 +818,109 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
               });
             });
 
-            // --- B. Add Merchant Modal ---
+            // Add Merchant
             const addBtn = document.getElementById('btn-add-merchant');
             const addBtnEmpty = document.getElementById('btn-add-merchant-empty');
-            const addFile = document.getElementById('qris-file-input');
-            const namePreview = document.getElementById('file-name-preview');
-
             if (addBtn) addBtn.addEventListener('click', () => openSheet('sheet-add-merchant'));
             if (addBtnEmpty) addBtnEmpty.addEventListener('click', () => openSheet('sheet-add-merchant'));
-            
-            if (addFile && namePreview) {
-              addFile.addEventListener('change', function() {
-                if (this.files && this.files[0]) {
-                  namePreview.textContent = this.files[0].name + " (" + (this.files[0].size / 1024 / 1024).toFixed(2) + "MB)";
-                  namePreview.className = "text-[10px] text-sky-600 dark:text-sky-400 font-semibold";
-                }
-              });
-            }
 
-            // Logo File Preview
-            const logoFile = document.getElementById('logo-file-input');
-            const logoNamePreview = document.getElementById('logo-name-preview');
-            if (logoFile && logoNamePreview) {
-              logoFile.addEventListener('change', function() {
-                if (this.files && this.files[0]) {
-                  logoNamePreview.textContent = this.files[0].name + " (" + (this.files[0].size / 1024 / 1024).toFixed(2) + "MB)";
-                  logoNamePreview.className = "text-[10px] text-sky-600 dark:text-sky-400 font-semibold";
-                }
-              });
-            }
-
-            // --- C. Settings Dropdown toggle ---
-            document.querySelectorAll('.btn-dropdown-trigger').forEach(btn => {
-              btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                // Close all other dropdowns
-                document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                  if (menu !== this.nextElementSibling) menu.classList.add('hidden');
-                });
-                
-                const menu = this.nextElementSibling;
-                if (menu) {
-                  menu.classList.toggle('hidden');
-                  const expanded = !menu.classList.contains('hidden');
-                  this.setAttribute('aria-expanded', expanded.toString());
-                }
-              });
-            });
-
-            // Close dropdowns on document click
-            document.addEventListener('click', function() {
-              document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.add('hidden'));
-              document.querySelectorAll('.btn-dropdown-trigger').forEach(btn => btn.setAttribute('aria-expanded', 'false'));
-            });
-
-            // --- D. OTP Authentication Step & Timer Logic ---
-            let currentMerchantId = null;
-            let timerInterval = null;
-
+            // Auth OTP
+            let currentOtpMerchantId = null;
             document.querySelectorAll('.btn-auth-otp').forEach(btn => {
-              btn.addEventListener('click', function() {
-                currentMerchantId = this.getAttribute('data-id');
+              btn.addEventListener('click', async function() {
+                currentOtpMerchantId = this.getAttribute('data-id');
                 const phone = this.getAttribute('data-phone');
-                
-                // Set displays
-                const phoneDisplay = document.getElementById('otp-phone-display');
-                if (phoneDisplay) {
-                  // Mask phone
-                  phoneDisplay.textContent = phone.replace(/^(\d{4})\d+(\d{4})$/, '$1••••$2');
+                this.textContent = 'Sending OTP...';
+                try {
+                  const res = await fetch('/api/v1/merchants/' + currentOtpMerchantId + '/otp', { method: 'POST' });
+                  const data = await res.json();
+                  this.textContent = 'Auth OTP';
+                  if (data.success) {
+                    openSheet('sheet-otp');
+                  } else {
+                    alert(data.error || 'Failed to trigger OTP.');
+                  }
+                } catch(e) {
+                  this.textContent = 'Auth OTP';
+                  alert('Network error sending OTP.');
                 }
-
-                // Reset modal steps
-                document.getElementById('otp-step-1').classList.remove('hidden');
-                document.getElementById('otp-step-2').classList.add('hidden');
-                if (timerInterval) clearInterval(timerInterval);
-
-                openSheet('sheet-otp');
               });
             });
 
-            // Send OTP button trigger (Step 1 -> Step 2)
-            const triggerOtpBtn = document.getElementById('btn-trigger-otp');
-            if (triggerOtpBtn) {
-              triggerOtpBtn.addEventListener('click', function() {
-                this.disabled = true;
-                this.innerHTML = '<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Sending OTP...';
-
-                // Call REST API under the hood
-                fetch('/api/v1/merchants/' + currentMerchantId + '/otp/request', { method: 'POST' })
-                  .then(res => res.json())
-                  .then(data => {
-                    this.disabled = false;
-                    this.innerHTML = 'Send WhatsApp OTP';
-                    
-                    if (data.success) {
-                      // Switch step
-                      document.getElementById('otp-step-1').classList.add('hidden');
-                      document.getElementById('otp-step-2').classList.remove('hidden');
-                      
-                      // Start 60s countdown timer
-                      startOTPTimer();
-                    } else {
-                      alert('Failed to trigger OTP: ' + (data.error || 'Unknown error'));
-                    }
-                  })
-                  .catch(err => {
-                    this.disabled = false;
-                    this.innerHTML = 'Send WhatsApp OTP';
-                    alert('Network error trigger OTP');
-                  });
-              });
-            }
-
-            // Verify OTP Button
-            const verifyOtpBtn = document.getElementById('btn-verify-otp');
-            if (verifyOtpBtn) {
-              verifyOtpBtn.addEventListener('click', function() {
-                const otpInput = document.getElementById('otp-code');
-                if (!otpInput || otpInput.value.length < 4) {
-                  alert('Please enter a valid OTP code.');
+            const btnSubmitOtp = document.getElementById('btn-submit-otp');
+            if (btnSubmitOtp) {
+              btnSubmitOtp.addEventListener('click', async function() {
+                const code = document.getElementById('otp-input-code')?.value;
+                if (!code || code.length !== 4) {
+                  alert('Please enter a valid 4-digit OTP code.');
                   return;
                 }
-
-                this.disabled = true;
-                this.innerHTML = 'Verifying...';
-
-                fetch('/api/v1/merchants/' + currentMerchantId + '/otp/verify', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ otp: otpInput.value })
-                })
-                  .then(res => res.json())
-                  .then(data => {
-                    this.disabled = false;
-                    this.innerHTML = 'Verify & Complete Auth';
-
-                    if (data.success) {
-                      closeSheet('sheet-otp');
-                      alert('Account authenticated successfully! Listener worker is now active.');
-                      window.location.reload();
-                    } else {
-                      alert('Verification failed: ' + (data.error || 'Invalid code'));
-                    }
-                  })
-                  .catch(err => {
-                    this.disabled = false;
-                    this.innerHTML = 'Verify & Complete Auth';
-                    alert('Network error verifying OTP');
+                this.textContent = 'Verifying...';
+                try {
+                  const res = await fetch('/api/v1/merchants/' + currentOtpMerchantId + '/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ otp: code })
                   });
+                  const data = await res.json();
+                  this.textContent = 'Verify OTP';
+                  if (data.success) {
+                    closeSheet('sheet-otp');
+                    window.location.reload();
+                  } else {
+                    alert(data.error || 'OTP verification failed.');
+                  }
+                } catch(e) {
+                  this.textContent = 'Verify OTP';
+                  alert('Network error verifying OTP.');
+                }
               });
             }
 
-            function startOTPTimer() {
-              let seconds = 60;
-              const timerDisplay = document.getElementById('otp-timer');
-              if (timerInterval) clearInterval(timerInterval);
-
-              timerInterval = setInterval(() => {
-                seconds--;
-                if (timerDisplay) timerDisplay.textContent = seconds + 's';
-                
-                if (seconds <= 0) {
-                  clearInterval(timerInterval);
-                  // Resend fallback
-                  if (timerDisplay) timerDisplay.textContent = 'Expired';
-                }
-              }, 1000);
-            }
-
-            // --- E. Pause Worker trigger ---
+            // Pause Worker
             document.querySelectorAll('.btn-pause-worker').forEach(btn => {
-              btn.addEventListener('click', function() {
+              btn.addEventListener('click', async function() {
                 const id = this.getAttribute('data-id');
                 const isActive = this.getAttribute('data-active') === 'true';
-                
-                this.disabled = true;
-                
-                fetch('/api/v1/merchants/' + id + '/toggle', { method: 'POST' })
-                  .then(res => res.json())
-                  .then(data => {
-                    this.disabled = false;
-                    if (data.success) {
-                      window.location.reload();
-                    }
-                  })
-                  .catch(() => {
-                    this.disabled = false;
-                  });
+                const endpoint = isActive ? '/api/v1/merchants/' + id + '/stop' : '/api/v1/merchants/' + id + '/start';
+                try {
+                  const res = await fetch(endpoint, { method: 'POST' });
+                  const data = await res.json();
+                  if (data.success) window.location.reload();
+                  else alert(data.error || 'Operation failed');
+                } catch(e) {
+                  alert('Network error');
+                }
               });
             });
 
-            // --- F. Disconnect Merchant trigger ---
+            // Disconnect & Delete
             let targetDisconnectId = null;
             document.querySelectorAll('.btn-disconnect-merchant').forEach(btn => {
               btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 targetDisconnectId = this.getAttribute('data-id');
-                const name = this.getAttribute('data-name');
-                const display = document.getElementById('disconnect-merchant-name-display');
-                if (display) display.textContent = name;
                 openSheet('sheet-confirm-disconnect');
               });
             });
-
             const btnConfirmDisconnectSubmit = document.getElementById('btn-confirm-disconnect-submit');
             if (btnConfirmDisconnectSubmit) {
-              btnConfirmDisconnectSubmit.addEventListener('click', function() {
+              btnConfirmDisconnectSubmit.addEventListener('click', async function() {
                 if (!targetDisconnectId) return;
-                this.disabled = true;
-                this.textContent = 'Disconnecting...';
-                fetch('/api/v1/merchants/' + targetDisconnectId + '/disconnect', { method: 'POST' })
-                  .then(res => res.json())
-                  .then(data => {
-                    this.disabled = false;
-                    this.textContent = 'Disconnect';
-                    if (data.success) {
-                      closeSheet('sheet-confirm-disconnect');
-                      window.location.reload();
-                    } else {
-                      alert('Disconnect failed: ' + (data.error || 'Unknown error'));
-                    }
-                  })
-                  .catch(() => {
-                    this.disabled = false;
-                    this.textContent = 'Disconnect';
-                    alert('Network error disconnecting merchant');
-                  });
+                try {
+                  const res = await fetch('/api/v1/merchants/' + targetDisconnectId + '/disconnect', { method: 'POST' });
+                  const data = await res.json();
+                  if (data.success) {
+                    closeSheet('sheet-confirm-disconnect');
+                    window.location.reload();
+                  } else alert(data.error || 'Disconnect failed');
+                } catch(e) { alert('Network error'); }
               });
             }
 
-            // --- G. Delete Merchant trigger ---
             let targetDeleteId = null;
             let targetDeleteName = '';
-            const confirmDeleteMerchantText = document.getElementById('confirm-delete-merchant-text');
+            const confirmDeleteText = document.getElementById('confirm-delete-merchant-text');
             const btnConfirmDeleteSubmit = document.getElementById('btn-confirm-delete-submit');
 
             document.querySelectorAll('.btn-delete-merchant').forEach(btn => {
@@ -986,78 +928,35 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
                 e.stopPropagation();
                 targetDeleteId = this.getAttribute('data-id');
                 targetDeleteName = this.getAttribute('data-name');
-                
                 const warningDisplay = document.getElementById('delete-merchant-name-warning');
                 const matchDisplay = document.getElementById('delete-merchant-target-match');
-                
                 if (warningDisplay) warningDisplay.textContent = '"' + targetDeleteName + '"';
                 if (matchDisplay) matchDisplay.textContent = 'DELETE ' + targetDeleteName;
-                if (confirmDeleteMerchantText) confirmDeleteMerchantText.value = '';
-                if (btnConfirmDeleteSubmit) {
-                  btnConfirmDeleteSubmit.disabled = true;
-                  btnConfirmDeleteSubmit.textContent = 'Permanently Delete';
-                }
-                
+                if (confirmDeleteText) confirmDeleteText.value = '';
+                if (btnConfirmDeleteSubmit) btnConfirmDeleteSubmit.disabled = true;
                 openSheet('sheet-confirm-delete');
               });
             });
-
-            if (confirmDeleteMerchantText && btnConfirmDeleteSubmit) {
-              confirmDeleteMerchantText.addEventListener('input', function() {
+            if (confirmDeleteText && btnConfirmDeleteSubmit) {
+              confirmDeleteText.addEventListener('input', function() {
                 btnConfirmDeleteSubmit.disabled = (this.value !== 'DELETE ' + targetDeleteName);
               });
             }
-
             if (btnConfirmDeleteSubmit) {
-              btnConfirmDeleteSubmit.addEventListener('click', function() {
+              btnConfirmDeleteSubmit.addEventListener('click', async function() {
                 if (!targetDeleteId) return;
-                this.disabled = true;
-                this.textContent = 'Deleting...';
-                fetch('/api/v1/merchants/' + targetDeleteId, { method: 'DELETE' })
-                  .then(res => res.json())
-                  .then(data => {
-                    this.disabled = false;
-                    this.textContent = 'Permanently Delete';
-                    if (data.success) {
-                      closeSheet('sheet-confirm-delete');
-                      window.location.reload();
-                    } else {
-                      alert('Delete failed: ' + (data.error || 'Unknown error'));
-                    }
-                  })
-                  .catch(() => {
-                    this.disabled = false;
-                    this.textContent = 'Permanently Delete';
-                    alert('Network error deleting merchant');
-                  });
+                try {
+                  const res = await fetch('/api/v1/merchants/' + targetDeleteId, { method: 'DELETE' });
+                  const data = await res.json();
+                  if (data.success) {
+                    closeSheet('sheet-confirm-delete');
+                    window.location.reload();
+                  } else alert(data.error || 'Delete failed');
+                } catch(e) { alert('Network error'); }
               });
             }
 
-            // --- B2. Edit Merchant Modal ---
-            const editFiles = document.getElementById('edit-qris-file-input');
-            const editNamePreview = document.getElementById('edit-file-name-preview');
-
-            if (editFiles && editNamePreview) {
-              editFiles.addEventListener('change', function() {
-                if (this.files && this.files[0]) {
-                  editNamePreview.textContent = this.files[0].name + " (" + (this.files[0].size / 1024 / 1024).toFixed(2) + "MB)";
-                  editNamePreview.className = "text-[10px] text-sky-600 dark:text-sky-400 font-semibold";
-                }
-              });
-            }
-
-            // Edit Logo File Preview
-            const editLogoFile = document.getElementById('edit-logo-file-input');
-            const editLogoNamePreview = document.getElementById('edit-logo-name-preview');
-            if (editLogoFile && editLogoNamePreview) {
-              editLogoFile.addEventListener('change', function() {
-                if (this.files && this.files[0]) {
-                  editLogoNamePreview.textContent = this.files[0].name + " (" + (this.files[0].size / 1024 / 1024).toFixed(2) + "MB)";
-                  editLogoNamePreview.className = "text-[10px] text-sky-600 dark:text-sky-400 font-semibold";
-                }
-              });
-            }
-
+            // Edit Merchant
             document.querySelectorAll('.btn-edit-merchant').forEach(btn => {
               btn.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -1065,27 +964,232 @@ export function MerchantsPage({ merchants, currentUser }: MerchantsPageProps) {
                 const name = this.getAttribute('data-name');
                 const phone = this.getAttribute('data-phone');
                 const payload = this.getAttribute('data-payload') || '';
-
                 const form = document.getElementById('edit-merchant-form');
+                if (form) form.action = '/api/v1/merchants/' + id + '/edit';
                 const editName = document.getElementById('edit-merchant-name');
                 const editPhone = document.getElementById('edit-merchant-phone');
                 const editPayload = document.getElementById('edit-merchant-qris-payload');
-
-                if (form) form.action = '/api/v1/merchants/' + id + '/edit';
                 if (editName) editName.value = name;
                 if (editPhone) editPhone.value = phone;
                 if (editPayload) editPayload.value = payload;
-                if (editNamePreview) {
-                  editNamePreview.textContent = "Leave empty to keep existing image";
-                  editNamePreview.className = "text-[10px] text-slate-400 dark:text-zinc-500";
-                }
-                if (editLogoNamePreview) {
-                  editLogoNamePreview.textContent = "Leave empty to keep existing logo";
-                  editLogoNamePreview.className = "text-[10px] text-slate-400 dark:text-zinc-500";
-                }
-
                 openSheet('sheet-edit-merchant');
               });
+            });
+
+            // =========================================================================
+            // MULTI-CHANNEL STORE NOTIFICATIONS LOGIC (v1.1.0)
+            // =========================================================================
+            let currentNotifMerchantId = null;
+            let currentNotifMerchantName = '';
+
+            // Feedback helper
+            function showNotifFeedback(type, text) {
+              const box = document.getElementById('notif-feedback-box');
+              const icon = document.getElementById('notif-feedback-icon');
+              const msg = document.getElementById('notif-feedback-text');
+              if (!box || !icon || !msg) return;
+
+              box.className = 'p-3.5 rounded-xl text-xs flex items-start gap-2.5 ' + (
+                type === 'success' 
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/60'
+                  : 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-900/60'
+              );
+              icon.innerHTML = type === 'success' 
+                ? '<svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>'
+                : '<svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>';
+              msg.textContent = text;
+              box.classList.remove('hidden');
+            }
+
+            function hideNotifFeedback() {
+              const box = document.getElementById('notif-feedback-box');
+              if (box) box.classList.add('hidden');
+            }
+
+            // Notification Modal Open
+            document.querySelectorAll('.btn-notif-merchant').forEach(btn => {
+              btn.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                currentNotifMerchantId = this.getAttribute('data-id');
+                currentNotifMerchantName = this.getAttribute('data-name');
+                
+                const titleName = document.getElementById('notif-modal-merchant-name');
+                if (titleName) titleName.textContent = currentNotifMerchantName;
+
+                const loadingEl = document.getElementById('notif-loading');
+                const contentEl = document.getElementById('notif-content');
+                if (loadingEl) loadingEl.classList.remove('hidden');
+                if (contentEl) contentEl.classList.add('hidden');
+                hideNotifFeedback();
+
+                openSheet('sheet-notifications');
+
+                try {
+                  const res = await fetch('/api/v1/merchants/' + currentNotifMerchantId + '/notifications');
+                  const json = await res.json();
+                  const data = json.config || {};
+
+                  // Populate Telegram
+                  document.getElementById('notif-tg-enabled').checked = !!data.telegramEnabled;
+                  document.getElementById('notif-tg-token').value = data.telegramBotToken || '';
+                  document.getElementById('notif-tg-chatid').value = data.telegramChatId || '';
+                  document.getElementById('notif-tg-template').value = data.telegramTemplate || '';
+
+                  // Populate Discord
+                  document.getElementById('notif-dc-enabled').checked = !!data.discordEnabled;
+                  document.getElementById('notif-dc-url').value = data.discordWebhookUrl || '';
+                  document.getElementById('notif-dc-template').value = data.discordTemplate || '';
+
+                  // Populate WhatsApp GOWA
+                  document.getElementById('notif-wa-enabled').checked = !!data.whatsappEnabled;
+                  document.getElementById('notif-wa-url').value = data.whatsappApiUrl || '';
+                  document.getElementById('notif-wa-authtype').value = data.whatsappAuthType || 'NONE';
+                  document.getElementById('notif-wa-authkey').value = data.whatsappAuthKey || '';
+                  document.getElementById('notif-wa-recipient').value = data.whatsappRecipient || '';
+                  document.getElementById('notif-wa-template').value = data.whatsappTemplate || '';
+
+                  if (loadingEl) loadingEl.classList.add('hidden');
+                  if (contentEl) contentEl.classList.remove('hidden');
+                } catch(e) {
+                  if (loadingEl) loadingEl.classList.add('hidden');
+                  if (contentEl) contentEl.classList.remove('hidden');
+                  showNotifFeedback('error', 'Failed to load notifications from server.');
+                }
+              });
+            });
+
+            // Tab Switching inside Notifications Modal
+            document.querySelectorAll('.notif-tab-btn').forEach(tabBtn => {
+              tabBtn.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-tab');
+                document.querySelectorAll('.notif-tab-btn').forEach(btn => {
+                  btn.className = 'flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 text-slate-600 dark:text-zinc-400 hover:text-slate-900 notif-tab-btn';
+                });
+                this.className = 'flex-1 py-2 px-3 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 bg-white dark:bg-zinc-900 text-sky-600 dark:text-sky-400 shadow-sm notif-tab-btn';
+                
+                document.querySelectorAll('.notif-tab-panel').forEach(panel => {
+                  if (panel.id === targetId) panel.classList.remove('hidden');
+                  else panel.classList.add('hidden');
+                });
+              });
+            });
+
+            // Variable Chip Insertion
+            document.querySelectorAll('.btn-insert-chip').forEach(chipBtn => {
+              chipBtn.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                const chip = this.getAttribute('data-chip');
+                const textarea = document.getElementById(targetId);
+                if (textarea && chip) {
+                  const start = textarea.selectionStart;
+                  const end = textarea.selectionEnd;
+                  const val = textarea.value;
+                  textarea.value = val.substring(0, start) + chip + val.substring(end);
+                  textarea.focus();
+                  textarea.selectionStart = textarea.selectionEnd = start + chip.length;
+                }
+              });
+            });
+
+            // Test Handlers
+            async function triggerChannelTest(channel, payload, btn) {
+              const originalHtml = btn.innerHTML;
+              btn.disabled = true;
+              btn.innerHTML = '<div class="w-3.5 h-3.5 border-2 border-sky-600 border-t-transparent rounded-full animate-spin"></div> Sending test...';
+              hideNotifFeedback();
+
+              try {
+                const res = await fetch('/api/v1/merchants/' + currentNotifMerchantId + '/notifications/test', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ channel, merchantName: currentNotifMerchantName, config: payload })
+                });
+                const json = await res.json();
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+
+                if (json.success) {
+                  showNotifFeedback('success', json.message || 'Test message sent successfully!');
+                } else {
+                  showNotifFeedback('error', json.error || json.message || 'Test message delivery failed.');
+                }
+              } catch(e) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+                showNotifFeedback('error', 'Network error triggering notification test.');
+              }
+            }
+
+            document.getElementById('btn-test-telegram')?.addEventListener('click', function() {
+              triggerChannelTest('telegram', {
+                botToken: document.getElementById('notif-tg-token')?.value,
+                chatId: document.getElementById('notif-tg-chatid')?.value,
+                template: document.getElementById('notif-tg-template')?.value,
+              }, this);
+            });
+
+            document.getElementById('btn-test-discord')?.addEventListener('click', function() {
+              triggerChannelTest('discord', {
+                webhookUrl: document.getElementById('notif-dc-url')?.value,
+                template: document.getElementById('notif-dc-template')?.value,
+              }, this);
+            });
+
+            document.getElementById('btn-test-whatsapp')?.addEventListener('click', function() {
+              triggerChannelTest('whatsapp', {
+                apiUrl: document.getElementById('notif-wa-url')?.value,
+                authType: document.getElementById('notif-wa-authtype')?.value,
+                authKey: document.getElementById('notif-wa-authkey')?.value,
+                recipient: document.getElementById('notif-wa-recipient')?.value,
+                template: document.getElementById('notif-wa-template')?.value,
+              }, this);
+            });
+
+            // Save Notification Settings
+            document.getElementById('btn-save-notifications')?.addEventListener('click', async function() {
+              this.disabled = true;
+              this.textContent = 'Saving settings...';
+              hideNotifFeedback();
+
+              const payload = {
+                telegramEnabled: document.getElementById('notif-tg-enabled')?.checked,
+                telegramBotToken: document.getElementById('notif-tg-token')?.value,
+                telegramChatId: document.getElementById('notif-tg-chatid')?.value,
+                telegramTemplate: document.getElementById('notif-tg-template')?.value,
+
+                discordEnabled: document.getElementById('notif-dc-enabled')?.checked,
+                discordWebhookUrl: document.getElementById('notif-dc-url')?.value,
+                discordTemplate: document.getElementById('notif-dc-template')?.value,
+
+                whatsappEnabled: document.getElementById('notif-wa-enabled')?.checked,
+                whatsappApiUrl: document.getElementById('notif-wa-url')?.value,
+                whatsappAuthType: document.getElementById('notif-wa-authtype')?.value,
+                whatsappAuthKey: document.getElementById('notif-wa-authkey')?.value,
+                whatsappRecipient: document.getElementById('notif-wa-recipient')?.value,
+                whatsappTemplate: document.getElementById('notif-wa-template')?.value,
+              };
+
+              try {
+                const res = await fetch('/api/v1/merchants/' + currentNotifMerchantId + '/notifications', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                const json = await res.json();
+                this.disabled = false;
+                this.textContent = 'Save Notification Settings';
+
+                if (json.success) {
+                  showNotifFeedback('success', 'Notification settings saved successfully!');
+                  setTimeout(() => closeSheet('sheet-notifications'), 1200);
+                } else {
+                  showNotifFeedback('error', json.error || 'Failed to save settings.');
+                }
+              } catch(e) {
+                this.disabled = false;
+                this.textContent = 'Save Notification Settings';
+                showNotifFeedback('error', 'Network error saving notification settings.');
+              }
             });
 
           })();

@@ -1,21 +1,15 @@
 import React from 'react';
-
-export interface UserSession {
-  id: string;
-  name: string;
-  email: string;
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'REGIONAL_ADMIN' | 'MERCHANT' | 'MERCHANT_EMPLOYEE';
-  merchantId: string | null;
-}
+import { MerchantContext, UserSession } from '../middleware/auth.ts';
 
 interface LayoutProps {
   children: React.ReactNode;
   activePath: string;
   user?: UserSession;
+  activeMerchant?: MerchantContext | null;
+  accessibleMerchants?: MerchantContext[];
 }
 
-export function Layout({ children, activePath, user }: LayoutProps) {
-  // Define fallback user for demo purposes if not authenticated (should not happen in prod due to middleware)
+export function Layout({ children, activePath, user, activeMerchant, accessibleMerchants = [] }: LayoutProps) {
   const currentUser = user || {
     id: 'usr_demo',
     name: 'Guest User',
@@ -23,6 +17,8 @@ export function Layout({ children, activePath, user }: LayoutProps) {
     role: 'MERCHANT' as const,
     merchantId: null
   };
+
+  const currentStore = activeMerchant || (accessibleMerchants.length > 0 ? accessibleMerchants[0] : null);
 
   // Enforce role-based visibility:
   // - SUPER_ADMIN, ADMIN, REGIONAL_ADMIN can access Merchants, Transactions, Developer Hub.
@@ -52,7 +48,7 @@ export function Layout({ children, activePath, user }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row relative">
+    <div className="min-h-screen flex flex-col md:flex-row relative bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-50">
       
       {/* WCAG Skip Link */}
       <a 
@@ -65,27 +61,39 @@ export function Layout({ children, activePath, user }: LayoutProps) {
       {/* ========================================================================= */}
       {/* 1. MOBILE HEADER (Sticky, Top) */}
       {/* ========================================================================= */}
-      <header className="sticky top-0 z-40 w-full md:hidden h-16 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 px-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-lg">
+      <header className="sticky top-0 z-40 w-full md:hidden h-16 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 px-4 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-lg shadow-sm">
             Q
           </div>
-          <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-zinc-50">QBiz Gateway</span>
+          
+          {/* Mobile Active Merchant Switcher Button */}
+          {accessibleMerchants.length > 0 && (
+            <button
+              id="mobile-workspace-trigger"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700/60 text-xs font-semibold text-slate-800 dark:text-zinc-200 max-w-[170px] truncate transition-colors"
+            >
+              <span className={`w-2 h-2 rounded-full shrink-0 ${
+                currentStore?.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' :
+                currentStore?.status === 'NEEDS_OTP' ? 'bg-amber-500' : 'bg-red-500'
+              }`}></span>
+              <span className="truncate">{currentStore?.name || 'Select Store'}</span>
+              <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+            </button>
+          )}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Theme Toggle Mobile */}
           <button 
             id="mobile-theme-toggle"
             aria-label="Toggle Dark Mode"
             className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-50 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
           >
-            {/* Sun Icon */}
-            <svg id="sun-icon-mobile" className="w-5 h-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg id="sun-icon-mobile" className="w-5 h-5 hidden dark:block text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.364l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
             </svg>
-            {/* Moon Icon */}
-            <svg id="moon-icon-mobile" className="w-5 h-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <svg id="moon-icon-mobile" className="w-5 h-5 block dark:hidden text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
             </svg>
           </button>
@@ -108,12 +116,13 @@ export function Layout({ children, activePath, user }: LayoutProps) {
       {/* 2. MOBILE DRAWER OVERLAY & MENU */}
       {/* ========================================================================= */}
       <div id="mobile-drawer" className="fixed inset-0 z-50 hidden md:hidden">
-        {/* Backdrop overlay */}
         <div id="mobile-drawer-backdrop" className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-300 opacity-0"></div>
-        {/* Drawer body */}
         <aside id="mobile-drawer-body" className="absolute top-0 right-0 w-80 max-w-[85vw] h-full bg-white dark:bg-zinc-900 shadow-2xl flex flex-col p-6 transition-transform duration-300 translate-x-full">
           <div className="flex items-center justify-between mb-6">
-            <span className="font-bold text-xl text-slate-900 dark:text-zinc-50">QBiz Hub</span>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded bg-sky-600 text-white font-bold text-sm flex items-center justify-center">Q</div>
+              <span className="font-bold text-lg text-slate-900 dark:text-zinc-50">QBiz Hub</span>
+            </div>
             <button 
               id="mobile-menu-close"
               aria-label="Close navigation menu"
@@ -124,6 +133,18 @@ export function Layout({ children, activePath, user }: LayoutProps) {
               </svg>
             </button>
           </div>
+
+          {/* Active Store in Mobile View */}
+          {currentStore && (
+            <div className="mb-4 p-3 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-900/50 rounded-xl">
+              <div className="text-[10px] font-bold text-sky-800 dark:text-sky-300 uppercase tracking-wider mb-1">Active Store Context</div>
+              <div className="font-bold text-sm text-slate-900 dark:text-zinc-100 truncate">{currentStore.name}</div>
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-600 dark:text-zinc-400">
+                <span className={`w-2 h-2 rounded-full ${currentStore.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                <span>{currentStore.status === 'ACTIVE' ? 'Listener Active' : 'Needs Sync'}</span>
+              </div>
+            </div>
+          )}
 
           {/* User profile details in mobile view */}
           <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-zinc-800/40 rounded-xl mb-6">
@@ -165,7 +186,6 @@ export function Layout({ children, activePath, user }: LayoutProps) {
             })}
           </nav>
 
-          {/* Logout Mobile */}
           <div className="border-t border-slate-100 dark:border-zinc-800/80 pt-4">
             <a 
               href="/logout"
@@ -183,12 +203,12 @@ export function Layout({ children, activePath, user }: LayoutProps) {
       {/* ========================================================================= */}
       <aside 
         id="desktop-sidebar" 
-        className="hidden md:flex flex-col h-screen sticky top-0 bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 transition-all duration-300 z-30 w-64 shrink-0"
+        className="hidden md:flex flex-col h-screen sticky top-0 bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 transition-all duration-300 z-30 w-64 shrink-0 shadow-sm"
       >
-        {/* Header Section */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-200 dark:border-zinc-800 shrink-0">
+        {/* Top Logo & App Title */}
+        <div className="h-16 flex items-center justify-between px-5 border-b border-slate-200 dark:border-zinc-800 shrink-0">
           <div className="flex items-center gap-3 sidebar-logo-container transition-opacity duration-200">
-            <div className="w-8 h-8 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-lg shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm">
               Q
             </div>
             <span className="font-bold text-lg tracking-tight sidebar-logo-text text-slate-900 dark:text-zinc-50">QBiz Gateway</span>
@@ -199,34 +219,67 @@ export function Layout({ children, activePath, user }: LayoutProps) {
             aria-label="Collapse sidebar"
             className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 dark:text-zinc-500 dark:hover:text-zinc-50 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
           >
-            {/* Collapse / Chevron Left Icon */}
             <svg id="chevron-left" className="w-4 h-4 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
             </svg>
           </button>
         </div>
 
+        {/* Global Merchant Workspace Switcher Widget in Desktop Sidebar */}
+        <div className="p-3 border-b border-slate-100 dark:border-zinc-800/80 sidebar-logo-container">
+          <div className="relative">
+            <button
+              id="desktop-workspace-trigger"
+              className="w-full flex items-center justify-between gap-2.5 p-2 rounded-xl bg-slate-50 dark:bg-zinc-800/50 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-700/60 transition-all text-left group"
+              title="Switch Active Store Workspace"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                {currentStore?.logoUrl ? (
+                  <img src={currentStore.logoUrl} alt="" className="w-7 h-7 rounded-lg object-contain bg-white dark:bg-zinc-900 p-0.5 border border-slate-200 dark:border-zinc-700 shrink-0" />
+                ) : (
+                  <div className="w-7 h-7 rounded-lg bg-sky-600/10 dark:bg-sky-400/10 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 border border-sky-200 dark:border-sky-900">
+                    {currentStore?.name ? currentStore.name.slice(0, 1).toUpperCase() : 'M'}
+                  </div>
+                )}
+                <div className="flex flex-col min-w-0 sidebar-item-text">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider leading-none">Active Store</span>
+                  <span className="font-bold text-xs text-slate-800 dark:text-zinc-100 truncate mt-0.5 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+                    {currentStore?.name || 'Select Merchant'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0 sidebar-item-text">
+                <span className={`w-2 h-2 rounded-full ${
+                  currentStore?.status === 'ACTIVE' ? 'bg-emerald-500' :
+                  currentStore?.status === 'NEEDS_OTP' ? 'bg-amber-500' : 'bg-red-500'
+                }`}></span>
+                <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-zinc-200 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>
+              </div>
+            </button>
+          </div>
+        </div>
+
         {/* Navigation Items */}
-        <nav className="flex-grow p-4 flex flex-col gap-1.5 overflow-y-auto">
+        <nav className="flex-grow p-3 flex flex-col gap-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = activePath === item.path;
             return (
               <a
                 key={item.path}
                 href={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition-all group ${
                   isActive 
-                    ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/40 dark:text-sky-400' 
+                    ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-400 font-bold border border-sky-200/60 dark:border-sky-900/60' 
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-zinc-400 dark:hover:text-zinc-50 dark:hover:bg-zinc-800/60'
                 }`}
                 title={item.label}
               >
-                <span className="w-5 h-5 flex items-center justify-center shrink-0">
-                  {item.icon === 'LayoutDashboard' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 14a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg>}
-                  {item.icon === 'Store' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}
-                  {item.icon === 'Receipt' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>}
-                  {item.icon === 'Users' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
-                  {item.icon === 'Code2' && <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>}
+                <span className="w-4 h-4 flex items-center justify-center shrink-0">
+                  {item.icon === 'LayoutDashboard' && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 14a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg>}
+                  {item.icon === 'Store' && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}
+                  {item.icon === 'Receipt' && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>}
+                  {item.icon === 'Users' && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
+                  {item.icon === 'Code2' && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>}
                 </span>
                 <span className="sidebar-item-text transition-opacity duration-200 truncate">
                   {item.label}
@@ -236,52 +289,42 @@ export function Layout({ children, activePath, user }: LayoutProps) {
           })}
         </nav>
 
-        {/* Footer Settings, User details & Theme Toggle */}
-        <div className="border-t border-slate-200 dark:border-zinc-800 p-4 flex flex-col gap-2 shrink-0">
-          
-          {/* User profile details bottom of sidebar */}
-          <div className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-zinc-800/30 rounded-lg sidebar-logo-container transition-opacity duration-200">
-            <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400 font-bold text-xs flex items-center justify-center shrink-0 uppercase">
+        {/* Footer User details & Theme Toggle */}
+        <div className="border-t border-slate-200 dark:border-zinc-800 p-3 flex flex-col gap-1.5 shrink-0">
+          <div className="flex items-center gap-2.5 p-2 bg-slate-50 dark:bg-zinc-800/30 rounded-lg sidebar-logo-container transition-opacity duration-200">
+            <div className="w-7 h-7 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400 font-bold text-[11px] flex items-center justify-center shrink-0 uppercase">
               {currentUser.name.slice(0, 2)}
             </div>
             <div className="flex flex-col min-w-0 sidebar-item-text">
               <span className="font-bold text-[11px] text-slate-800 dark:text-zinc-200 truncate leading-none">{currentUser.name}</span>
-              <span className="text-[9px] text-slate-400 truncate mt-0.5">{currentUser.email}</span>
-              <span className="w-max mt-1 text-[8px] font-semibold bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-400 px-1 py-0.5 rounded uppercase tracking-wider scale-90 -ml-1">
-                {roleLabels[currentUser.role]}
-              </span>
+              <span className="text-[9px] text-slate-400 truncate mt-0.5">{roleLabels[currentUser.role]}</span>
             </div>
           </div>
 
-          {/* Theme Toggle Desktop */}
-          <button 
-            id="desktop-theme-toggle"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-zinc-400 dark:hover:text-zinc-50 dark:hover:bg-zinc-800/60 transition-all w-full"
-          >
-            <span className="w-5 h-5 flex items-center justify-center shrink-0">
-              <svg id="sun-icon-desktop" className="w-5 h-5 hidden dark:block text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <div className="flex items-center gap-1">
+            <button 
+              id="desktop-theme-toggle"
+              aria-label="Toggle Theme"
+              className="flex items-center justify-center p-2 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-zinc-50 dark:hover:bg-zinc-800/60 transition-all flex-grow"
+              title="Toggle Theme"
+            >
+              <svg id="sun-icon-desktop" className="w-4 h-4 hidden dark:block text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.364l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
               </svg>
-              <svg id="moon-icon-desktop" className="w-5 h-5 block dark:hidden text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <svg id="moon-icon-desktop" className="w-4 h-4 block dark:hidden text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
-            </span>
-            <span className="sidebar-item-text truncate">
-              <span className="block dark:hidden">Dark Mode</span>
-              <span className="hidden dark:block">Light Mode</span>
-            </span>
-          </button>
+            </button>
 
-          {/* Logout Button */}
-          <a 
-            href="/logout"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all w-full"
-          >
-            <span className="w-5 h-5 flex items-center justify-center shrink-0">
+            <a 
+              href="/logout"
+              aria-label="Logout"
+              className="flex items-center justify-center p-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all flex-grow"
+              title="Logout Session"
+            >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-            </span>
-            <span className="sidebar-item-text truncate">Logout Session</span>
-          </a>
+            </a>
+          </div>
         </div>
       </aside>
 
@@ -290,7 +333,7 @@ export function Layout({ children, activePath, user }: LayoutProps) {
       {/* ========================================================================= */}
       <main 
         id="main-content" 
-        className="flex-grow flex flex-col min-w-0 transition-all duration-300 md:ml-0"
+        className="flex-grow flex flex-col min-w-0 transition-all duration-300"
         tabIndex={-1}
       >
         <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
@@ -299,7 +342,106 @@ export function Layout({ children, activePath, user }: LayoutProps) {
       </main>
 
       {/* ========================================================================= */}
-      {/* 5. LIGHTWEIGHT CLIENT INTERACTIONS SCRIPT */}
+      {/* 5. GLOBAL STORE WORKSPACE SWITCHER MODAL */}
+      {/* ========================================================================= */}
+      <div id="modal-workspace-switcher" className="fixed inset-0 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm modal-backdrop-trigger cursor-pointer"></div>
+        <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-2xl z-10 w-full max-w-md overflow-hidden transform transition-all duration-200 scale-95 modal-body flex flex-col max-h-[85vh]">
+          
+          {/* Modal Header */}
+          <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-zinc-800/80 flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-base text-slate-900 dark:text-zinc-50">Switch Store Workspace</h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Select active merchant store to view analytics & feeds</p>
+            </div>
+            <button className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 modal-close-trigger p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          {/* Search Box */}
+          <div className="p-3 border-b border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/50">
+            <div className="relative">
+              <svg className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input 
+                type="text"
+                id="workspace-search-input"
+                placeholder="Search merchant name or phone..."
+                className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700/80 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-zinc-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+          </div>
+
+          {/* Store List */}
+          <div id="workspace-store-list" className="p-3 overflow-y-auto space-y-1.5 flex-grow max-h-72">
+            {accessibleMerchants.map(m => {
+              const isSelected = currentStore?.id === m.id;
+              return (
+                <button
+                  key={m.id}
+                  className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition-all btn-select-workspace group ${
+                    isSelected 
+                      ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800' 
+                      : 'bg-white dark:bg-zinc-800/40 border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                  }`}
+                  data-id={m.id}
+                  data-name={m.name}
+                  data-phone={m.phoneNumber}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {m.logoUrl ? (
+                      <img src={m.logoUrl} alt="" className="w-8 h-8 rounded-lg object-contain bg-slate-50 dark:bg-zinc-900 p-0.5 border border-slate-200 dark:border-zinc-700 shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold text-xs flex items-center justify-center shrink-0 border border-slate-200 dark:border-zinc-700">
+                        {m.name.slice(0, 1).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs text-slate-900 dark:text-zinc-50 truncate">{m.name}</span>
+                        {isSelected && (
+                          <span className="text-[9px] font-bold bg-sky-600 text-white px-1.5 py-0.2 rounded-full">ACTIVE</span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono mt-0.5">{m.phoneNumber}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
+                      m.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400' :
+                      m.status === 'NEEDS_OTP' ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-400' :
+                      'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-400'
+                    }`}>
+                      {m.status === 'ACTIVE' ? 'Active' : m.status === 'NEEDS_OTP' ? 'Syncing' : 'Dead'}
+                    </span>
+                    {isSelected && (
+                      <svg className="w-4 h-4 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Modal Footer */}
+          <div className="p-3 sm:p-4 border-t border-slate-100 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900 flex items-center justify-between gap-2">
+            <a
+              href="/merchants"
+              className="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+              Add / Manage All Stores
+            </a>
+            <button className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-300 dark:hover:bg-zinc-700 modal-close-trigger">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 6. CLIENT INTERACTIONS SCRIPT */}
       {/* ========================================================================= */}
       <script dangerouslySetInnerHTML={{
         __html: `
@@ -326,7 +468,6 @@ export function Layout({ children, activePath, user }: LayoutProps) {
             const sidebarToggle = document.getElementById('sidebar-toggle');
             const chevron = document.getElementById('chevron-left');
             
-            // Check state
             let isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
             if (isCollapsed && sidebar) {
               applyCollapse(true);
@@ -335,12 +476,12 @@ export function Layout({ children, activePath, user }: LayoutProps) {
             function applyCollapse(collapsed) {
               if (!sidebar) return;
               if (collapsed) {
-                sidebar.className = 'hidden md:flex flex-col h-screen sticky top-0 bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 transition-all duration-300 z-30 w-16';
+                sidebar.className = 'hidden md:flex flex-col h-screen sticky top-0 bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 transition-all duration-300 z-30 w-16 shadow-sm';
                 if (chevron) chevron.style.transform = 'rotate(180deg)';
                 document.querySelectorAll('.sidebar-logo-text, .sidebar-item-text').forEach(el => el.classList.add('md:hidden'));
                 document.querySelectorAll('.sidebar-logo-container').forEach(el => el.classList.add('opacity-0'));
               } else {
-                sidebar.className = 'hidden md:flex flex-col h-screen sticky top-0 bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 transition-all duration-300 z-30 w-64';
+                sidebar.className = 'hidden md:flex flex-col h-screen sticky top-0 bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 transition-all duration-300 z-30 w-64 shadow-sm';
                 if (chevron) chevron.style.transform = 'rotate(0deg)';
                 document.querySelectorAll('.sidebar-logo-text, .sidebar-item-text').forEach(el => el.classList.remove('md:hidden'));
                 document.querySelectorAll('.sidebar-logo-container').forEach(el => el.classList.remove('opacity-0'));
@@ -350,45 +491,113 @@ export function Layout({ children, activePath, user }: LayoutProps) {
             if (sidebarToggle) {
               sidebarToggle.addEventListener('click', function() {
                 isCollapsed = !isCollapsed;
-                localStorage.setItem('sidebar-collapsed', isCollapsed);
+                localStorage.setItem('sidebar-collapsed', isCollapsed ? 'true' : 'false');
                 applyCollapse(isCollapsed);
               });
             }
 
-            // --- C. Mobile Drawer Menu Toggle ---
-            const openBtn = document.getElementById('mobile-menu-open');
-            const closeBtn = document.getElementById('mobile-menu-close');
+            // --- C. Mobile Drawer Menu ---
             const drawer = document.getElementById('mobile-drawer');
-            const backdrop = document.getElementById('mobile-drawer-backdrop');
-            const body = document.getElementById('mobile-drawer-body');
-            
-            function openMobileMenu() {
-              if (!drawer || !backdrop || !body) return;
+            const drawerBackdrop = document.getElementById('mobile-drawer-backdrop');
+            const drawerBody = document.getElementById('mobile-drawer-body');
+            const menuOpenBtn = document.getElementById('mobile-menu-open');
+            const menuCloseBtn = document.getElementById('mobile-menu-close');
+
+            function openDrawer() {
+              if (!drawer) return;
               drawer.classList.remove('hidden');
-              openBtn.setAttribute('aria-expanded', 'true');
               setTimeout(() => {
-                backdrop.classList.add('opacity-100');
-                body.classList.remove('translate-x-full');
+                drawerBackdrop.classList.remove('opacity-0');
+                drawerBody.classList.remove('translate-x-full');
               }, 10);
             }
-            
-            function closeMobileMenu() {
-              if (!drawer || !backdrop || !body) return;
-              backdrop.classList.remove('opacity-100');
-              body.classList.add('translate-x-full');
-              openBtn.setAttribute('aria-expanded', 'false');
+
+            function closeDrawer() {
+              if (!drawer) return;
+              drawerBackdrop.classList.add('opacity-0');
+              drawerBody.classList.add('translate-x-full');
               setTimeout(() => {
                 drawer.classList.add('hidden');
               }, 300);
             }
-            
-            if (openBtn) openBtn.addEventListener('click', openMobileMenu);
-            if (closeBtn) closeBtn.addEventListener('click', closeMobileMenu);
-            if (backdrop) backdrop.addEventListener('click', closeMobileMenu);
+
+            if (menuOpenBtn) menuOpenBtn.addEventListener('click', openDrawer);
+            if (menuCloseBtn) menuCloseBtn.addEventListener('click', closeDrawer);
+            if (drawerBackdrop) drawerBackdrop.addEventListener('click', closeDrawer);
+
+            // --- D. Global Workspace Switcher Modal ---
+            const modalSwitcher = document.getElementById('modal-workspace-switcher');
+            const deskWorkspaceTrigger = document.getElementById('desktop-workspace-trigger');
+            const mobWorkspaceTrigger = document.getElementById('mobile-workspace-trigger');
+            const searchInput = document.getElementById('workspace-search-input');
+
+            function openWorkspaceModal() {
+              if (!modalSwitcher) return;
+              modalSwitcher.classList.remove('opacity-0', 'pointer-events-none');
+              const body = modalSwitcher.querySelector('.modal-body');
+              if (body) body.classList.remove('scale-95');
+              if (searchInput) {
+                searchInput.value = '';
+                setTimeout(() => searchInput.focus(), 100);
+              }
+            }
+
+            function closeWorkspaceModal() {
+              if (!modalSwitcher) return;
+              modalSwitcher.classList.add('opacity-0', 'pointer-events-none');
+              const body = modalSwitcher.querySelector('.modal-body');
+              if (body) body.classList.add('scale-95');
+            }
+
+            if (deskWorkspaceTrigger) deskWorkspaceTrigger.addEventListener('click', openWorkspaceModal);
+            if (mobWorkspaceTrigger) mobWorkspaceTrigger.addEventListener('click', openWorkspaceModal);
+
+            document.querySelectorAll('.modal-close-trigger, .modal-backdrop-trigger').forEach(btn => {
+              btn.addEventListener('click', closeWorkspaceModal);
+            });
+
+            // Search filter
+            if (searchInput) {
+              searchInput.addEventListener('input', function(e) {
+                const q = e.target.value.toLowerCase();
+                document.querySelectorAll('.btn-select-workspace').forEach(card => {
+                  const name = (card.getAttribute('data-name') || '').toLowerCase();
+                  const phone = (card.getAttribute('data-phone') || '').toLowerCase();
+                  if (name.includes(q) || phone.includes(q)) {
+                    card.style.display = 'flex';
+                  } else {
+                    card.style.display = 'none';
+                  }
+                });
+              });
+            }
+
+            // Switch workspace click
+            document.querySelectorAll('.btn-select-workspace').forEach(btn => {
+              btn.addEventListener('click', async function() {
+                const merchantId = this.getAttribute('data-id');
+                if (!merchantId) return;
+                try {
+                  const res = await fetch('/api/v1/workspaces/switch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ merchantId })
+                  });
+                  const json = await res.json();
+                  if (json.success) {
+                    window.location.reload();
+                  } else {
+                    alert(json.error || 'Failed to switch workspace.');
+                  }
+                } catch (e) {
+                  alert('Network error switching workspace.');
+                }
+              });
+            });
+
           })();
         `
       }} />
-      
     </div>
   );
 }
