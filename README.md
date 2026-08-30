@@ -9,6 +9,14 @@
 ![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat-square&logo=postgresql)
 ![Automation](https://img.shields.io/badge/Automation-Puppeteer-0097a7?style=flat-square&logo=puppeteer)
 
+<p align="center">
+  <a href="https://railway.com/new/template?template=https://github.com/ardianryan/qbiz-qrisdinamis"><img src="https://railway.com/button.svg" alt="Deploy on Railway" height="32" /></a>
+  &nbsp;
+  <a href="https://render.com/deploy?repo=https://github.com/ardianryan/qbiz-qrisdinamis"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" height="32" /></a>
+  &nbsp;
+  <a href="https://hub.docker.com/r/ardianryan/qbiz-qrisdinamis"><img src="https://img.shields.io/badge/Docker_Hub-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Hub Image" height="32" /></a>
+</p>
+
 **QBiz** is a modern, self-hosted dynamic QRIS payment gateway hub. It acts as an in-house middleware to connect QRIS Food Merchant portals with custom Point-of-Sale (POS) systems, automates transaction synchronization via headless browser automation, dispatches instant multi-channel alerts (Telegram, Discord, WhatsApp GOWA), and sends HMAC-SHA256 signed webhooks directly to your POS system without relying on third-party payment gateways.
 
 > [!WARNING]
@@ -172,9 +180,7 @@ Because QBiz utilizes **Puppeteer (headless Chromium)** in the background to syn
 * **Docker Compose Deployment**:
   Build and run multi-container setups locally:
   ```bash
-  docker compose up -d --build
-  ```
-* **Portainer & aaPanel Deployment**: Detailed configurations for reverse proxy and SSL Let's Encrypt are available in the [aaPanel & Portainer Deployment Guide](PORTAINER_AAPANEL.md).
+* **Full Multi-Platform Deployment Guide**: Detailed step-by-step instructions for **Docker**, **Portainer**, **Coolify**, **Railway**, **aaPanel** (Nginx reverse proxy + SSL), and **Direct VPS Bare Metal** are available in the [Comprehensive Deployment Guide](DEPLOYMENT.md).
 
 ---
 
