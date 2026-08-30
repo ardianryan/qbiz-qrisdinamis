@@ -15,6 +15,34 @@
       "when": 1786415695512,
       "tag": "0001_dazzling_stingray",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788073733008,
+      "tag": "0002_serious_lady_bullseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788075000000,
+      "tag": "0003_system_settings",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788075500000,
+      "tag": "0004_api_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1788076000000,
+      "tag": "0005_webhooks",
+      "breakpoints": true
     }
   ]
 }

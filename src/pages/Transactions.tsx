@@ -19,15 +19,21 @@ interface Transaction {
   timestamp: string;
 }
 
+import { MerchantContext } from '../middleware/auth.ts';
+import { SystemSettingsConfig } from '../services/settings.ts';
+
 interface TransactionsPageProps {
   merchants: Merchant[];
   transactions: Transaction[];
   currentUser?: any;
+  activeMerchant?: MerchantContext | null;
+  accessibleMerchants?: MerchantContext[];
+  systemSettings?: SystemSettingsConfig;
 }
 
-export function TransactionsPage({ merchants, transactions, currentUser }: TransactionsPageProps) {
+export function TransactionsPage({ merchants, transactions, currentUser, activeMerchant, accessibleMerchants, systemSettings }: TransactionsPageProps) {
   return (
-    <Layout activePath="/transactions" user={currentUser}>
+    <Layout activePath="/transactions" user={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants} systemSettings={systemSettings}>
       
       {/* ========================================================================= */}
       {/* 1. HEADER */}
@@ -65,9 +71,9 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
       {/* 2. FILTER TOOLBAR */}
       {/* ========================================================================= */}
       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-4 mb-6 shadow-sm">
-        <div className="flex flex-col md:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           {/* Search Input */}
-          <div className="flex-grow flex flex-col gap-1">
+          <div className="flex-1 flex flex-col gap-1">
             <label htmlFor="filter-search" className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
               Search Invoice / Order ID
             </label>
@@ -78,30 +84,14 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
               <input 
                 type="text" 
                 id="filter-search" 
-                placeholder="Search order ID, invoice, or amount..."
+                placeholder="Search order ID, invoice ID, or amount..."
                 className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all"
               />
             </div>
           </div>
 
-          {/* Merchant Dropdown */}
-          <div className="w-full md:w-56 flex flex-col gap-1">
-            <label htmlFor="filter-merchant" className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-              Merchant Account
-            </label>
-            <select 
-              id="filter-merchant"
-              className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all cursor-pointer"
-            >
-              <option value="ALL">All Merchants</option>
-              {merchants.map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Status Dropdown */}
-          <div className="w-full md:w-48 flex flex-col gap-1">
+          <div className="w-full sm:w-48 flex flex-col gap-1">
             <label htmlFor="filter-status" className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
               Payment Status
             </label>
@@ -123,23 +113,22 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
       {/* 3. DATA TABLES & MOBILE CARDS LIST */}
       {/* ========================================================================= */}
 
-      {/* Empty State Banner (Initially Hidden unless no data) */}
-      <div id="tx-empty-state" className="hidden flex-col items-center justify-center py-16 px-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl max-w-lg mx-auto text-center">
-        <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-4">
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-        </div>
-        <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-50">No Invoices Found</h2>
-        <p className="text-sm text-slate-500 dark:text-zinc-400 mt-2 max-w-xs">
-          Try adjusting search queries or connecting more merchant accounts.
-        </p>
-      </div>
-
       {/* A. MOBILE VIEW: STACKED CARD LIST (block sm:hidden) */}
       <div 
         id="mobile-tx-list" 
-        className="block sm:hidden space-y-4"
+        className="block sm:hidden space-y-3"
         aria-live="polite"
       >
+        <div id="mobile-empty-card" className={`flex-col items-center justify-center py-12 px-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-center shadow-xs ${transactions.length === 0 ? 'flex' : 'hidden'}`}>
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-3">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+          </div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">No Invoices Found</h3>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-xs">
+            No transactions match the current search or filter query.
+          </p>
+        </div>
+
         {transactions.map(tx => (
           <div 
             key={tx.id} 
@@ -253,6 +242,19 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
               className="divide-y divide-slate-100 dark:divide-zinc-800/60 text-xs text-slate-700 dark:text-zinc-300"
               aria-live="polite"
             >
+              <tr id="desktop-empty-row" className={transactions.length === 0 ? '' : 'hidden'}>
+                <td colSpan={8} className="py-16 text-center">
+                  <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-3 shadow-inner">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">No Invoices Found</h3>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                      No transactions match the current search or filter query.
+                    </p>
+                  </div>
+                </td>
+              </tr>
               {transactions.map(tx => (
                 <tr 
                   key={tx.id}
@@ -336,6 +338,28 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        <div id="tx-pagination-bar" className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 text-xs text-slate-500 dark:text-zinc-400">
+          <div className="flex items-center gap-2">
+            <span>Show</span>
+            <select id="tx-page-size" className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded px-2 py-1 text-xs text-slate-800 dark:text-zinc-200 outline-none cursor-pointer">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span>entries per page</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span id="tx-pagination-info" className="text-xs">Showing 1 to 10 of 20 entries</span>
+            <div className="inline-flex items-center gap-1">
+              <button id="tx-btn-prev" className="px-2.5 py-1 rounded border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs transition-colors">Prev</button>
+              <div id="tx-page-numbers" className="inline-flex items-center gap-1"></div>
+              <button id="tx-btn-next" className="px-2.5 py-1 rounded border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs transition-colors">Next</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -346,52 +370,159 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
           (function() {
             function init() {
               const searchInput = document.getElementById('filter-search');
-              const merchantSelect = document.getElementById('filter-merchant');
               const statusSelect = document.getElementById('filter-status');
-              const emptyState = document.getElementById('tx-empty-state');
-              const desktopTable = document.getElementById('desktop-tx-table-container');
+              const desktopEmptyRow = document.getElementById('desktop-empty-row');
+              const mobileEmptyCard = document.getElementById('mobile-empty-card');
+              const pageSizeSelect = document.getElementById('tx-page-size');
+              const paginationInfo = document.getElementById('tx-pagination-info');
+              const btnPrev = document.getElementById('tx-btn-prev');
+              const btnNext = document.getElementById('tx-btn-next');
+              const pageNumbersContainer = document.getElementById('tx-page-numbers');
 
-              // --- A. Local Filtering Logic ---
-              function applyFilters() {
-                const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
-                const merchant = merchantSelect ? merchantSelect.value : 'ALL';
-                const status = statusSelect ? statusSelect.value : 'ALL';
+              let currentPage = 1;
+              let pageSize = 10;
+              let currentFilteredRows = [];
 
-                let visibleCount = 0;
-                document.querySelectorAll('.tx-row, .tx-card').forEach(row => {
-                  const term = (row.getAttribute('data-search-term') || '').toLowerCase();
-                  const rowMerchant = row.getAttribute('data-merchant');
-                  const rowStatus = row.getAttribute('data-status');
+              // --- A. Pagination & Filtering Controller ---
+              function updatePagination() {
+                const total = currentFilteredRows.length;
+                const totalPages = Math.max(1, Math.ceil(total / pageSize));
+                if (currentPage > totalPages) currentPage = totalPages;
+                if (currentPage < 1) currentPage = 1;
 
-                  const matchesSearch = term.includes(query);
-                  const matchesMerchant = merchant === 'ALL' || rowMerchant === merchant;
-                  const matchesStatus = status === 'ALL' || rowStatus === status;
+                const startIdx = (currentPage - 1) * pageSize;
+                const endIdx = Math.min(startIdx + pageSize, total);
 
-                  if (matchesSearch && matchesMerchant && matchesStatus) {
-                    row.classList.remove('hidden');
-                    visibleCount++;
+                // Show only items in active page
+                currentFilteredRows.forEach((item, index) => {
+                  if (index >= startIdx && index < endIdx) {
+                    if (item.row) item.row.classList.remove('hidden');
+                    if (item.card) item.card.classList.remove('hidden');
                   } else {
-                    row.classList.add('hidden');
+                    if (item.row) item.row.classList.add('hidden');
+                    if (item.card) item.card.classList.add('hidden');
                   }
                 });
 
-                if (visibleCount === 0) {
-                  if (emptyState) emptyState.classList.remove('hidden');
-                  if (desktopTable) desktopTable.classList.add('hidden');
-                } else {
-                  if (emptyState) emptyState.classList.add('hidden');
-                  if (desktopTable) desktopTable.classList.remove('hidden');
+                // Update Info Label
+                if (paginationInfo) {
+                  if (total === 0) {
+                    paginationInfo.textContent = 'Showing 0 entries';
+                  } else {
+                    paginationInfo.textContent = 'Showing ' + (startIdx + 1) + ' to ' + endIdx + ' of ' + total + ' entries';
+                  }
+                }
+
+                // Update Buttons
+                if (btnPrev) btnPrev.disabled = currentPage <= 1;
+                if (btnNext) btnNext.disabled = currentPage >= totalPages;
+
+                // Render Page Numbers
+                if (pageNumbersContainer) {
+                  pageNumbersContainer.innerHTML = '';
+                  for (let p = 1; p <= totalPages; p++) {
+                    if (totalPages > 7 && Math.abs(p - currentPage) > 2 && p !== 1 && p !== totalPages) {
+                      if (p === 2 || p === totalPages - 1) {
+                        const dots = document.createElement('span');
+                        dots.className = 'px-1 text-slate-400';
+                        dots.textContent = '...';
+                        pageNumbersContainer.appendChild(dots);
+                      }
+                      continue;
+                    }
+                    const pBtn = document.createElement('button');
+                    pBtn.className = 'px-2.5 py-1 rounded text-xs font-semibold transition-colors ' + 
+                      (p === currentPage ? 'bg-sky-600 text-white' : 'border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800');
+                    pBtn.textContent = p;
+                    pBtn.addEventListener('click', () => {
+                      currentPage = p;
+                      updatePagination();
+                    });
+                    pageNumbersContainer.appendChild(pBtn);
+                  }
                 }
               }
 
+              function applyFilters() {
+                const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+                const status = statusSelect ? statusSelect.value : 'ALL';
+
+                const allRows = Array.from(document.querySelectorAll('.tx-row'));
+                const allCards = Array.from(document.querySelectorAll('.tx-card'));
+
+                // Hide all initially
+                allRows.forEach(r => r.classList.add('hidden'));
+                allCards.forEach(c => c.classList.add('hidden'));
+
+                currentFilteredRows = [];
+                const count = Math.max(allRows.length, allCards.length);
+
+                for (let i = 0; i < count; i++) {
+                  const row = allRows[i];
+                  const card = allCards[i];
+                  const el = row || card;
+                  if (!el) continue;
+
+                  const term = (el.getAttribute('data-search-term') || '').toLowerCase();
+                  const rowStatus = el.getAttribute('data-status');
+
+                  const matchesSearch = term.includes(query);
+                  const matchesStatus = status === 'ALL' || rowStatus === status;
+
+                  if (matchesSearch && matchesStatus) {
+                    currentFilteredRows.push({ row, card });
+                  }
+                }
+
+                if (currentFilteredRows.length === 0) {
+                  if (desktopEmptyRow) desktopEmptyRow.classList.remove('hidden');
+                  if (mobileEmptyCard) {
+                    mobileEmptyCard.classList.remove('hidden');
+                    mobileEmptyCard.classList.add('flex');
+                  }
+                } else {
+                  if (desktopEmptyRow) desktopEmptyRow.classList.add('hidden');
+                  if (mobileEmptyCard) {
+                    mobileEmptyCard.classList.add('hidden');
+                    mobileEmptyCard.classList.remove('flex');
+                  }
+                }
+
+                currentPage = 1;
+                updatePagination();
+              }
+
               if (searchInput) searchInput.addEventListener('input', applyFilters);
-              if (merchantSelect) merchantSelect.addEventListener('change', applyFilters);
               if (statusSelect) statusSelect.addEventListener('change', applyFilters);
+              if (pageSizeSelect) {
+                pageSizeSelect.addEventListener('change', function() {
+                  pageSize = parseInt(this.value, 10) || 10;
+                  currentPage = 1;
+                  updatePagination();
+                });
+              }
+              if (btnPrev) {
+                btnPrev.addEventListener('click', function() {
+                  if (currentPage > 1) {
+                    currentPage--;
+                    updatePagination();
+                  }
+                });
+              }
+              if (btnNext) {
+                btnNext.addEventListener('click', function() {
+                  currentPage++;
+                  updatePagination();
+                });
+              }
+
+              // Initialize first render
+              applyFilters();
 
               // --- B. Auto-Refresh Logic (SSE/Polling simulation) ---
               // Poll for new transactions or status changes every 8 seconds
               function fetchTransactions() {
-                fetch('/api/v1/transactions/data')
+                fetch('/api/v1/transactions')
                   .then(res => res.json())
                   .then(data => {
                     if (data.success && data.transactions) {
@@ -408,8 +539,33 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
                 const mobileList = document.getElementById('mobile-tx-list');
                 if (!tbody || !mobileList) return;
 
-                let tbodyHtml = '';
-                let mobileHtml = '';
+                let tbodyHtml = \`
+                  <tr id="desktop-empty-row" class="\${transactions.length === 0 ? '' : 'hidden'}">
+                    <td colspan="8" class="py-16 text-center">
+                      <div class="flex flex-col items-center justify-center max-w-sm mx-auto">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-3 shadow-inner">
+                          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-zinc-100">No Invoices Found</h3>
+                        <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                          No transactions match the current search or filter query.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                \`;
+
+                let mobileHtml = \`
+                  <div id="mobile-empty-card" class="flex-col items-center justify-center py-12 px-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-center shadow-xs \${transactions.length === 0 ? 'flex' : 'hidden'}">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-3">
+                      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-zinc-100">No Invoices Found</h3>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-xs">
+                      No transactions match the current search or filter query.
+                    </p>
+                  </div>
+                \`;
 
                 transactions.forEach(tx => {
                   let statusClass = 'bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300';
@@ -552,14 +708,14 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
                       .then(data => {
                         this.disabled = false;
                         if (data.success) {
-                          alert('Webhook dispatch triggered successfully for Invoice: ' + txId);
+                          window.showToast({ type: 'success', title: 'Webhook Dispatched', message: 'Webhook callback triggered successfully for Invoice: ' + txId });
                         } else {
-                          alert('Failed to resend webhook: ' + (data.error || 'Unknown error'));
+                          window.showToast({ type: 'error', title: 'Dispatch Failed', message: data.error || 'Failed to resend webhook callback.' });
                         }
                       })
                       .catch(() => {
                         this.disabled = false;
-                        alert('Network error triggering webhook dispatch');
+                        window.showToast({ type: 'error', title: 'Network Error', message: 'Network error triggering webhook dispatch' });
                       });
                   });
                 });
@@ -572,14 +728,15 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
                     
                     navigator.clipboard.writeText(paymentUrl)
                       .then(() => {
+                        window.showToast({ type: 'success', title: 'Copied', message: 'Payment link copied to clipboard!' });
                         const originalHtml = this.innerHTML;
-                        this.innerHTML = \`<svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>\`;
+                        this.innerHTML = '<svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
                         setTimeout(() => {
                           this.innerHTML = originalHtml;
                         }, 2000);
                       })
                       .catch(() => {
-                        alert('Failed to copy link. Please copy manually: ' + paymentUrl);
+                        window.showToast({ type: 'error', title: 'Copy Failed', message: 'Failed to copy link. Please copy manually: ' + paymentUrl });
                       });
                   });
                 });
@@ -657,13 +814,13 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
                         closeSheet('sheet-clear-transactions');
                         window.location.reload();
                       } else {
-                        alert('Clear failed: ' + (data.error || 'Unknown error'));
+                        window.showToast({ type: 'error', title: 'Clear Failed', message: data.error || 'Unknown error' });
                       }
                     })
                     .catch(() => {
                       this.disabled = false;
                       this.textContent = 'Permanently Clear All';
-                      alert('Network error clearing transactions');
+                      window.showToast({ type: 'error', title: 'Network Error', message: 'Network error clearing transactions' });
                     });
                 });
               }
@@ -705,11 +862,11 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
                   const orderId = invoiceOrderId.value;
 
                   if (!amount || amount <= 0) {
-                    alert('Please enter a valid billing amount');
+                    window.showToast({ type: 'warning', title: 'Validation Warning', message: 'Please enter a valid billing amount' });
                     return;
                   }
                   if (!orderId) {
-                    alert('Please enter an Order ID reference');
+                    window.showToast({ type: 'warning', title: 'Validation Warning', message: 'Please enter an Order ID reference' });
                     return;
                   }
 
@@ -736,14 +893,15 @@ export function TransactionsPage({ merchants, transactions, currentUser }: Trans
 
                         step1.classList.add('hidden');
                         step2.classList.remove('hidden');
+                        window.showToast({ type: 'success', title: 'Invoice Created', message: 'Dynamic QRIS invoice generated successfully!' });
                       } else {
-                        alert('Failed to generate invoice: ' + (data.error || 'Unknown error'));
+                        window.showToast({ type: 'error', title: 'Generation Failed', message: data.error || 'Failed to generate dynamic invoice.' });
                       }
                     })
                     .catch(err => {
                       this.disabled = false;
                       this.innerHTML = 'Generate Checkout Link';
-                      alert('Network error generating invoice');
+                      window.showToast({ type: 'error', title: 'Network Error', message: 'Network error generating invoice' });
                     });
                 });
               }

@@ -1,10 +1,12 @@
 import React from 'react';
+import { SystemSettingsConfig, DEFAULT_SYSTEM_SETTINGS } from '../services/settings.ts';
 
 interface LoginPageProps {
   error?: string;
+  settings?: SystemSettingsConfig;
 }
 
-export function LoginPage({ error }: LoginPageProps) {
+export function LoginPage({ error, settings = DEFAULT_SYSTEM_SETTINGS }: LoginPageProps) {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors duration-200">
       
@@ -12,11 +14,15 @@ export function LoginPage({ error }: LoginPageProps) {
       <div className="w-full md:w-5/12 bg-slate-900 dark:bg-zinc-900 border-b md:border-b-0 md:border-r border-slate-800 dark:border-zinc-800 flex flex-col justify-between p-6 sm:p-10 md:p-12 shrink-0">
         
         {/* Top Logo Section */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-sky-600 flex items-center justify-center text-white font-bold text-lg">
-            Q
-          </div>
-          <span className="font-bold text-lg tracking-tight text-white">QBiz Gateway</span>
+        <div className="flex items-center gap-3 min-w-0">
+          {settings.appLogoUrl ? (
+            <img src={settings.appLogoUrl} alt={settings.appName} className="w-8 h-8 rounded-lg object-contain bg-white dark:bg-zinc-900 p-0.5 border border-slate-700 shrink-0" />
+          ) : (
+            <div className="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center text-white font-bold text-lg shrink-0">
+              {settings.appName.slice(0, 1).toUpperCase()}
+            </div>
+          )}
+          <span className="font-bold text-lg tracking-tight text-white truncate">{settings.appName}</span>
         </div>
 
         {/* Middle Value Proposition Copy */}
@@ -25,16 +31,16 @@ export function LoginPage({ error }: LoginPageProps) {
             In-House Infrastructure
           </span>
           <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white leading-tight mt-2">
-            Dynamic QRIS Payment Router
+            {settings.appTagline || 'Dynamic QRIS Payment Router'}
           </h2>
           <p className="text-xs text-slate-400 leading-relaxed mt-4">
-            Connect GoBiz portals, automate bank mutations, and trigger webhook callbacks directly to your POS system.
+            Connect merchant portals, automate bank mutations, and trigger webhook callbacks directly to your POS system.
           </p>
         </div>
 
         {/* Bottom Metadata */}
         <div className="text-[9px] text-slate-500 font-mono">
-          QBIZ GATEWAY HUB v1.0.0 &bull; 2026 PRODUCTION RUNTIME
+          {settings.footerText || `${settings.appName.toUpperCase()} v1.1.0 • 2026 PRODUCTION RUNTIME`}
         </div>
       </div>
 

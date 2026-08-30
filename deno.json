@@ -22,9 +22,10 @@
     "dev": "deno run -A --env --watch main.tsx",
     "build:css": "deno run -A npm:tailwindcss@3 -i src/styles/input.css -o static/styles.css --minify",
     "watch:css": "deno run -A npm:tailwindcss@3 -i src/styles/input.css -o static/styles.css --watch",
-    "test": "deno test -A --env src/utils/qris.test.ts src/utils/api.test.ts src/utils/crypto.test.ts",
+    "test": "deno test -A --env src/utils/qris.test.ts src/utils/api.test.ts src/utils/crypto.test.ts src/services/notification.test.ts src/services/settings.test.ts src/services/api-keys.test.ts src/services/webhooks.test.ts",
     "db:generate": "deno run -A --env npm:drizzle-kit generate",
-    "db:migrate": "deno run -A --env db/migrate.ts"
+    "db:migrate": "deno run -A --env db/migrate.ts",
+    "db:seed": "deno run -A --env db/seed.ts"
   },
   "compilerOptions": {
     "jsx": "react-jsx",

@@ -20,7 +20,8 @@ WORKDIR /app
 # Copy project files
 COPY . .
 
-# Pre-cache dependencies
+# Build Tailwind CSS & Pre-cache dependencies
+RUN deno task build:css
 RUN deno cache main.tsx
 
 EXPOSE 8000

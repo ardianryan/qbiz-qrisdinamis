@@ -425,6 +425,9 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
           </div>
         </div>
 
+        {/* Modern Toast Container */}
+        <div id="checkout-toast-container" className="fixed top-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
         {/* Dynamic timer & polling status script */}
         <script dangerouslySetInnerHTML={{
           __html: `
@@ -434,6 +437,26 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               const timerDisplay = document.getElementById('countdown-timer');
               const expiredOverlay = document.getElementById('expired-overlay');
               const successOverlay = document.getElementById('success-overlay');
+
+              // --- Toast Helper ---
+              function showToast(type, message) {
+                const container = document.getElementById('checkout-toast-container');
+                if (!container) return;
+                const toast = document.createElement('div');
+                toast.className = 'pointer-events-auto flex items-start gap-3 p-3.5 rounded-xl border shadow-xl backdrop-blur-md transform transition-all duration-300 translate-y-2 opacity-0 ' +
+                  (type === 'success' ? 'bg-white/95 dark:bg-zinc-900/95 border-emerald-200 dark:border-emerald-900/80 text-emerald-950 dark:text-emerald-50' :
+                   type === 'error' ? 'bg-white/95 dark:bg-zinc-900/95 border-red-200 dark:border-red-900/80 text-red-950 dark:text-red-50' :
+                   type === 'warning' ? 'bg-white/95 dark:bg-zinc-900/95 border-amber-200 dark:border-amber-900/80 text-amber-950 dark:text-amber-50' :
+                   'bg-white/95 dark:bg-zinc-900/95 border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-50');
+
+                toast.innerHTML = '<div class="text-xs font-semibold leading-relaxed flex-1">' + message + '</div>';
+                container.appendChild(toast);
+                requestAnimationFrame(() => toast.classList.remove('opacity-0', 'translate-y-2'));
+                setTimeout(() => {
+                  toast.classList.add('opacity-0', 'translate-y-2');
+                  setTimeout(() => toast.remove(), 300);
+                }, 4000);
+              }
 
               // --- 1. COUNTDOWN TIMER ---
               function updateTimer() {
@@ -494,10 +517,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                 btnCheckStatus.addEventListener('click', function() {
                   const originalText = this.innerHTML;
                   this.disabled = true;
-                  this.innerHTML = \`
-                    <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H17.75"></path></svg>
-                    Memeriksa...
-                  \`;
+                  this.innerHTML = '<svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H17.75"></path></svg> Memeriksa...';
 
                   fetch('/api/v1/invoices/' + invoiceId + '/status')
                     .then(res => res.json())
@@ -522,7 +542,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                           clearInterval(statusInterval);
                           if (expiredOverlay) expiredOverlay.style.display = 'flex';
                         } else {
-                          alert('Pembayaran belum masuk. Mohon tunggu atau coba beberapa saat lagi.');
+                          showToast('warning', 'Pembayaran belum masuk. Mohon tunggu atau coba beberapa saat lagi.');
                         }
                       }, 1000); // 1-second deliberate delay for loading state
                     })
@@ -530,7 +550,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                       setTimeout(() => {
                         this.disabled = false;
                         this.innerHTML = originalText;
-                        alert('Gagal memeriksa status pembayaran. Koneksi bermasalah.');
+                        showToast('error', 'Gagal memeriksa status pembayaran. Koneksi bermasalah.');
                       }, 1000);
                     });
                 });
@@ -551,15 +571,16 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                   .then(res => res.json())
                   .then(data => {
                     if (data.success) {
+                      showToast('success', 'Simulasi pembayaran berhasil diterima!');
                       checkPaymentStatus();
                     } else {
-                      alert('Gagal memproses simulasi: ' + (data.error || 'Unknown error'));
+                      showToast('error', 'Gagal memproses simulasi: ' + (data.error || 'Unknown error'));
                       this.disabled = false;
                       this.textContent = originalText;
                     }
                   })
                   .catch(err => {
-                    alert('Koneksi galat: ' + err.message);
+                    showToast('error', 'Koneksi galat: ' + err.message);
                     this.disabled = false;
                     this.textContent = originalText;
                   });

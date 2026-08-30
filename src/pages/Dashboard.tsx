@@ -1,6 +1,9 @@
 import React from 'react';
 import { Layout } from '../components/Layout.tsx';
 
+import { MerchantContext } from '../middleware/auth.ts';
+import { SystemSettingsConfig } from '../services/settings.ts';
+
 interface DashboardPageProps {
   stats: {
     totalVolume: number;
@@ -20,20 +23,23 @@ interface DashboardPageProps {
     createdAt: string;
   }>;
   currentUser: any;
+  activeMerchant?: MerchantContext | null;
+  accessibleMerchants?: MerchantContext[];
+  systemSettings?: SystemSettingsConfig;
 }
 
 function formatRupiah(amount: number): string {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
 }
 
-export function DashboardPage({ stats, recentActivities, currentUser }: DashboardPageProps) {
+export function DashboardPage({ stats, recentActivities, currentUser, activeMerchant, accessibleMerchants, systemSettings }: DashboardPageProps) {
   const total = stats.totalInvoices || 1;
   const paidPercent = Math.round((stats.paidInvoices / total) * 100);
   const pendingPercent = Math.round((stats.pendingInvoices / total) * 100);
   const expiredPercent = Math.round((stats.expiredInvoices / total) * 100);
 
   return (
-    <Layout activePath="/dashboard" user={currentUser}>
+    <Layout activePath="/dashboard" user={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants} systemSettings={systemSettings}>
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Welcome Header */}
@@ -43,13 +49,26 @@ export function DashboardPage({ stats, recentActivities, currentUser }: Dashboar
               Dashboard Overview
             </h1>
             <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-              Welcome back, <span className="font-medium text-slate-700 dark:text-zinc-200">{currentUser.name}</span>. Here is the operational payment summary.
+              Welcome back, <span className="font-medium text-slate-700 dark:text-zinc-200">{currentUser.name}</span>.
+              {activeMerchant ? (
+                <span> Showing real-time payment feed for <strong className="text-sky-600 dark:text-sky-400">{activeMerchant.name}</strong>.</span>
+              ) : (
+                <span> Real-time platform payment analytics and gateway feed.</span>
+              )}
             </p>
           </div>
           
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded border border-slate-200 dark:border-zinc-800 text-xs font-medium text-slate-600 dark:text-zinc-400 bg-white dark:bg-zinc-900 shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Role: {currentUser.role.replace('_', ' ')}
+          <div className="flex items-center gap-2">
+            {activeMerchant && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-slate-200 dark:border-zinc-800 text-xs font-medium text-slate-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 shadow-sm">
+                <span className={`w-1.5 h-1.5 rounded-full ${activeMerchant.status === 'ACTIVE' ? 'bg-emerald-500 animate-pulse' : activeMerchant.status === 'NEEDS_OTP' ? 'bg-amber-500' : 'bg-red-500'}`}></span>
+                Store: <span className="font-semibold">{activeMerchant.name}</span>
+              </div>
+            )}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg border border-slate-200 dark:border-zinc-800 text-xs font-medium text-slate-600 dark:text-zinc-400 bg-white dark:bg-zinc-900 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              {currentUser.role.replace('_', ' ')}
+            </div>
           </div>
         </div>
 
@@ -95,7 +114,7 @@ export function DashboardPage({ stats, recentActivities, currentUser }: Dashboar
           {/* Active Scrapers */}
           <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg p-6 shadow-sm">
             <div className="flex justify-between items-start">
-              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-wider">Active Scrapers</span>
+              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-550 uppercase tracking-wider">Active Listeners</span>
               <span className="p-1 rounded bg-slate-50 dark:bg-zinc-800 border border-slate-100 dark:border-zinc-700 text-slate-600 dark:text-zinc-300">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
               </span>
@@ -105,7 +124,7 @@ export function DashboardPage({ stats, recentActivities, currentUser }: Dashboar
                 {stats.activeScrapers}
               </div>
               <span className="text-[9px] font-semibold text-slate-400 dark:text-zinc-500 mt-1.5 block">
-                Running GoBiz bot listeners
+                Running background listeners
               </span>
             </div>
           </div>
