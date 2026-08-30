@@ -59,13 +59,53 @@ export function UsersPage({ users, merchants, currentUser, activeMerchant, acces
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. USERS DIRECTORY TABLE (DESKTOP) & STACKED LIST (MOBILE) */}
+      {/* 2. SEARCH & FILTER TOOLBAR */}
+      {/* ========================================================================= */}
+      <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 mb-6 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+        <div className="relative w-full sm:w-80">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          </span>
+          <input 
+            type="text" 
+            id="user-filter-search" 
+            placeholder="Search user name or email..." 
+            className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 outline-none"
+          />
+        </div>
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <select id="user-filter-role" className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-zinc-200 outline-none cursor-pointer">
+            <option value="ALL">All Roles</option>
+            <option value="SUPER_ADMIN">Super Admin</option>
+            <option value="ADMIN">Operations Admin</option>
+            <option value="REGIONAL_ADMIN">Regional Admin</option>
+            <option value="MERCHANT">Merchant Owner</option>
+            <option value="MERCHANT_EMPLOYEE">Cashier / Staff</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Empty Search Result */}
+      <div id="user-empty-search" className="hidden flex flex-col items-center justify-center py-12 px-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-center shadow-sm mb-6">
+        <span className="text-2xl mb-2">🔍</span>
+        <p className="text-sm font-semibold text-slate-800 dark:text-zinc-200">No matching users found</p>
+        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">Try changing your search terms or clearing the role filter.</p>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. USERS DIRECTORY TABLE (DESKTOP) & STACKED LIST (MOBILE) */}
       {/* ========================================================================= */}
       
       {/* Mobile Card list */}
-      <div className="block sm:hidden space-y-4">
+      <div id="mobile-user-list" className="block sm:hidden space-y-4">
         {users.map(u => (
-          <div key={u.id} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm flex flex-col gap-3">
+          <div 
+            key={u.id} 
+            className="user-card bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm flex flex-col gap-3"
+            data-name={u.name.toLowerCase()}
+            data-email={u.email.toLowerCase()}
+            data-role={u.role}
+          >
             <div className="flex justify-between items-start">
               <div className="flex flex-col">
                 <span className="font-bold text-sm text-slate-900 dark:text-zinc-100">{u.name}</span>
@@ -102,7 +142,7 @@ export function UsersPage({ users, merchants, currentUser, activeMerchant, acces
       </div>
 
       {/* Desktop Spreadsheet-style Table */}
-      <div className="hidden sm:block bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
+      <div id="desktop-user-table-container" className="hidden sm:block bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -116,7 +156,13 @@ export function UsersPage({ users, merchants, currentUser, activeMerchant, acces
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-zinc-800/60 text-xs text-slate-700 dark:text-zinc-300">
               {users.map(u => (
-                <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition-colors">
+                <tr 
+                  key={u.id} 
+                  className="user-row hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition-colors"
+                  data-name={u.name.toLowerCase()}
+                  data-email={u.email.toLowerCase()}
+                  data-role={u.role}
+                >
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300 font-bold text-[10px] flex items-center justify-center uppercase">
@@ -158,6 +204,27 @@ export function UsersPage({ users, merchants, currentUser, activeMerchant, acces
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Bar */}
+        <div id="users-pagination-bar" className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 text-xs text-slate-500 dark:text-zinc-400">
+          <div className="flex items-center gap-2">
+            <span>Show</span>
+            <select id="users-page-size" className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded px-2 py-1 text-xs text-slate-800 dark:text-zinc-200 outline-none cursor-pointer">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+            <span>users per page</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span id="users-pagination-info" className="text-xs">Showing 1 to {Math.min(10, users.length)} of {users.length} users</span>
+            <div className="inline-flex items-center gap-1">
+              <button id="users-btn-prev" className="px-2.5 py-1 rounded border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs transition-colors">Prev</button>
+              <div id="users-page-numbers" className="inline-flex items-center gap-1"></div>
+              <button id="users-btn-next" className="px-2.5 py-1 rounded border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs transition-colors">Next</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -355,6 +422,135 @@ export function UsersPage({ users, merchants, currentUser, activeMerchant, acces
                 }
               });
             });
+
+            // =========================================================================
+            // USERS SEARCH & PAGINATION CONTROLLER
+            // =========================================================================
+            const userSearchInput = document.getElementById('user-filter-search');
+            const userRoleSelect = document.getElementById('user-filter-role');
+            const userEmptySearch = document.getElementById('user-empty-search');
+            const userPageSizeSelect = document.getElementById('users-page-size');
+            const userPaginationInfo = document.getElementById('users-pagination-info');
+            const userBtnPrev = document.getElementById('users-btn-prev');
+            const userBtnNext = document.getElementById('users-btn-next');
+            const userPageNumbers = document.getElementById('users-page-numbers');
+
+            let uCurrentPage = 1;
+            let uPageSize = 10;
+            let uFilteredItems = [];
+
+            function updateUserPagination() {
+              const total = uFilteredItems.length;
+              const totalPages = Math.max(1, Math.ceil(total / uPageSize));
+              if (uCurrentPage > totalPages) uCurrentPage = totalPages;
+              if (uCurrentPage < 1) uCurrentPage = 1;
+
+              const startIdx = (uCurrentPage - 1) * uPageSize;
+              const endIdx = Math.min(startIdx + uPageSize, total);
+
+              uFilteredItems.forEach((item, index) => {
+                if (index >= startIdx && index < endIdx) {
+                  if (item.row) item.row.classList.remove('hidden');
+                  if (item.card) item.card.classList.remove('hidden');
+                } else {
+                  if (item.row) item.row.classList.add('hidden');
+                  if (item.card) item.card.classList.add('hidden');
+                }
+              });
+
+              if (userPaginationInfo) {
+                if (total === 0) {
+                  userPaginationInfo.textContent = 'Showing 0 users';
+                } else {
+                  userPaginationInfo.textContent = 'Showing ' + (startIdx + 1) + ' to ' + endIdx + ' of ' + total + ' users';
+                }
+              }
+
+              if (userBtnPrev) userBtnPrev.disabled = uCurrentPage <= 1;
+              if (userBtnNext) userBtnNext.disabled = uCurrentPage >= totalPages;
+
+              if (userPageNumbers) {
+                userPageNumbers.innerHTML = '';
+                for (let p = 1; p <= totalPages; p++) {
+                  const pBtn = document.createElement('button');
+                  pBtn.className = 'px-2.5 py-1 rounded text-xs font-semibold transition-colors ' + 
+                    (p === uCurrentPage ? 'bg-sky-600 text-white' : 'border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800');
+                  pBtn.textContent = p;
+                  pBtn.addEventListener('click', () => {
+                    uCurrentPage = p;
+                    updateUserPagination();
+                  });
+                  userPageNumbers.appendChild(pBtn);
+                }
+              }
+            }
+
+            function filterUsers() {
+              const query = (userSearchInput ? userSearchInput.value : '').toLowerCase().trim();
+              const role = userRoleSelect ? userRoleSelect.value : 'ALL';
+
+              const allRows = Array.from(document.querySelectorAll('.user-row'));
+              const allCards = Array.from(document.querySelectorAll('.user-card'));
+
+              allRows.forEach(r => r.classList.add('hidden'));
+              allCards.forEach(c => c.classList.add('hidden'));
+
+              uFilteredItems = [];
+              const count = Math.max(allRows.length, allCards.length);
+
+              for (let i = 0; i < count; i++) {
+                const row = allRows[i];
+                const card = allCards[i];
+                const el = row || card;
+                if (!el) continue;
+
+                const name = (el.getAttribute('data-name') || '').toLowerCase();
+                const email = (el.getAttribute('data-email') || '').toLowerCase();
+                const userRole = el.getAttribute('data-role');
+
+                const matchesQuery = name.includes(query) || email.includes(query);
+                const matchesRole = role === 'ALL' || userRole === role;
+
+                if (matchesQuery && matchesRole) {
+                  uFilteredItems.push({ row, card });
+                }
+              }
+
+              if (uFilteredItems.length === 0 && count > 0) {
+                if (userEmptySearch) userEmptySearch.classList.remove('hidden');
+              } else {
+                if (userEmptySearch) userEmptySearch.classList.add('hidden');
+              }
+
+              uCurrentPage = 1;
+              updateUserPagination();
+            }
+
+            if (userSearchInput) userSearchInput.addEventListener('input', filterUsers);
+            if (userRoleSelect) userRoleSelect.addEventListener('change', filterUsers);
+            if (userPageSizeSelect) {
+              userPageSizeSelect.addEventListener('change', function() {
+                uPageSize = parseInt(this.value, 10) || 10;
+                uCurrentPage = 1;
+                updateUserPagination();
+              });
+            }
+            if (userBtnPrev) {
+              userBtnPrev.addEventListener('click', function() {
+                if (uCurrentPage > 1) {
+                  uCurrentPage--;
+                  updateUserPagination();
+                }
+              });
+            }
+            if (userBtnNext) {
+              userBtnNext.addEventListener('click', function() {
+                uCurrentPage++;
+                updateUserPagination();
+              });
+            }
+
+            filterUsers();
 
           })();
         `

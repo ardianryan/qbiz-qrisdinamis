@@ -47,7 +47,41 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. MERCHANTS GRID */}
+      {/* 2. SEARCH & FILTER TOOLBAR */}
+      {/* ========================================================================= */}
+      {merchants.length > 0 && (
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3.5 mb-6 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div className="relative w-full sm:w-80">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </span>
+            <input 
+              type="text" 
+              id="merchant-filter-search" 
+              placeholder="Search store name or phone..." 
+              className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 outline-none"
+            />
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <select id="merchant-filter-status" className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 dark:text-zinc-200 outline-none cursor-pointer">
+              <option value="ALL">All Status</option>
+              <option value="ACTIVE">🟢 Active Listener</option>
+              <option value="NEEDS_OTP">🟡 Needs OTP</option>
+              <option value="DISCONNECTED">🔴 Disconnected</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Empty Search Result */}
+      <div id="merchant-empty-search" className="hidden flex flex-col items-center justify-center py-12 px-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-center shadow-sm mb-6">
+        <span className="text-2xl mb-2">🔍</span>
+        <p className="text-sm font-semibold text-slate-800 dark:text-zinc-200">No matching merchant stores found</p>
+        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">Try refining your search keyword or clearing the status filter.</p>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. MERCHANTS GRID */}
       {/* ========================================================================= */}
       {merchants.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl max-w-lg mx-auto text-center shadow-sm">
@@ -66,16 +100,20 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {merchants.map((merchant) => {
-            const isSynced = merchant.status === 'ACTIVE';
-            const isSyncing = merchant.status === 'NEEDS_OTP';
-            
-            return (
-              <div 
-                key={merchant.id}
-                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-5 flex flex-col justify-between shadow-sm hover:border-slate-300 dark:hover:border-zinc-700 transition-all group"
-              >
+        <div id="merchants-grid-container" className="space-y-6">
+          <div id="merchants-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {merchants.map((merchant) => {
+              const isSynced = merchant.status === 'ACTIVE';
+              const isSyncing = merchant.status === 'NEEDS_OTP';
+              
+              return (
+                <div 
+                  key={merchant.id}
+                  className="merchant-card bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-5 flex flex-col justify-between shadow-sm hover:border-slate-300 dark:hover:border-zinc-700 transition-all group"
+                  data-name={merchant.name.toLowerCase()}
+                  data-phone={merchant.phoneNumber}
+                  data-status={merchant.status}
+                >
                 {/* Top Row: Info & Provider */}
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-2">
@@ -244,6 +282,28 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
               </div>
             );
           })}
+        </div>
+
+        {/* Pagination Bar */}
+          <div id="merchants-pagination-bar" className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs text-slate-500 dark:text-zinc-400 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span>Show</span>
+              <select id="merchants-page-size" className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded px-2 py-1 text-xs text-slate-800 dark:text-zinc-200 outline-none cursor-pointer">
+                <option value="6">6</option>
+                <option value="12">12</option>
+                <option value="24">24</option>
+              </select>
+              <span>stores per page</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span id="merchants-pagination-info" className="text-xs">Showing 1 to {Math.min(6, merchants.length)} of {merchants.length} stores</span>
+              <div className="inline-flex items-center gap-1">
+                <button id="merchants-btn-prev" className="px-2.5 py-1 rounded border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs transition-colors">Prev</button>
+                <div id="merchants-page-numbers" className="inline-flex items-center gap-1"></div>
+                <button id="merchants-btn-next" className="px-2.5 py-1 rounded border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs transition-colors">Next</button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1191,6 +1251,123 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                 showNotifFeedback('error', 'Network error saving notification settings.');
               }
             });
+
+            // =========================================================================
+            // STORE CARDS SEARCH & PAGINATION CONTROLLER
+            // =========================================================================
+            const merchantSearchInput = document.getElementById('merchant-filter-search');
+            const merchantStatusSelect = document.getElementById('merchant-filter-status');
+            const merchantEmptySearch = document.getElementById('merchant-empty-search');
+            const merchantPageSizeSelect = document.getElementById('merchants-page-size');
+            const merchantPaginationInfo = document.getElementById('merchants-pagination-info');
+            const merchantBtnPrev = document.getElementById('merchants-btn-prev');
+            const merchantBtnNext = document.getElementById('merchants-btn-next');
+            const merchantPageNumbers = document.getElementById('merchants-page-numbers');
+
+            let mCurrentPage = 1;
+            let mPageSize = 6;
+            let mFilteredCards = [];
+
+            function updateMerchantPagination() {
+              const total = mFilteredCards.length;
+              const totalPages = Math.max(1, Math.ceil(total / mPageSize));
+              if (mCurrentPage > totalPages) mCurrentPage = totalPages;
+              if (mCurrentPage < 1) mCurrentPage = 1;
+
+              const startIdx = (mCurrentPage - 1) * mPageSize;
+              const endIdx = Math.min(startIdx + mPageSize, total);
+
+              mFilteredCards.forEach((card, index) => {
+                if (index >= startIdx && index < endIdx) {
+                  card.classList.remove('hidden');
+                } else {
+                  card.classList.add('hidden');
+                }
+              });
+
+              if (merchantPaginationInfo) {
+                if (total === 0) {
+                  merchantPaginationInfo.textContent = 'Showing 0 stores';
+                } else {
+                  merchantPaginationInfo.textContent = 'Showing ' + (startIdx + 1) + ' to ' + endIdx + ' of ' + total + ' stores';
+                }
+              }
+
+              if (merchantBtnPrev) merchantBtnPrev.disabled = mCurrentPage <= 1;
+              if (merchantBtnNext) merchantBtnNext.disabled = mCurrentPage >= totalPages;
+
+              if (merchantPageNumbers) {
+                merchantPageNumbers.innerHTML = '';
+                for (let p = 1; p <= totalPages; p++) {
+                  const pBtn = document.createElement('button');
+                  pBtn.className = 'px-2.5 py-1 rounded text-xs font-semibold transition-colors ' + 
+                    (p === mCurrentPage ? 'bg-sky-600 text-white' : 'border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800');
+                  pBtn.textContent = p;
+                  pBtn.addEventListener('click', () => {
+                    mCurrentPage = p;
+                    updateMerchantPagination();
+                  });
+                  merchantPageNumbers.appendChild(pBtn);
+                }
+              }
+            }
+
+            function filterMerchantCards() {
+              const query = (merchantSearchInput ? merchantSearchInput.value : '').toLowerCase().trim();
+              const status = merchantStatusSelect ? merchantStatusSelect.value : 'ALL';
+              const allCards = Array.from(document.querySelectorAll('.merchant-card'));
+
+              allCards.forEach(c => c.classList.add('hidden'));
+              mFilteredCards = [];
+
+              allCards.forEach(card => {
+                const name = card.getAttribute('data-name') || '';
+                const phone = card.getAttribute('data-phone') || '';
+                const cardStatus = card.getAttribute('data-status') || '';
+
+                const matchesQuery = name.includes(query) || phone.includes(query);
+                const matchesStatus = status === 'ALL' || cardStatus === status;
+
+                if (matchesQuery && matchesStatus) {
+                  mFilteredCards.push(card);
+                }
+              });
+
+              if (mFilteredCards.length === 0 && allCards.length > 0) {
+                if (merchantEmptySearch) merchantEmptySearch.classList.remove('hidden');
+              } else {
+                if (merchantEmptySearch) merchantEmptySearch.classList.add('hidden');
+              }
+
+              mCurrentPage = 1;
+              updateMerchantPagination();
+            }
+
+            if (merchantSearchInput) merchantSearchInput.addEventListener('input', filterMerchantCards);
+            if (merchantStatusSelect) merchantStatusSelect.addEventListener('change', filterMerchantCards);
+            if (merchantPageSizeSelect) {
+              merchantPageSizeSelect.addEventListener('change', function() {
+                mPageSize = parseInt(this.value, 10) || 6;
+                mCurrentPage = 1;
+                updateMerchantPagination();
+              });
+            }
+            if (merchantBtnPrev) {
+              merchantBtnPrev.addEventListener('click', function() {
+                if (mCurrentPage > 1) {
+                  mCurrentPage--;
+                  updateMerchantPagination();
+                }
+              });
+            }
+            if (merchantBtnNext) {
+              merchantBtnNext.addEventListener('click', function() {
+                mCurrentPage++;
+                updateMerchantPagination();
+              });
+            }
+
+            filterMerchantCards();
 
           })();
         `

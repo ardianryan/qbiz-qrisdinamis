@@ -340,6 +340,28 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        <div id="tx-pagination-bar" className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800 text-xs text-slate-500 dark:text-zinc-400">
+          <div className="flex items-center gap-2">
+            <span>Show</span>
+            <select id="tx-page-size" className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded px-2 py-1 text-xs text-slate-800 dark:text-zinc-200 outline-none cursor-pointer">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+            <span>entries per page</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span id="tx-pagination-info" className="text-xs">Showing 1 to 10 of 20 entries</span>
+            <div className="inline-flex items-center gap-1">
+              <button id="tx-btn-prev" className="px-2.5 py-1 rounded border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs transition-colors">Prev</button>
+              <div id="tx-page-numbers" className="inline-flex items-center gap-1"></div>
+              <button id="tx-btn-next" className="px-2.5 py-1 rounded border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed font-medium text-xs transition-colors">Next</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -354,43 +376,149 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               const statusSelect = document.getElementById('filter-status');
               const emptyState = document.getElementById('tx-empty-state');
               const desktopTable = document.getElementById('desktop-tx-table-container');
+              const pageSizeSelect = document.getElementById('tx-page-size');
+              const paginationInfo = document.getElementById('tx-pagination-info');
+              const btnPrev = document.getElementById('tx-btn-prev');
+              const btnNext = document.getElementById('tx-btn-next');
+              const pageNumbersContainer = document.getElementById('tx-page-numbers');
 
-              // --- A. Local Filtering Logic ---
+              let currentPage = 1;
+              let pageSize = 10;
+              let currentFilteredRows = [];
+
+              // --- A. Pagination & Filtering Controller ---
+              function updatePagination() {
+                const total = currentFilteredRows.length;
+                const totalPages = Math.max(1, Math.ceil(total / pageSize));
+                if (currentPage > totalPages) currentPage = totalPages;
+                if (currentPage < 1) currentPage = 1;
+
+                const startIdx = (currentPage - 1) * pageSize;
+                const endIdx = Math.min(startIdx + pageSize, total);
+
+                // Show only items in active page
+                currentFilteredRows.forEach((item, index) => {
+                  if (index >= startIdx && index < endIdx) {
+                    if (item.row) item.row.classList.remove('hidden');
+                    if (item.card) item.card.classList.remove('hidden');
+                  } else {
+                    if (item.row) item.row.classList.add('hidden');
+                    if (item.card) item.card.classList.add('hidden');
+                  }
+                });
+
+                // Update Info Label
+                if (paginationInfo) {
+                  if (total === 0) {
+                    paginationInfo.textContent = 'Showing 0 entries';
+                  } else {
+                    paginationInfo.textContent = 'Showing ' + (startIdx + 1) + ' to ' + endIdx + ' of ' + total + ' entries';
+                  }
+                }
+
+                // Update Buttons
+                if (btnPrev) btnPrev.disabled = currentPage <= 1;
+                if (btnNext) btnNext.disabled = currentPage >= totalPages;
+
+                // Render Page Numbers
+                if (pageNumbersContainer) {
+                  pageNumbersContainer.innerHTML = '';
+                  for (let p = 1; p <= totalPages; p++) {
+                    if (totalPages > 7 && Math.abs(p - currentPage) > 2 && p !== 1 && p !== totalPages) {
+                      if (p === 2 || p === totalPages - 1) {
+                        const dots = document.createElement('span');
+                        dots.className = 'px-1 text-slate-400';
+                        dots.textContent = '...';
+                        pageNumbersContainer.appendChild(dots);
+                      }
+                      continue;
+                    }
+                    const pBtn = document.createElement('button');
+                    pBtn.className = 'px-2.5 py-1 rounded text-xs font-semibold transition-colors ' + 
+                      (p === currentPage ? 'bg-sky-600 text-white' : 'border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800');
+                    pBtn.textContent = p;
+                    pBtn.addEventListener('click', () => {
+                      currentPage = p;
+                      updatePagination();
+                    });
+                    pageNumbersContainer.appendChild(pBtn);
+                  }
+                }
+              }
+
               function applyFilters() {
                 const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
                 const merchant = merchantSelect ? merchantSelect.value : 'ALL';
                 const status = statusSelect ? statusSelect.value : 'ALL';
 
-                let visibleCount = 0;
-                document.querySelectorAll('.tx-row, .tx-card').forEach(row => {
-                  const term = (row.getAttribute('data-search-term') || '').toLowerCase();
-                  const rowMerchant = row.getAttribute('data-merchant');
-                  const rowStatus = row.getAttribute('data-status');
+                const allRows = Array.from(document.querySelectorAll('.tx-row'));
+                const allCards = Array.from(document.querySelectorAll('.tx-card'));
+
+                // Hide all initially
+                allRows.forEach(r => r.classList.add('hidden'));
+                allCards.forEach(c => c.classList.add('hidden'));
+
+                currentFilteredRows = [];
+                const count = Math.max(allRows.length, allCards.length);
+
+                for (let i = 0; i < count; i++) {
+                  const row = allRows[i];
+                  const card = allCards[i];
+                  const el = row || card;
+                  if (!el) continue;
+
+                  const term = (el.getAttribute('data-search-term') || '').toLowerCase();
+                  const rowMerchant = el.getAttribute('data-merchant');
+                  const rowStatus = el.getAttribute('data-status');
 
                   const matchesSearch = term.includes(query);
                   const matchesMerchant = merchant === 'ALL' || rowMerchant === merchant;
                   const matchesStatus = status === 'ALL' || rowStatus === status;
 
                   if (matchesSearch && matchesMerchant && matchesStatus) {
-                    row.classList.remove('hidden');
-                    visibleCount++;
-                  } else {
-                    row.classList.add('hidden');
+                    currentFilteredRows.push({ row, card });
                   }
-                });
+                }
 
-                if (visibleCount === 0) {
+                if (currentFilteredRows.length === 0) {
                   if (emptyState) emptyState.classList.remove('hidden');
                   if (desktopTable) desktopTable.classList.add('hidden');
                 } else {
                   if (emptyState) emptyState.classList.add('hidden');
                   if (desktopTable) desktopTable.classList.remove('hidden');
                 }
+
+                currentPage = 1;
+                updatePagination();
               }
 
               if (searchInput) searchInput.addEventListener('input', applyFilters);
               if (merchantSelect) merchantSelect.addEventListener('change', applyFilters);
               if (statusSelect) statusSelect.addEventListener('change', applyFilters);
+              if (pageSizeSelect) {
+                pageSizeSelect.addEventListener('change', function() {
+                  pageSize = parseInt(this.value, 10) || 10;
+                  currentPage = 1;
+                  updatePagination();
+                });
+              }
+              if (btnPrev) {
+                btnPrev.addEventListener('click', function() {
+                  if (currentPage > 1) {
+                    currentPage--;
+                    updatePagination();
+                  }
+                });
+              }
+              if (btnNext) {
+                btnNext.addEventListener('click', function() {
+                  currentPage++;
+                  updatePagination();
+                });
+              }
+
+              // Initialize first render
+              applyFilters();
 
               // --- B. Auto-Refresh Logic (SSE/Polling simulation) ---
               // Poll for new transactions or status changes every 8 seconds
