@@ -433,8 +433,32 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
               Add / Manage All Stores
             </a>
-            <button className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:bg-slate-300 dark:hover:bg-zinc-700 modal-close-trigger">
-              Close
+          </div>
+        </div>
+      </div>
+
+      {/* Global Shadcn-style Toast Notification Container */}
+      <div id="global-toast-container" className="fixed top-5 right-5 z-[9999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+      {/* Global Shadcn-style Confirmation Dialog Modal */}
+      <div id="global-confirm-dialog" className="fixed inset-0 z-[9998] flex items-center justify-center hidden" role="dialog" aria-modal="true">
+        <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm confirm-backdrop transition-opacity"></div>
+        <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 max-w-md w-full mx-4 shadow-2xl relative z-10 transition-all duration-200 scale-95 opacity-0 confirm-card">
+          <div className="flex items-start gap-3.5 mb-4">
+            <div id="confirm-dialog-icon" className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            </div>
+            <div>
+              <h3 id="confirm-dialog-title" className="font-bold text-base text-slate-900 dark:text-zinc-50">Confirm Action</h3>
+              <p id="confirm-dialog-desc" className="text-xs text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">Are you sure you want to proceed?</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2.5 mt-6 pt-4 border-t border-slate-100 dark:border-zinc-800">
+            <button id="confirm-dialog-btn-cancel" className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer">
+              Cancel
+            </button>
+            <button id="confirm-dialog-btn-action" className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 transition-colors shadow-sm cursor-pointer">
+              Confirm
             </button>
           </div>
         </div>
@@ -587,12 +611,122 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
                   if (json.success) {
                     window.location.reload();
                   } else {
-                    alert(json.error || 'Failed to switch workspace.');
+                    window.showToast({ type: 'error', title: 'Workspace Switch Failed', message: json.error || 'Failed to switch workspace.' });
                   }
                 } catch (e) {
-                  alert('Network error switching workspace.');
+                  window.showToast({ type: 'error', title: 'Network Error', message: 'Network error switching workspace.' });
                 }
               });
+            });
+
+            // --- E. Modern Shadcn Toast System ---
+            window.showToast = function(opts) {
+              const container = document.getElementById('global-toast-container');
+              if (!container) return;
+              
+              const type = typeof opts === 'string' ? 'info' : (opts.type || 'info');
+              const title = typeof opts === 'string' ? 'Notification' : (opts.title || (type === 'success' ? 'Success' : type === 'error' ? 'Error' : 'Notification'));
+              const message = typeof opts === 'string' ? opts : (opts.message || '');
+              const duration = opts.duration || 4000;
+
+              const toast = document.createElement('div');
+              toast.className = 'pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-xl backdrop-blur-md transform transition-all duration-300 translate-y-2 opacity-0 ' +
+                (type === 'success' ? 'bg-white/95 dark:bg-zinc-900/95 border-emerald-200 dark:border-emerald-900/80 text-emerald-950 dark:text-emerald-50' :
+                 type === 'error' ? 'bg-white/95 dark:bg-zinc-900/95 border-red-200 dark:border-red-900/80 text-red-950 dark:text-red-50' :
+                 type === 'warning' ? 'bg-white/95 dark:bg-zinc-900/95 border-amber-200 dark:border-amber-900/80 text-amber-950 dark:text-amber-50' :
+                 'bg-white/95 dark:bg-zinc-900/95 border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-zinc-50');
+
+              const iconSvg = type === 'success' ? '<svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>' :
+                type === 'error' ? '<svg class="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>' :
+                type === 'warning' ? '<svg class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>' :
+                '<svg class="w-5 h-5 text-sky-600 dark:text-sky-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+
+              toast.innerHTML = iconSvg +
+                '<div class="flex-1 min-w-0">' +
+                  '<p class="text-xs font-bold leading-none">' + title + '</p>' +
+                  '<p class="text-xs text-slate-600 dark:text-zinc-400 mt-1.5 leading-normal break-words">' + message + '</p>' +
+                '</div>' +
+                '<button class="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition-colors shrink-0 -mr-1 -mt-1 p-1 cursor-pointer">' +
+                  '<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>' +
+                '</button>';
+
+              const closeBtn = toast.querySelector('button');
+              const dismiss = () => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+              };
+              if (closeBtn) closeBtn.addEventListener('click', dismiss);
+              setTimeout(dismiss, duration);
+
+              container.appendChild(toast);
+              requestAnimationFrame(() => {
+                toast.classList.remove('opacity-0', 'translate-y-2');
+              });
+            };
+
+            // --- F. Modern Shadcn Confirmation Dialog ---
+            let confirmCallback = null;
+            window.showConfirmDialog = function(opts) {
+              const modal = document.getElementById('global-confirm-dialog');
+              if (!modal) return;
+
+              const card = modal.querySelector('.confirm-card');
+              const titleEl = document.getElementById('confirm-dialog-title');
+              const descEl = document.getElementById('confirm-dialog-desc');
+              const btnAction = document.getElementById('confirm-dialog-btn-action');
+              const btnCancel = document.getElementById('confirm-dialog-btn-cancel');
+              const iconContainer = document.getElementById('confirm-dialog-icon');
+
+              if (titleEl) titleEl.textContent = opts.title || 'Confirm Action';
+              if (descEl) descEl.textContent = opts.message || opts.description || 'Are you sure you want to proceed?';
+              
+              if (btnAction) {
+                btnAction.textContent = opts.confirmText || 'Confirm';
+                if (opts.isDestructive) {
+                  btnAction.className = 'px-4 py-2 rounded-lg text-xs font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm cursor-pointer';
+                  if (iconContainer) {
+                    iconContainer.className = 'w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center shrink-0';
+                  }
+                } else {
+                  btnAction.className = 'px-4 py-2 rounded-lg text-xs font-semibold text-white bg-sky-600 hover:bg-sky-700 transition-colors shadow-sm cursor-pointer';
+                  if (iconContainer) {
+                    iconContainer.className = 'w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0';
+                  }
+                }
+              }
+
+              if (btnCancel) btnCancel.textContent = opts.cancelText || 'Cancel';
+
+              confirmCallback = typeof opts.onConfirm === 'function' ? opts.onConfirm : null;
+
+              modal.classList.remove('hidden');
+              requestAnimationFrame(() => {
+                if (card) {
+                  card.classList.remove('scale-95', 'opacity-0');
+                  card.classList.add('scale-100', 'opacity-100');
+                }
+              });
+            };
+
+            function closeGlobalConfirmModal() {
+              const modal = document.getElementById('global-confirm-dialog');
+              if (!modal) return;
+              const card = modal.querySelector('.confirm-card');
+              if (card) {
+                card.classList.remove('scale-100', 'opacity-100');
+                card.classList.add('scale-95', 'opacity-0');
+              }
+              setTimeout(() => {
+                modal.classList.add('hidden');
+                confirmCallback = null;
+              }, 200);
+            }
+
+            document.getElementById('confirm-dialog-btn-cancel')?.addEventListener('click', closeGlobalConfirmModal);
+            document.querySelector('#global-confirm-dialog .confirm-backdrop')?.addEventListener('click', closeGlobalConfirmModal);
+            document.getElementById('confirm-dialog-btn-action')?.addEventListener('click', function() {
+              if (confirmCallback) confirmCallback();
+              closeGlobalConfirmModal();
             });
 
           })();

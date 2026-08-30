@@ -684,14 +684,14 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                       .then(data => {
                         this.disabled = false;
                         if (data.success) {
-                          alert('Webhook dispatch triggered successfully for Invoice: ' + txId);
+                          window.showToast({ type: 'success', title: 'Webhook Dispatched', message: 'Webhook callback triggered successfully for Invoice: ' + txId });
                         } else {
-                          alert('Failed to resend webhook: ' + (data.error || 'Unknown error'));
+                          window.showToast({ type: 'error', title: 'Dispatch Failed', message: data.error || 'Failed to resend webhook callback.' });
                         }
                       })
                       .catch(() => {
                         this.disabled = false;
-                        alert('Network error triggering webhook dispatch');
+                        window.showToast({ type: 'error', title: 'Network Error', message: 'Network error triggering webhook dispatch' });
                       });
                   });
                 });
@@ -704,14 +704,15 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                     
                     navigator.clipboard.writeText(paymentUrl)
                       .then(() => {
+                        window.showToast({ type: 'success', title: 'Copied', message: 'Payment link copied to clipboard!' });
                         const originalHtml = this.innerHTML;
-                        this.innerHTML = \`<svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>\`;
+                        this.innerHTML = '<svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
                         setTimeout(() => {
                           this.innerHTML = originalHtml;
                         }, 2000);
                       })
                       .catch(() => {
-                        alert('Failed to copy link. Please copy manually: ' + paymentUrl);
+                        window.showToast({ type: 'error', title: 'Copy Failed', message: 'Failed to copy link. Please copy manually: ' + paymentUrl });
                       });
                   });
                 });
@@ -789,13 +790,13 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                         closeSheet('sheet-clear-transactions');
                         window.location.reload();
                       } else {
-                        alert('Clear failed: ' + (data.error || 'Unknown error'));
+                        window.showToast({ type: 'error', title: 'Clear Failed', message: data.error || 'Unknown error' });
                       }
                     })
                     .catch(() => {
                       this.disabled = false;
                       this.textContent = 'Permanently Clear All';
-                      alert('Network error clearing transactions');
+                      window.showToast({ type: 'error', title: 'Network Error', message: 'Network error clearing transactions' });
                     });
                 });
               }
@@ -837,11 +838,11 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                   const orderId = invoiceOrderId.value;
 
                   if (!amount || amount <= 0) {
-                    alert('Please enter a valid billing amount');
+                    window.showToast({ type: 'warning', title: 'Validation Warning', message: 'Please enter a valid billing amount' });
                     return;
                   }
                   if (!orderId) {
-                    alert('Please enter an Order ID reference');
+                    window.showToast({ type: 'warning', title: 'Validation Warning', message: 'Please enter an Order ID reference' });
                     return;
                   }
 
@@ -868,14 +869,15 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
 
                         step1.classList.add('hidden');
                         step2.classList.remove('hidden');
+                        window.showToast({ type: 'success', title: 'Invoice Created', message: 'Dynamic QRIS invoice generated successfully!' });
                       } else {
-                        alert('Failed to generate invoice: ' + (data.error || 'Unknown error'));
+                        window.showToast({ type: 'error', title: 'Generation Failed', message: data.error || 'Failed to generate dynamic invoice.' });
                       }
                     })
                     .catch(err => {
                       this.disabled = false;
                       this.innerHTML = 'Generate Checkout Link';
-                      alert('Network error generating invoice');
+                      window.showToast({ type: 'error', title: 'Network Error', message: 'Network error generating invoice' });
                     });
                 });
               }

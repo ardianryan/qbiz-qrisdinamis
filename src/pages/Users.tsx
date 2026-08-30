@@ -409,17 +409,27 @@ export function UsersPage({ users, merchants, currentUser, activeMerchant, acces
               btn.addEventListener('click', function() {
                 const id = this.getAttribute('data-id');
                 const name = this.getAttribute('data-name');
-                if (confirm('Are you sure you want to delete user account "' + name + '"? This action is irreversible.')) {
-                  fetch('/api/v1/users/' + id + '/delete', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                      if (data.success) {
-                        window.location.reload();
-                      } else {
-                        alert('Delete failed: ' + (data.error || 'Unknown error'));
-                      }
-                    });
-                }
+                window.showConfirmDialog({
+                  title: 'Delete User Account',
+                  message: 'Are you sure you want to delete user account "' + name + '"? This action cannot be undone.',
+                  isDestructive: true,
+                  confirmText: 'Delete User',
+                  onConfirm: () => {
+                    fetch('/api/v1/users/' + id + '/delete', { method: 'POST' })
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.success) {
+                          window.showToast({ type: 'success', title: 'User Deleted', message: 'User account "' + name + '" was deleted.' });
+                          setTimeout(() => window.location.reload(), 1000);
+                        } else {
+                          window.showToast({ type: 'error', title: 'Delete Failed', message: data.error || 'Failed to delete user.' });
+                        }
+                      })
+                      .catch(() => {
+                        window.showToast({ type: 'error', title: 'Network Error', message: 'Network error deleting user.' });
+                      });
+                  }
+                });
               });
             });
 

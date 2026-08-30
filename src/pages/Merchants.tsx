@@ -897,12 +897,13 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   this.textContent = 'Auth OTP';
                   if (data.success) {
                     openSheet('sheet-otp');
+                    window.showToast({ type: 'info', title: 'OTP Sent', message: 'Verification code sent to ' + phone });
                   } else {
-                    alert(data.error || 'Failed to trigger OTP.');
+                    window.showToast({ type: 'error', title: 'OTP Trigger Failed', message: data.error || 'Failed to trigger OTP.' });
                   }
                 } catch(e) {
                   this.textContent = 'Auth OTP';
-                  alert('Network error sending OTP.');
+                  window.showToast({ type: 'error', title: 'Network Error', message: 'Network error sending OTP.' });
                 }
               });
             });
@@ -912,7 +913,7 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
               btnSubmitOtp.addEventListener('click', async function() {
                 const code = document.getElementById('otp-input-code')?.value;
                 if (!code || code.length !== 4) {
-                  alert('Please enter a valid 4-digit OTP code.');
+                  window.showToast({ type: 'warning', title: 'Invalid OTP', message: 'Please enter a valid 4-digit OTP code.' });
                   return;
                 }
                 this.textContent = 'Verifying...';
@@ -926,13 +927,14 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   this.textContent = 'Verify OTP';
                   if (data.success) {
                     closeSheet('sheet-otp');
-                    window.location.reload();
+                    window.showToast({ type: 'success', title: 'Authenticated', message: 'Store successfully authenticated and listener started!' });
+                    setTimeout(() => window.location.reload(), 1000);
                   } else {
-                    alert(data.error || 'OTP verification failed.');
+                    window.showToast({ type: 'error', title: 'Verification Failed', message: data.error || 'OTP verification failed.' });
                   }
                 } catch(e) {
                   this.textContent = 'Verify OTP';
-                  alert('Network error verifying OTP.');
+                  window.showToast({ type: 'error', title: 'Network Error', message: 'Network error verifying OTP.' });
                 }
               });
             }
@@ -946,10 +948,14 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                 try {
                   const res = await fetch(endpoint, { method: 'POST' });
                   const data = await res.json();
-                  if (data.success) window.location.reload();
-                  else alert(data.error || 'Operation failed');
+                  if (data.success) {
+                    window.showToast({ type: 'success', title: 'Worker Updated', message: isActive ? 'Worker listener paused.' : 'Worker listener resumed.' });
+                    setTimeout(() => window.location.reload(), 800);
+                  } else {
+                    window.showToast({ type: 'error', title: 'Action Failed', message: data.error || 'Operation failed' });
+                  }
                 } catch(e) {
-                  alert('Network error');
+                  window.showToast({ type: 'error', title: 'Network Error', message: 'Network error communicating with worker.' });
                 }
               });
             });
@@ -972,9 +978,14 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   const data = await res.json();
                   if (data.success) {
                     closeSheet('sheet-confirm-disconnect');
-                    window.location.reload();
-                  } else alert(data.error || 'Disconnect failed');
-                } catch(e) { alert('Network error'); }
+                    window.showToast({ type: 'success', title: 'Disconnected', message: 'Merchant session disconnected successfully.' });
+                    setTimeout(() => window.location.reload(), 1000);
+                  } else {
+                    window.showToast({ type: 'error', title: 'Disconnect Failed', message: data.error || 'Disconnect failed' });
+                  }
+                } catch(e) { 
+                  window.showToast({ type: 'error', title: 'Network Error', message: 'Network error disconnecting account.' });
+                }
               });
             }
 
@@ -1010,9 +1021,14 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   const data = await res.json();
                   if (data.success) {
                     closeSheet('sheet-confirm-delete');
-                    window.location.reload();
-                  } else alert(data.error || 'Delete failed');
-                } catch(e) { alert('Network error'); }
+                    window.showToast({ type: 'success', title: 'Merchant Deleted', message: 'Merchant store deleted successfully.' });
+                    setTimeout(() => window.location.reload(), 1000);
+                  } else {
+                    window.showToast({ type: 'error', title: 'Delete Failed', message: data.error || 'Delete failed' });
+                  }
+                } catch(e) { 
+                  window.showToast({ type: 'error', title: 'Network Error', message: 'Network error deleting merchant.' });
+                }
               });
             }
 

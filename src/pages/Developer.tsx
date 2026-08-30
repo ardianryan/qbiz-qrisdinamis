@@ -490,17 +490,23 @@ println!("{:#?}", data);`
             const regenBtn = document.getElementById('btn-regenerate-key');
             if (regenBtn) {
               regenBtn.addEventListener('click', function() {
-                if (confirm('Are you sure you want to invalidate your current API key and regenerate a new one? External clients using the old key will lose access immediately.')) {
-                  fetch('/api/v1/developer/regenerate-key', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                      if (data.success && keyInput) {
-                        keyInput.value = data.apiKey;
-                        alert('API Key successfully regenerated! Please update your integration clients.');
-                        window.location.reload();
-                      }
-                    });
-                }
+                window.showConfirmDialog({
+                  title: 'Regenerate API Key',
+                  message: 'Are you sure you want to invalidate your current API key and regenerate a new one? External clients using the old key will lose access immediately.',
+                  isDestructive: true,
+                  confirmText: 'Regenerate Key',
+                  onConfirm: () => {
+                    fetch('/api/v1/developer/regenerate-key', { method: 'POST' })
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.success && keyInput) {
+                          keyInput.value = data.apiKey;
+                          window.showToast({ type: 'success', title: 'API Key Regenerated', message: 'API Key successfully regenerated! Please update your integration clients.' });
+                          setTimeout(() => window.location.reload(), 1200);
+                        }
+                      });
+                  }
+                });
               });
             }
 
@@ -541,6 +547,7 @@ println!("{:#?}", data);`
                 
                 const codeText = codePre.querySelector('code').textContent;
                 navigator.clipboard.writeText(codeText).then(() => {
+                  window.showToast({ type: 'success', title: 'Copied', message: 'Code snippet copied to clipboard!' });
                   const originalText = copySnippetBtn.textContent;
                   copySnippetBtn.textContent = 'Copied!';
                   copySnippetBtn.classList.replace('bg-zinc-900', 'bg-emerald-600');
@@ -562,7 +569,7 @@ println!("{:#?}", data);`
                 const urlInput = document.getElementById('webhook-url');
                 const secretInput = document.getElementById('webhook-secret');
                 if (!urlInput || !urlInput.value) {
-                  alert('Please enter a target callback endpoint URL first.');
+                  window.showToast({ type: 'warning', title: 'Validation Warning', message: 'Please enter a target callback endpoint URL first.' });
                   return;
                 }
 
@@ -583,15 +590,15 @@ println!("{:#?}", data);`
                     this.innerHTML = 'Send Test Event';
 
                     if (data.success) {
-                      alert('Test webhook dispatch successfully accepted by destination! Status: HTTP ' + data.status);
+                      window.showToast({ type: 'success', title: 'Webhook Test Passed', message: 'Test webhook dispatch successfully accepted by destination! Status: HTTP ' + data.status });
                     } else {
-                      alert('Webhook dispatch test failed: ' + (data.error || 'Connection timed out'));
+                      window.showToast({ type: 'error', title: 'Webhook Test Failed', message: 'Webhook dispatch test failed: ' + (data.error || 'Connection timed out') });
                     }
                   })
                   .catch(err => {
                     this.disabled = false;
                     this.innerHTML = 'Send Test Event';
-                    alert('Network error testing webhook dispatch');
+                    window.showToast({ type: 'error', title: 'Network Error', message: 'Network error testing webhook dispatch' });
                   });
               });
             }
