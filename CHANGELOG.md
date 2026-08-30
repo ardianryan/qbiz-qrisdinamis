@@ -2,30 +2,58 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
-## [1.1.0-beta] - 2026-08-30
+## [1.1.0] - 2026-08-30
 
 ### Added
+- **Super Admin System Settings Hub (`/settings`)**:
+  - **Dynamic Branding & Theme Engine**: Customize platform name, tagline, footer notice, and primary theme color with instant whole-portal UI reflection across buttons, active navigation, badges, tabs, and focus rings.
+  - **Smart 1-Click Multi-Format Logo Converter**: Upload a single high-res logo and automatically generate browser favicons (32x32), Apple Touch icons (180x180), and PWA icons (192x192, 512x512 maskable) via client-side HTML5 Canvas.
+  - **PWA & Mobile App Management**: W3C Web App Manifest generation (`/manifest.webmanifest`), offline service worker (`/sw.js`), and international installation prompt policies.
+  - **Payment & QRIS Global Policies**: Configurable invoice expiry window, unique 3-digit code bounds, static QRIS fallback, minimum/maximum charge amounts, and webhook retry limits.
+  - **GoBiz Scraper Fleet Controls**: Polling interval adjustments, auto-recovery toggles, and OTP sync alerting.
+  - **Security & Access Controls**: Session TTL configuration, maintenance mode with customizable guest notices, and rate limiting thresholds.
+  - **Notification Fallback Templates & Backup Diagnostics**: Global defaults for Telegram, WhatsApp, and Discord, along with 1-click in-memory cache flushing.
+
+- **Enterprise Multi-Webhook Endpoints Management (`/developer`)**:
+  - **Store-Scoped Webhook Subscriptions**: Register distinct webhook URLs per merchant store (or global `ALL` for Super Admin) to route transaction callbacks to specific branch servers, POS systems, or cloud pipelines.
+  - **Granular Event Subscriptions**: Subscribe to specific event triggers (`payment.success`, `invoice.created`, `invoice.expired`).
+  - **Dedicated HMAC-SHA256 Secret per Webhook**: Auto-generated 24-byte crypto secret keys for payload signature verification via `X-QBiz-Signature` header.
+  - **Interactive Webhook Management UI**: Developer Hub modal to create, test with 1-click simulated payload, pause/activate, or delete webhook endpoints with live delivery status badges (`HTTP 200 OK • 2 mins ago`).
+  - **Non-Blocking Parallel Dispatch**: Dispatches callbacks across all matching store and global subscriptions via `Promise.allSettled` while preserving `invoice.callbackUrl` per-transaction overrides and legacy user webhooks (100% Backward Compatible).
+
+- **Enterprise Multi-API Keys & Granular RBAC Permissions (`/developer`)**:
+  - **Multi-Store Workspace Scoping**: Bind API Keys directly to specific merchant stores or global scope. Third-party integrations automatically bind charges without needing `merchant_id` in request payloads.
+  - **Granular Permissions (Scope Checkboxes)**: Per-key access control for `invoices:create` (WRITE), `invoices:read` (READ), `transactions:read` (READ), `merchants:read` (READ), and `webhooks:manage` (WRITE).
+  - **Quick Scope Presets**: 1-click presets for *Select All*, *POS Terminal*, and *Read Only*.
+  - **One-Time Secret Reveal Security**: Cryptographically secure 24-byte entropy token revealed only once upon creation, with masked preview (`qbiz_live_...4a9f`) in the dashboard.
+  - **100% Backward Compatibility**: Existing legacy user keys continue to function uninterrupted with full fallback permissions.
+  - **Real-Time Bot Integration Guides**: Interactive tabbed setup guides for Telegram Bot, Discord Webhooks, and WhatsApp GOWA with live template variables dictionary.
+
+- **Mobile-First UX & Fluid SPA Transitions**:
+  - **Native Bottom Navigation Bar**: Clean mobile app navigation bar for fast thumb reachability (`Dashboard`, `Merchants`, `Transactions`, `More`).
+  - **Spring-Curve Sliding Bottom Sheet**: Fluid sliding sheet for extended menus, store switching, and account profile controls.
+  - **SPA View Transitions**: Lightweight client-side navigation with animated top loading progress bar and anti-flicker theme switching.
+
+- **Security & Data Integrity Hardening**:
+  - **SSRF (Server-Side Request Forgery) Defense**: Comprehensive URL validation (`isValidOutboundUrl`) blocking cloud metadata endpoints (AWS, GCP, Azure, Alibaba, OpenStack), IPv4 link-local subnets, IPv6 link-local, and dangerous protocols across all webhook dispatches and test triggers.
+  - **Multi-Tenant Cross-Store Boundary Enforcement**: Strict role-based authorization ensuring Merchant owners and Regional Admins cannot access, create, or revoke keys outside their assigned stores.
+  - **Self-Healing Safe DDL Migrations**: Zero-data-loss database initialization (`CREATE TABLE IF NOT EXISTS`, `ON CONFLICT DO NOTHING`) ensuring container restarts and rebuilds never overwrite existing data.
+  - **Docker Build Self-Containment**: Integrated Tailwind CSS build step into Dockerfile to guarantee reproducible, crash-free container builds.
+
 - **Contextual Multi-Merchant Workspace Switcher**:
-  - Global Top Navigation Store Switcher allowing users to seamlessly switch active merchant store workspaces (similar to social media account switchers and multi-store SaaS).
+  - Global Store Switcher allowing users to seamlessly switch active merchant store workspaces.
   - Contextual Scoping across all application views: Dashboard statistics, live transaction feeds, QRIS settings, and Developer API SDK snippets automatically scope to the selected store.
-  - Store search filter and quick-access status badges (`Active Listener`, `OTP Syncing`, `Session Dead`).
   - Active workspace session persistence via signed secure cookies (`POST /api/v1/workspaces/switch`).
+
 - **Multi-Channel Store Notifications (Telegram, Discord, WhatsApp GOWA)**:
-  - **Telegram Bot Channel**: Real-time payment success delivery via Telegram Bot API (`/sendMessage`) to private chats or merchant staff groups.
-  - **Discord Webhook Channel**: Rich Embed status cards with customizable color badges, total amount, order ID, and transaction breakdown.
-  - **WhatsApp API (GOWA by Aldinokemal)**: Native integration with Go WhatsApp HTTP API gateway (`/send/message`) with support for No Auth, Bearer Token, and Basic Auth.
-  - **Customizable Message Templates**: Support for dynamic template interpolation (`{merchant_name}`, `{order_id}`, `{amount_formatted}`, `{customer_name}`, `{paid_at}`).
-  - **Interactive In-Dashboard Testing**: 1-click test button per channel with live feedback status banners.
-  - **Asynchronous Non-Blocking Dispatch**: Background notification delivery using `Promise.allSettled` alongside POS webhooks.
-- **Database Schema & Migrations**:
-  - Added `merchant_notifications` table to persist per-store channel credentials with cascading cleanup on store deletion.
-  - Generated and executed Drizzle migration `0002_serious_lady_bullseye.sql`.
+  - Real-time payment success delivery via Telegram Bot API, Discord Webhook embeds, and WhatsApp GOWA HTTP API.
+  - Per-channel test dispatch buttons and customizable message interpolation.
+
 - **Expanded Multi-Language Client SDKs**:
-  - 🦫 **Go (Golang)** ([`sdk/qbiz.go`](file:///Users/ardianryan/Documents/qrispaymti/sdk/qbiz.go)): Idiomatic Go client with zero external dependencies (`net/http`, `crypto/hmac`).
-  - 🔷 **TypeScript** ([`sdk/qbiz.ts`](file:///Users/ardianryan/Documents/qrispaymti/sdk/qbiz.ts)): Fully typed client with Web Crypto API and rich interfaces for Next.js, Nuxt, SvelteKit, NestJS, Bun, and Deno.
-  - 🎯 **Dart / Flutter** ([`sdk/qbiz.dart`](file:///Users/ardianryan/Documents/qrispaymti/sdk/qbiz.dart)): Client for Flutter mobile POS and Android POS terminals.
-  - ☕ **Java** ([`sdk/QBizClient.java`](file:///Users/ardianryan/Documents/qrispaymti/sdk/QBizClient.java)): Java 11+ `HttpClient` client with HMAC-SHA256 verification.
-  - 💻 **Developer Hub Tabs**: Added tab switchers for Go, TypeScript, and PHP in the Developer Hub dashboard.
+  - 🦫 **Go (Golang)** ([`sdk/qbiz.go`](sdk/qbiz.go))
+  - 🔷 **TypeScript** ([`sdk/qbiz.ts`](sdk/qbiz.ts))
+  - 🎯 **Dart / Flutter** ([`sdk/qbiz.dart`](sdk/qbiz.dart))
+  - ☕ **Java** ([`sdk/QBizClient.java`](sdk/QBizClient.java))
 
 ---
 

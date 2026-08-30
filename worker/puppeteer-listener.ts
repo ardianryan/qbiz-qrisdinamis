@@ -3,7 +3,8 @@ import { db } from '../db/db.ts';
 import { merchants, invoices, mutations, users } from '../db/schema.ts';
 import { eq, and, sql } from 'drizzle-orm';
 import { encryptSession, decryptSession } from '../src/utils/crypto.ts';
-import { dispatchMerchantNotifications } from '../src/services/notification.ts';
+import { dispatchMerchantNotifications, isValidOutboundUrl } from '../src/services/notification.ts';
+import { dispatchWebhooksForInvoice } from '../src/services/webhooks.ts';
 
 // Mutex or tracker for running listeners
 // Each entry stores { intervalId, browser, page, status }
@@ -429,12 +430,17 @@ async function processIncomingMutations(merchantId: string, transactionList: any
         .set({ isMatched: true, invoiceId: matchedInvoice.id })
         .where(eq(mutations.id, txId));
 
-      // 1. Dispatch POS Webhook
+      // 1. Dispatch POS Webhook (Per-transaction Callback)
       if (matchedInvoice.callbackUrl) {
         dispatchWebhook(matchedInvoice, txTime);
       }
 
-      // 2. Dispatch Multi-Channel Notifications (Telegram, Discord, WhatsApp GOWA)
+      // 2. Dispatch Enterprise Multi-Webhooks (Store Scoped & Global Subscriptions)
+      dispatchWebhooksForInvoice(matchedInvoice, 'payment.success', txTime).catch(err => {
+        console.error(`[Worker] Failed dispatching multi-webhooks for ${merchantId}:`, err);
+      });
+
+      // 3. Dispatch Multi-Channel Notifications (Telegram, Discord, WhatsApp GOWA)
       dispatchMerchantNotifications(merchantId, matchedInvoice, txTime).catch(err => {
         console.error(`[Worker] Failed dispatching notifications for ${merchantId}:`, err);
       });
@@ -471,6 +477,11 @@ export async function dispatchWebhook(invoice: any, txTime: string, retryCount =
 
   if (!targetUrl) {
     console.error(`[Webhook] Aborted dispatching invoice ${invoice.id}: no callback url or default user webhook url configured.`);
+    return;
+  }
+
+  if (!isValidOutboundUrl(targetUrl)) {
+    console.error(`[Webhook] Aborted dispatching invoice ${invoice.id}: target url rejected by SSRF guard: ${targetUrl}`);
     return;
   }
 

@@ -96,3 +96,41 @@ export const merchantNotifications = pgTable('merchant_notifications', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
+
+// 7. Dynamic Global System Settings Table (Key-Value configuration for Super Admin)
+export const systemSettings = pgTable('system_settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// 8. Enterprise Multi-API Keys Table (Scoped to Merchant & Granular Permissions)
+export const apiKeys = pgTable('api_keys', {
+  id: text('id').primaryKey(), // e.g. 'key_1785928374'
+  name: text('name').notNull(), // e.g. 'POS Kasir Cabang 1'
+  key: text('key').unique().notNull(), // Full secret token 'qbiz_live_xxxxxxxx'
+  keyPrefix: text('key_prefix').notNull(), // 'qbiz_live_...4a9f' for masked preview
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  merchantId: text('merchant_id').references(() => merchants.id, { onDelete: 'cascade' }), // Null = ALL stores (Admin only)
+  scopes: text('scopes').notNull(), // Comma-separated list e.g. 'invoices:create,invoices:read'
+  status: text('status').$type<'ACTIVE' | 'REVOKED'>().default('ACTIVE').notNull(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// 9. Enterprise Multi-Webhooks Table (Scoped to Merchant & Granular Events)
+export const webhooks = pgTable('webhooks', {
+  id: text('id').primaryKey(), // e.g. 'whk_1785928374'
+  name: text('name').notNull(), // e.g. 'POS Server Cabang 1'
+  url: text('url').notNull(), // Webhook destination URL
+  secret: text('secret').notNull(), // HMAC-SHA256 signing secret key
+  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  merchantId: text('merchant_id').references(() => merchants.id, { onDelete: 'cascade' }), // Null = ALL stores
+  events: text('events').notNull(), // Comma-separated list e.g. 'payment.success,invoice.created,invoice.expired'
+  status: text('status').$type<'ACTIVE' | 'PAUSED'>().default('ACTIVE').notNull(),
+  lastTriggeredAt: timestamp('last_triggered_at', { withTimezone: true }),
+  lastStatusCode: integer('last_status_code'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+

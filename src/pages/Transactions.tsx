@@ -20,6 +20,7 @@ interface Transaction {
 }
 
 import { MerchantContext } from '../middleware/auth.ts';
+import { SystemSettingsConfig } from '../services/settings.ts';
 
 interface TransactionsPageProps {
   merchants: Merchant[];
@@ -27,11 +28,12 @@ interface TransactionsPageProps {
   currentUser?: any;
   activeMerchant?: MerchantContext | null;
   accessibleMerchants?: MerchantContext[];
+  systemSettings?: SystemSettingsConfig;
 }
 
-export function TransactionsPage({ merchants, transactions, currentUser, activeMerchant, accessibleMerchants }: TransactionsPageProps) {
+export function TransactionsPage({ merchants, transactions, currentUser, activeMerchant, accessibleMerchants, systemSettings }: TransactionsPageProps) {
   return (
-    <Layout activePath="/transactions" user={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants}>
+    <Layout activePath="/transactions" user={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants} systemSettings={systemSettings}>
       
       {/* ========================================================================= */}
       {/* 1. HEADER */}
@@ -69,9 +71,9 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
       {/* 2. FILTER TOOLBAR */}
       {/* ========================================================================= */}
       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-4 mb-6 shadow-sm">
-        <div className="flex flex-col md:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           {/* Search Input */}
-          <div className="flex-grow flex flex-col gap-1">
+          <div className="flex-1 flex flex-col gap-1">
             <label htmlFor="filter-search" className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
               Search Invoice / Order ID
             </label>
@@ -82,30 +84,14 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               <input 
                 type="text" 
                 id="filter-search" 
-                placeholder="Search order ID, invoice, or amount..."
+                placeholder="Search order ID, invoice ID, or amount..."
                 className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all"
               />
             </div>
           </div>
 
-          {/* Merchant Dropdown */}
-          <div className="w-full md:w-56 flex flex-col gap-1">
-            <label htmlFor="filter-merchant" className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
-              Merchant Account
-            </label>
-            <select 
-              id="filter-merchant"
-              className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all cursor-pointer"
-            >
-              <option value="ALL">All Merchants</option>
-              {merchants.map(m => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
-          </div>
-
           {/* Status Dropdown */}
-          <div className="w-full md:w-48 flex flex-col gap-1">
+          <div className="w-full sm:w-48 flex flex-col gap-1">
             <label htmlFor="filter-status" className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
               Payment Status
             </label>
@@ -127,23 +113,22 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
       {/* 3. DATA TABLES & MOBILE CARDS LIST */}
       {/* ========================================================================= */}
 
-      {/* Empty State Banner (Initially Hidden unless no data) */}
-      <div id="tx-empty-state" className="hidden flex-col items-center justify-center py-16 px-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl max-w-lg mx-auto text-center">
-        <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-4">
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-        </div>
-        <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-50">No Invoices Found</h2>
-        <p className="text-sm text-slate-500 dark:text-zinc-400 mt-2 max-w-xs">
-          Try adjusting search queries or connecting more merchant accounts.
-        </p>
-      </div>
-
       {/* A. MOBILE VIEW: STACKED CARD LIST (block sm:hidden) */}
       <div 
         id="mobile-tx-list" 
-        className="block sm:hidden space-y-4"
+        className="block sm:hidden space-y-3"
         aria-live="polite"
       >
+        <div id="mobile-empty-card" className={`flex-col items-center justify-center py-12 px-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-center shadow-xs ${transactions.length === 0 ? 'flex' : 'hidden'}`}>
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-3">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+          </div>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">No Invoices Found</h3>
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-xs">
+            No transactions match the current search or filter query.
+          </p>
+        </div>
+
         {transactions.map(tx => (
           <div 
             key={tx.id} 
@@ -257,6 +242,19 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               className="divide-y divide-slate-100 dark:divide-zinc-800/60 text-xs text-slate-700 dark:text-zinc-300"
               aria-live="polite"
             >
+              <tr id="desktop-empty-row" className={transactions.length === 0 ? '' : 'hidden'}>
+                <td colSpan={8} className="py-16 text-center">
+                  <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-3 shadow-inner">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">No Invoices Found</h3>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                      No transactions match the current search or filter query.
+                    </p>
+                  </div>
+                </td>
+              </tr>
               {transactions.map(tx => (
                 <tr 
                   key={tx.id}
@@ -372,10 +370,9 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
           (function() {
             function init() {
               const searchInput = document.getElementById('filter-search');
-              const merchantSelect = document.getElementById('filter-merchant');
               const statusSelect = document.getElementById('filter-status');
-              const emptyState = document.getElementById('tx-empty-state');
-              const desktopTable = document.getElementById('desktop-tx-table-container');
+              const desktopEmptyRow = document.getElementById('desktop-empty-row');
+              const mobileEmptyCard = document.getElementById('mobile-empty-card');
               const pageSizeSelect = document.getElementById('tx-page-size');
               const paginationInfo = document.getElementById('tx-pagination-info');
               const btnPrev = document.getElementById('tx-btn-prev');
@@ -448,7 +445,6 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
 
               function applyFilters() {
                 const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
-                const merchant = merchantSelect ? merchantSelect.value : 'ALL';
                 const status = statusSelect ? statusSelect.value : 'ALL';
 
                 const allRows = Array.from(document.querySelectorAll('.tx-row'));
@@ -468,24 +464,28 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                   if (!el) continue;
 
                   const term = (el.getAttribute('data-search-term') || '').toLowerCase();
-                  const rowMerchant = el.getAttribute('data-merchant');
                   const rowStatus = el.getAttribute('data-status');
 
                   const matchesSearch = term.includes(query);
-                  const matchesMerchant = merchant === 'ALL' || rowMerchant === merchant;
                   const matchesStatus = status === 'ALL' || rowStatus === status;
 
-                  if (matchesSearch && matchesMerchant && matchesStatus) {
+                  if (matchesSearch && matchesStatus) {
                     currentFilteredRows.push({ row, card });
                   }
                 }
 
                 if (currentFilteredRows.length === 0) {
-                  if (emptyState) emptyState.classList.remove('hidden');
-                  if (desktopTable) desktopTable.classList.add('hidden');
+                  if (desktopEmptyRow) desktopEmptyRow.classList.remove('hidden');
+                  if (mobileEmptyCard) {
+                    mobileEmptyCard.classList.remove('hidden');
+                    mobileEmptyCard.classList.add('flex');
+                  }
                 } else {
-                  if (emptyState) emptyState.classList.add('hidden');
-                  if (desktopTable) desktopTable.classList.remove('hidden');
+                  if (desktopEmptyRow) desktopEmptyRow.classList.add('hidden');
+                  if (mobileEmptyCard) {
+                    mobileEmptyCard.classList.add('hidden');
+                    mobileEmptyCard.classList.remove('flex');
+                  }
                 }
 
                 currentPage = 1;
@@ -493,7 +493,6 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               }
 
               if (searchInput) searchInput.addEventListener('input', applyFilters);
-              if (merchantSelect) merchantSelect.addEventListener('change', applyFilters);
               if (statusSelect) statusSelect.addEventListener('change', applyFilters);
               if (pageSizeSelect) {
                 pageSizeSelect.addEventListener('change', function() {
@@ -523,7 +522,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               // --- B. Auto-Refresh Logic (SSE/Polling simulation) ---
               // Poll for new transactions or status changes every 8 seconds
               function fetchTransactions() {
-                fetch('/api/v1/transactions/data')
+                fetch('/api/v1/transactions')
                   .then(res => res.json())
                   .then(data => {
                     if (data.success && data.transactions) {
@@ -540,8 +539,33 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                 const mobileList = document.getElementById('mobile-tx-list');
                 if (!tbody || !mobileList) return;
 
-                let tbodyHtml = '';
-                let mobileHtml = '';
+                let tbodyHtml = \`
+                  <tr id="desktop-empty-row" class="\${transactions.length === 0 ? '' : 'hidden'}">
+                    <td colspan="8" class="py-16 text-center">
+                      <div class="flex flex-col items-center justify-center max-w-sm mx-auto">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-3 shadow-inner">
+                          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                        </div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-zinc-100">No Invoices Found</h3>
+                        <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                          No transactions match the current search or filter query.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                \`;
+
+                let mobileHtml = \`
+                  <div id="mobile-empty-card" class="flex-col items-center justify-center py-12 px-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl text-center shadow-xs \${transactions.length === 0 ? 'flex' : 'hidden'}">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-400 dark:text-zinc-500 mb-3">
+                      <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-900 dark:text-zinc-100">No Invoices Found</h3>
+                    <p class="text-xs text-slate-500 dark:text-zinc-400 mt-1 max-w-xs">
+                      No transactions match the current search or filter query.
+                    </p>
+                  </div>
+                \`;
 
                 transactions.forEach(tx => {
                   let statusClass = 'bg-slate-100 text-slate-700 dark:bg-zinc-800 dark:text-zinc-300';

@@ -72,10 +72,31 @@ export function isValidOutboundUrl(urlString: string, allowedProtocols = ['http:
       return false;
     }
     const hostname = parsed.hostname.toLowerCase();
-    // Block Cloud metadata service IP
-    if (hostname === '169.254.169.254' || hostname === 'metadata.google.internal') {
+    
+    // Block Cloud metadata service IPs (AWS, GCP, Azure, Alibaba, OpenStack)
+    const blockedHostnames = [
+      '169.254.169.254',
+      '100.100.100.200',
+      '168.63.129.16',
+      'metadata.google.internal',
+      'metadata.internal',
+      'instance-data'
+    ];
+
+    if (blockedHostnames.includes(hostname)) {
       return false;
     }
+
+    // Block link-local IPv4 range (169.254.0.0/16)
+    if (/^169\.254\./.test(hostname)) {
+      return false;
+    }
+
+    // Block IPv6 link-local (fe80::)
+    if (hostname.startsWith('fe80:') || hostname.startsWith('[fe80:')) {
+      return false;
+    }
+
     return true;
   } catch {
     return false;

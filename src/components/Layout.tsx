@@ -1,5 +1,6 @@
 import React from 'react';
 import { MerchantContext, UserSession } from '../middleware/auth.ts';
+import { SystemSettingsConfig, DEFAULT_SYSTEM_SETTINGS } from '../services/settings.ts';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -7,9 +8,11 @@ interface LayoutProps {
   user?: UserSession;
   activeMerchant?: MerchantContext | null;
   accessibleMerchants?: MerchantContext[];
+  systemSettings?: SystemSettingsConfig;
 }
 
-export function Layout({ children, activePath, user, activeMerchant, accessibleMerchants = [] }: LayoutProps) {
+export function Layout({ children, activePath, user, activeMerchant, accessibleMerchants = [], systemSettings }: LayoutProps) {
+  const settings = systemSettings || DEFAULT_SYSTEM_SETTINGS;
   const currentUser = user || {
     id: 'usr_demo',
     name: 'Guest User',
@@ -22,6 +25,7 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
 
   // Enforce role-based visibility:
   // - SUPER_ADMIN, ADMIN, REGIONAL_ADMIN can access Merchants, Transactions, Developer Hub.
+  // - SUPER_ADMIN can also access System Settings.
   // - MERCHANT, MERCHANT_EMPLOYEE can ONLY access Transactions (Live Transaction Monitor).
   const isPrivileged = ['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN'].includes(currentUser.role);
 
@@ -36,6 +40,9 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
   }
   if (currentUser.role !== 'MERCHANT_EMPLOYEE') {
     navItems.push({ label: 'Developer Hub', path: '/developer', icon: 'Code2' });
+  }
+  if (currentUser.role === 'SUPER_ADMIN') {
+    navItems.push({ label: 'System Settings', path: '/settings', icon: 'Settings' });
   }
 
   // Helper mapping role to visual human readable format
@@ -62,11 +69,15 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
       {/* 1. MOBILE HEADER (Sticky, Top) */}
       {/* ========================================================================= */}
       <header className="sticky top-0 z-30 w-full md:hidden h-14 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-slate-200 dark:border-zinc-800 px-4 flex items-center justify-between shadow-xs">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-sm shadow-sm">
-            Q
-          </div>
-          <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-zinc-50">QBiz Gateway</span>
+        <div className="flex items-center gap-2.5 min-w-0">
+          {settings.appLogoUrl ? (
+            <img src={settings.appLogoUrl} alt={settings.appName} className="w-7 h-7 rounded-lg object-contain bg-white dark:bg-zinc-900 p-0.5 border border-slate-200 dark:border-zinc-700 shadow-sm shrink-0" />
+          ) : (
+            <div className="w-7 h-7 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
+              {settings.appName.slice(0, 1).toUpperCase()}
+            </div>
+          )}
+          <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-zinc-50 truncate">{settings.appName}</span>
         </div>
         
         <div className="flex items-center gap-2">
@@ -106,7 +117,7 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
       {/* ========================================================================= */}
       <div id="mobile-drawer" className="fixed inset-0 z-50 md:hidden flex items-end justify-center hidden" role="dialog" aria-modal="true">
         <div id="mobile-drawer-backdrop" className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm transition-opacity duration-300 opacity-0"></div>
-        <div id="mobile-drawer-body" className="relative z-10 w-full max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-3xl border-t border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col p-5 pb-8 transition-transform duration-300 translate-y-full overflow-y-auto">
+        <div id="mobile-drawer-body" className="relative z-10 w-full max-h-[85vh] bg-white dark:bg-zinc-900 rounded-t-3xl border-t border-slate-200 dark:border-zinc-800 shadow-2xl flex flex-col p-5 pb-8 sheet-spring translate-y-full overflow-y-auto">
           {/* Drag Handle */}
           <div className="w-12 h-1.5 bg-slate-300 dark:bg-zinc-700 rounded-full mx-auto mb-4 shrink-0"></div>
 
@@ -189,6 +200,39 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
                 <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
               </a>
             )}
+
+            {currentUser.role === 'SUPER_ADMIN' && (
+              <a
+                href="/settings"
+                className={`flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all ${
+                  activePath === '/settings' 
+                    ? 'bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-400 font-bold border border-sky-200/60 dark:border-sky-900/60' 
+                    : 'text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-5 h-5 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  </span>
+                  Admin System Settings
+                </div>
+                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </a>
+            )}
+
+            {/* PWA Mobile App Install Action */}
+            <button
+              id="btn-pwa-install-mobile"
+              className="w-full flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 border border-sky-200/80 dark:border-sky-900/60 cursor-pointer active:scale-95"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-5 h-5 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                </span>
+                Install Mobile App (PWA)
+              </div>
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-sky-600 text-white shadow-xs">INSTALL</span>
+            </button>
           </div>
 
           {/* User Profile & Logout */}
@@ -215,61 +259,6 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
       </div>
 
       {/* ========================================================================= */}
-      {/* 2B. MOBILE BOTTOM NAVIGATION BAR (Sticky, Bottom) */}
-      {/* ========================================================================= */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-zinc-800 px-2 py-1.5 flex items-center justify-around shadow-2xl safe-area-pb">
-        <a 
-          href="/dashboard"
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
-            activePath === '/dashboard' 
-              ? 'text-sky-600 dark:text-sky-400 font-bold' 
-              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
-          }`}
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 14a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg>
-          <span className="text-[10px] leading-none">Dashboard</span>
-        </a>
-
-        {isPrivileged && (
-          <a 
-            href="/merchants"
-            className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
-              activePath === '/merchants' 
-                ? 'text-sky-600 dark:text-sky-400 font-bold' 
-                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
-            }`}
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-            <span className="text-[10px] leading-none">Stores</span>
-          </a>
-        )}
-
-        <a 
-          href="/transactions"
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all ${
-            activePath === '/transactions' 
-              ? 'text-sky-600 dark:text-sky-400 font-bold' 
-              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
-          }`}
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
-          <span className="text-[10px] leading-none">Invoices</span>
-        </a>
-
-        <button 
-          id="mobile-more-trigger"
-          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all cursor-pointer ${
-            activePath === '/users' || activePath === '/developer'
-              ? 'text-sky-600 dark:text-sky-400 font-bold' 
-              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
-          }`}
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
-          <span className="text-[10px] leading-none">More</span>
-        </button>
-      </nav>
-
-      {/* ========================================================================= */}
       {/* 3. DESKTOP SIDEBAR (Collapsible) */}
       {/* ========================================================================= */}
       <aside 
@@ -278,17 +267,21 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
       >
         {/* Top Logo & App Title */}
         <div className="h-16 flex items-center justify-between px-5 border-b border-slate-200 dark:border-zinc-800 shrink-0">
-          <div className="flex items-center gap-3 sidebar-logo-container transition-opacity duration-200">
-            <div className="w-8 h-8 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm">
-              Q
-            </div>
-            <span className="font-bold text-lg tracking-tight sidebar-logo-text text-slate-900 dark:text-zinc-50">QBiz Gateway</span>
+          <div className="flex items-center gap-3 sidebar-logo-container transition-opacity duration-200 min-w-0">
+            {settings.appLogoUrl ? (
+              <img src={settings.appLogoUrl} alt={settings.appName} className="w-8 h-8 rounded-lg object-contain bg-white dark:bg-zinc-900 p-0.5 border border-slate-200 dark:border-zinc-700 shrink-0 shadow-sm" />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm">
+                {settings.appName.slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <span className="font-bold text-lg tracking-tight sidebar-logo-text text-slate-900 dark:text-zinc-50 truncate">{settings.appName}</span>
           </div>
           
           <button 
             id="sidebar-toggle"
             aria-label="Collapse sidebar"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 dark:text-zinc-500 dark:hover:text-zinc-50 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 dark:text-zinc-500 dark:hover:text-zinc-50 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             <svg id="chevron-left" className="w-4 h-4 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
@@ -301,7 +294,7 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
           <div className="relative">
             <button
               id="desktop-workspace-trigger"
-              className="w-full flex items-center justify-between gap-2.5 p-2 rounded-xl bg-slate-50 dark:bg-zinc-800/50 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-700/60 transition-all text-left group"
+              className="w-full flex items-center justify-between gap-2.5 p-2 rounded-xl bg-slate-50 dark:bg-zinc-800/50 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200/80 dark:border-zinc-700/60 transition-all text-left group cursor-pointer"
               title="Switch Active Store Workspace"
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -351,6 +344,7 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
                   {item.icon === 'Receipt' && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>}
                   {item.icon === 'Users' && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>}
                   {item.icon === 'Code2' && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>}
+                  {item.icon === 'Settings' && <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>}
                 </span>
                 <span className="sidebar-item-text transition-opacity duration-200 truncate">
                   {item.label}
@@ -376,7 +370,7 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
             <button 
               id="desktop-theme-toggle"
               aria-label="Toggle Theme"
-              className="flex items-center justify-center p-2 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-zinc-50 dark:hover:bg-zinc-800/60 transition-all flex-grow"
+              className="flex items-center justify-center p-2 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-zinc-400 dark:hover:text-zinc-50 dark:hover:bg-zinc-800/60 transition-all flex-grow cursor-pointer"
               title="Toggle Theme"
             >
               <svg id="sun-icon-desktop" className="w-4 h-4 hidden dark:block text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -385,6 +379,15 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
               <svg id="moon-icon-desktop" className="w-4 h-4 block dark:hidden text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
+            </button>
+
+            <button
+              id="btn-pwa-install-desktop"
+              aria-label="Install PWA"
+              className="flex items-center justify-center p-2 rounded-lg text-xs font-medium text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-950/40 transition-all flex-grow cursor-pointer"
+              title="Install Application (PWA)"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
             </button>
 
             <a 
@@ -404,7 +407,7 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
       {/* ========================================================================= */}
       <main 
         id="main-content" 
-        className="flex-grow flex flex-col min-w-0 transition-all duration-300 pb-20 md:pb-0"
+        className="flex-grow flex flex-col min-w-0 animate-view-enter pb-24 md:pb-0"
         tabIndex={-1}
       >
         <div className="flex-grow p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
@@ -413,11 +416,70 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
       </main>
 
       {/* ========================================================================= */}
+      {/* 4B. MOBILE BOTTOM NAVIGATION BAR (Sticky Fixed Bottom Tab Bar) */}
+      {/* ========================================================================= */}
+      <nav 
+        id="mobile-bottom-nav"
+        style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40, paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-zinc-800 px-3 py-1.5 flex items-center justify-around shadow-2xl safe-area-pb"
+      >
+        <a 
+          href="/dashboard"
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all active:scale-90 ${
+            activePath === '/dashboard' 
+              ? 'text-sky-600 dark:text-sky-400 font-bold' 
+              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+          }`}
+        >
+          <svg className="w-5 h-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 14a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" /></svg>
+          <span className="text-[10px] leading-none">Dashboard</span>
+        </a>
+
+        {isPrivileged && (
+          <a 
+            href="/merchants"
+            className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all active:scale-90 ${
+              activePath === '/merchants' 
+                ? 'text-sky-600 dark:text-sky-400 font-bold' 
+                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+            }`}
+          >
+            <svg className="w-5 h-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+            <span className="text-[10px] leading-none">Stores</span>
+          </a>
+        )}
+
+        <a 
+          href="/transactions"
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all active:scale-90 ${
+            activePath === '/transactions' 
+              ? 'text-sky-600 dark:text-sky-400 font-bold' 
+              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+          }`}
+        >
+          <svg className="w-5 h-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+          <span className="text-[10px] leading-none">Invoices</span>
+        </a>
+
+        <button 
+          id="mobile-more-trigger"
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all cursor-pointer active:scale-90 ${
+            activePath === '/users' || activePath === '/developer' || activePath === '/settings'
+              ? 'text-sky-600 dark:text-sky-400 font-bold' 
+              : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
+          }`}
+        >
+          <svg className="w-5 h-5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+          <span className="text-[10px] leading-none">More</span>
+        </button>
+      </nav>
+
+      {/* ========================================================================= */}
       {/* 5. GLOBAL STORE WORKSPACE SWITCHER MODAL (Bottom Sheet on Mobile) */}
       {/* ========================================================================= */}
       <div id="modal-workspace-switcher" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200">
         <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm modal-backdrop-trigger cursor-pointer"></div>
-        <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-2xl shadow-2xl z-10 w-full max-w-md overflow-hidden transform transition-all duration-200 translate-y-4 sm:translate-y-0 sm:scale-95 modal-body flex flex-col max-h-[85vh]">
+        <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-2xl shadow-2xl z-10 w-full max-w-md overflow-hidden sheet-spring transform translate-y-4 sm:translate-y-0 sm:scale-95 modal-body flex flex-col max-h-[85vh]">
           {/* Mobile Drag Indicator */}
           <div className="w-12 h-1.5 bg-slate-300 dark:bg-zinc-700 rounded-full mx-auto my-2.5 sm:hidden shrink-0"></div>
 
@@ -535,15 +597,289 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
             </button>
           </div>
         </div>
+      </div>      {/* ========================================================================= */}
+      {/* 7. SMART PWA IN-APP INSTALL PROMPT BANNER (International Standard) */}
+      {/* ========================================================================= */}
+      <div
+        id="pwa-install-banner"
+        className="fixed bottom-20 md:bottom-6 right-4 left-4 sm:left-auto sm:max-w-md z-50 transform transition-all duration-300 translate-y-24 opacity-0 pointer-events-none"
+      >
+        <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-sky-200/80 dark:border-sky-900/80 rounded-2xl p-4 shadow-2xl flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-sky-600 p-2 text-white flex items-center justify-center shrink-0 shadow-md">
+            {systemSettings?.appLogoUrl ? (
+              <img src={systemSettings.appLogoUrl} alt="" className="w-full h-full object-contain" />
+            ) : (
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-slate-900 dark:text-zinc-100 truncate">Install {systemSettings?.appName || 'QBiz Gateway'}</p>
+            <p className="text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">Add to Home Screen for fast offline access</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              id="btn-pwa-dismiss"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+              aria-label="Dismiss"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <button
+              id="btn-pwa-install-action"
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-sm transition-all active:scale-95 cursor-pointer"
+            >
+              Install
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* 6. CLIENT INTERACTIONS SCRIPT */}
+      {/* 8. IOS SAFARI "ADD TO HOME SCREEN" HELPER MODAL */}
+      {/* ========================================================================= */}
+      <div id="modal-ios-pwa-guide" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm ios-guide-backdrop cursor-pointer"></div>
+        <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-2xl shadow-2xl z-10 w-full max-w-sm overflow-hidden sheet-spring transform translate-y-4 sm:translate-y-0 sm:scale-95 p-5 space-y-4">
+          <div className="w-12 h-1.5 bg-slate-300 dark:bg-zinc-700 rounded-full mx-auto sm:hidden shrink-0"></div>
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-zinc-800">
+            <span className="font-bold text-xs text-slate-900 dark:text-zinc-50">Install on iOS (iPhone / iPad)</span>
+            <button className="ios-guide-close text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 cursor-pointer">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <div className="space-y-3 text-xs text-slate-600 dark:text-zinc-300">
+            <div className="flex items-start gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800/40">
+              <span className="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 font-bold text-xs flex items-center justify-center shrink-0">1</span>
+              <p className="pt-0.5">Tap the <strong>Share</strong> icon (kotak panah ke atas) pada bilah bawah browser Safari.</p>
+            </div>
+            <div className="flex items-start gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800/40">
+              <span className="w-6 h-6 rounded-full bg-sky-100 dark:bg-sky-950 text-sky-600 dark:text-sky-400 font-bold text-xs flex items-center justify-center shrink-0">2</span>
+              <p className="pt-0.5">Gulir ke bawah dan pilih <strong>"Add to Home Screen" (Tambahkan ke Layar Utama)</strong>.</p>
+            </div>
+          </div>
+          <button className="ios-guide-close w-full py-2.5 rounded-xl text-xs font-semibold bg-sky-600 text-white cursor-pointer active:scale-95">
+            Mengerti & Tutup
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 6. CLIENT INTERACTIONS & SPA ROUTER ENGINE SCRIPT */}
       {/* ========================================================================= */}
       <script dangerouslySetInnerHTML={{
         __html: `
           (function() {
-            // --- A. Theme Management ---
+            // =========================================================================
+            // A. SPA Progress Bar Controller
+            // =========================================================================
+            function getProgressBar() {
+              return document.getElementById('spa-progress-bar');
+            }
+
+            function startSpaProgress() {
+              const bar = getProgressBar();
+              if (!bar) return;
+              bar.style.opacity = '1';
+              bar.style.width = '30%';
+              setTimeout(() => { if (bar.style.opacity === '1') bar.style.width = '70%'; }, 120);
+              setTimeout(() => { if (bar.style.opacity === '1') bar.style.width = '90%'; }, 280);
+            }
+
+            function finishSpaProgress() {
+              const bar = getProgressBar();
+              if (!bar) return;
+              bar.style.width = '100%';
+              setTimeout(() => {
+                bar.style.opacity = '0';
+                setTimeout(() => { bar.style.width = '0%'; }, 200);
+              }, 150);
+            }
+
+            // =========================================================================
+            // B. Active Navigation Tabs Synchronizer
+            // =========================================================================
+            function updateActiveNavUI(targetPath) {
+              const cleanPath = targetPath.split('?')[0].split('#')[0];
+
+              // 1. Desktop Sidebar Links
+              document.querySelectorAll('#desktop-sidebar nav a').forEach(a => {
+                const href = a.getAttribute('href');
+                const isMatch = href === cleanPath;
+                if (isMatch) {
+                  a.className = 'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-bold transition-all group bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-400 border border-sky-200/60 dark:border-sky-900/60';
+                } else {
+                  a.className = 'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition-all group text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-zinc-400 dark:hover:text-zinc-50 dark:hover:bg-zinc-800/60';
+                }
+              });
+
+              // 2. Mobile Bottom Tab Bar
+              document.querySelectorAll('#mobile-bottom-nav a, #mobile-bottom-nav button').forEach(el => {
+                const href = el.getAttribute('href');
+                const isMatch = href ? (href === cleanPath) : (['/users', '/developer', '/settings'].includes(cleanPath));
+                if (isMatch) {
+                  el.className = 'flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all text-sky-600 dark:text-sky-400 font-bold active:scale-90';
+                } else {
+                  el.className = 'flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 active:scale-90';
+                }
+              });
+
+              // 3. Mobile "More" Drawer Links
+              document.querySelectorAll('#mobile-drawer a').forEach(a => {
+                const href = a.getAttribute('href');
+                if (!href || href === '/logout') return;
+                const isMatch = href === cleanPath;
+                if (isMatch) {
+                  a.className = 'flex items-center justify-between p-3 rounded-xl text-xs transition-all bg-sky-50 text-sky-600 dark:bg-sky-950/50 dark:text-sky-400 font-bold border border-sky-200/60 dark:border-sky-900/60';
+                } else {
+                  a.className = 'flex items-center justify-between p-3 rounded-xl text-xs font-semibold transition-all text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800';
+                }
+              });
+            }
+
+            // =========================================================================
+            // C. SPA Router Navigation Engine (Zero Page Reload)
+            // =========================================================================
+            let isNavigating = false;
+
+            async function spaNavigateTo(url, pushHistory = true) {
+              if (isNavigating) return;
+              if (url === window.location.pathname + window.location.search) return;
+
+              isNavigating = true;
+              startSpaProgress();
+
+              // Close mobile bottom sheet & workspace modal
+              closeDrawer();
+              closeWorkspaceModal();
+
+              // Instant visual tab switch feedback (0ms)
+              updateActiveNavUI(url);
+
+              const mainEl = document.getElementById('main-content');
+              if (mainEl) {
+                mainEl.style.opacity = '0.35';
+                mainEl.style.transform = 'translateY(4px)';
+              }
+
+              try {
+                const res = await fetch(url, {
+                  headers: { 'X-Requested-With': 'SPA-Navigation' }
+                });
+
+                // On non-OK response or redirect to external page, fallback to standard reload
+                if (!res.ok) {
+                  window.location.href = url;
+                  return;
+                }
+
+                if (res.redirected && res.url !== url) {
+                  window.location.href = res.url;
+                  return;
+                }
+
+                const html = await res.text();
+                const parser = new DOMParser();
+                const newDoc = parser.parseFromString(html, 'text/html');
+
+                // Update page title & favicon
+                if (newDoc.title) document.title = newDoc.title;
+
+                const incomingMain = newDoc.getElementById('main-content');
+                if (incomingMain && mainEl) {
+                  mainEl.innerHTML = incomingMain.innerHTML;
+                  mainEl.classList.remove('animate-view-enter');
+                  void mainEl.offsetWidth; // Force layout reflow to replay smooth enter animation
+                  mainEl.classList.add('animate-view-enter');
+
+                  // Execute and evaluate newly loaded script blocks
+                  const scripts = mainEl.querySelectorAll('script');
+                  scripts.forEach(oldScript => {
+                    const newScript = document.createElement('script');
+                    Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                    newScript.textContent = oldScript.textContent;
+                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                  });
+                } else {
+                  window.location.href = url;
+                  return;
+                }
+
+                if (pushHistory) {
+                  window.history.pushState({ path: url }, '', url);
+                }
+
+                window.scrollTo({ top: 0, behavior: 'instant' });
+
+                if (mainEl) {
+                  requestAnimationFrame(() => {
+                    mainEl.style.opacity = '1';
+                    mainEl.style.transform = 'translateY(0)';
+                  });
+                }
+
+                // Re-bind interactive behaviors and fire page loaded event
+                initInteractiveBehaviors();
+                window.dispatchEvent(new CustomEvent('spa:navigated', { detail: { url } }));
+
+              } catch (err) {
+                console.error('[SPA Navigation Error]', err);
+                window.location.href = url;
+              } finally {
+                finishSpaProgress();
+                isNavigating = false;
+              }
+            }
+
+            window.spaNavigateTo = spaNavigateTo;
+
+            // Global Click Interceptor for SPA Navigation
+            document.addEventListener('click', function(e) {
+              const tabItem = e.target.closest('#mobile-bottom-nav a, #mobile-bottom-nav button');
+              if (tabItem) {
+                tabItem.classList.add('tab-spring-tap');
+                setTimeout(() => tabItem.classList.remove('tab-spring-tap'), 340);
+              }
+
+              const link = e.target.closest('a');
+              if (!link) return;
+
+              const href = link.getAttribute('href');
+              if (!href) return;
+
+              // Bypass non-SPA links
+              if (
+                href.startsWith('#') ||
+                href.startsWith('javascript:') ||
+                href.startsWith('mailto:') ||
+                href.startsWith('tel:') ||
+                link.hasAttribute('download') ||
+                link.getAttribute('target') === '_blank' ||
+                href === '/logout' ||
+                href.startsWith('/pay/') ||
+                href.startsWith('/docs') ||
+                href.startsWith('/static/') ||
+                href.startsWith('/llms') ||
+                link.dataset.noSpa === 'true' ||
+                e.ctrlKey || e.metaKey || e.shiftKey || e.altKey
+              ) {
+                return;
+              }
+
+              if (href.startsWith('/') || href.startsWith(window.location.origin)) {
+                e.preventDefault();
+                const targetUrl = href.startsWith('/') ? href : new URL(href).pathname + new URL(href).search;
+                spaNavigateTo(targetUrl, true);
+              }
+            });
+
+            // Browser Back / Forward History Navigation
+            window.addEventListener('popstate', function() {
+              spaNavigateTo(window.location.pathname + window.location.search, false);
+            });
+
+            // =========================================================================
+            // D. Global Interactive UI Components (Modals, Toasts, Theme, Sidebar)
+            // =========================================================================
             function toggleTheme() {
               const isDark = document.documentElement.classList.contains('dark');
               if (isDark) {
@@ -554,21 +890,19 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
                 localStorage.setItem('theme', 'dark');
               }
             }
-            
+
             const deskThemeBtn = document.getElementById('desktop-theme-toggle');
             const mobThemeBtn = document.getElementById('mobile-theme-toggle');
-            if (deskThemeBtn) deskThemeBtn.addEventListener('click', toggleTheme);
-            if (mobThemeBtn) mobThemeBtn.addEventListener('click', toggleTheme);
+            if (deskThemeBtn) deskThemeBtn.onclick = toggleTheme;
+            if (mobThemeBtn) mobThemeBtn.onclick = toggleTheme;
 
-            // --- B. Desktop Sidebar Collapse ---
+            // Desktop Sidebar Collapse
             const sidebar = document.getElementById('desktop-sidebar');
             const sidebarToggle = document.getElementById('sidebar-toggle');
             const chevron = document.getElementById('chevron-left');
             
             let isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
-            if (isCollapsed && sidebar) {
-              applyCollapse(true);
-            }
+            if (isCollapsed && sidebar) applyCollapse(true);
             
             function applyCollapse(collapsed) {
               if (!sidebar) return;
@@ -586,14 +920,14 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
             }
             
             if (sidebarToggle) {
-              sidebarToggle.addEventListener('click', function() {
+              sidebarToggle.onclick = function() {
                 isCollapsed = !isCollapsed;
                 localStorage.setItem('sidebar-collapsed', isCollapsed ? 'true' : 'false');
                 applyCollapse(isCollapsed);
-              });
+              };
             }
 
-            // --- C. Mobile Bottom Sheet Menu ("More") ---
+            // Mobile Bottom Sheet Menu ("More")
             const drawer = document.getElementById('mobile-drawer');
             const drawerBackdrop = document.getElementById('mobile-drawer-backdrop');
             const drawerBody = document.getElementById('mobile-drawer-body');
@@ -618,19 +952,20 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
                 drawer.classList.add('hidden');
               }, 300);
             }
+            window.closeMobileDrawer = closeDrawer;
 
-            if (moreTriggerBtn) moreTriggerBtn.addEventListener('click', openDrawer);
-            if (menuCloseBtn) menuCloseBtn.addEventListener('click', closeDrawer);
-            if (drawerBackdrop) drawerBackdrop.addEventListener('click', closeDrawer);
+            if (moreTriggerBtn) moreTriggerBtn.onclick = openDrawer;
+            if (menuCloseBtn) menuCloseBtn.onclick = closeDrawer;
+            if (drawerBackdrop) drawerBackdrop.onclick = closeDrawer;
 
             if (sheetWorkspaceBtn) {
-              sheetWorkspaceBtn.addEventListener('click', () => {
+              sheetWorkspaceBtn.onclick = function() {
                 closeDrawer();
                 setTimeout(openWorkspaceModal, 250);
-              });
+              };
             }
 
-            // --- D. Global Workspace Switcher Modal ---
+            // Global Workspace Switcher Modal
             const modalSwitcher = document.getElementById('modal-workspace-switcher');
             const searchInput = document.getElementById('workspace-search-input');
 
@@ -657,55 +992,63 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
                 body.classList.remove('translate-y-0');
               }
             }
+            window.closeWorkspaceModal = closeWorkspaceModal;
 
-            document.querySelectorAll('#desktop-workspace-trigger, #mobile-workspace-trigger, .trigger-workspace-modal, #dashboard-btn-switch-store').forEach(el => {
-              el.addEventListener('click', openWorkspaceModal);
-            });
+            function initInteractiveBehaviors() {
+              document.querySelectorAll('#desktop-workspace-trigger, #mobile-workspace-trigger, .trigger-workspace-modal, #dashboard-btn-switch-store').forEach(el => {
+                el.onclick = openWorkspaceModal;
+              });
 
-            document.querySelectorAll('.modal-close-trigger, .modal-backdrop-trigger').forEach(btn => {
-              btn.addEventListener('click', closeWorkspaceModal);
-            });
+              document.querySelectorAll('.modal-close-trigger, .modal-backdrop-trigger').forEach(btn => {
+                btn.onclick = closeWorkspaceModal;
+              });
 
-            // Search filter
-            if (searchInput) {
-              searchInput.addEventListener('input', function(e) {
-                const q = e.target.value.toLowerCase();
-                document.querySelectorAll('.btn-select-workspace').forEach(card => {
-                  const name = (card.getAttribute('data-name') || '').toLowerCase();
-                  const phone = (card.getAttribute('data-phone') || '').toLowerCase();
-                  if (name.includes(q) || phone.includes(q)) {
-                    card.style.display = 'flex';
-                  } else {
-                    card.style.display = 'none';
+              if (searchInput) {
+                searchInput.oninput = function(e) {
+                  const q = e.target.value.toLowerCase();
+                  document.querySelectorAll('.btn-select-workspace').forEach(card => {
+                    const name = (card.getAttribute('data-name') || '').toLowerCase();
+                    const phone = (card.getAttribute('data-phone') || '').toLowerCase();
+                    if (name.includes(q) || phone.includes(q)) {
+                      card.style.display = 'flex';
+                    } else {
+                      card.style.display = 'none';
+                    }
+                  });
+                };
+              }
+
+              document.querySelectorAll('.btn-select-workspace').forEach(btn => {
+                btn.onclick = async function() {
+                  const merchantId = this.getAttribute('data-id');
+                  if (!merchantId) return;
+                  try {
+                    const res = await fetch('/api/v1/workspaces/switch', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ merchantId })
+                    });
+                    const json = await res.json();
+                    if (json.success) {
+                      // Instantly refresh current view via SPA router
+                      closeWorkspaceModal();
+                      window.location.reload();
+                    } else {
+                      window.showToast({ type: 'error', title: 'Workspace Switch Failed', message: json.error || 'Failed to switch workspace.' });
+                    }
+                  } catch (e) {
+                    window.showToast({ type: 'error', title: 'Network Error', message: 'Network error switching workspace.' });
                   }
-                });
+                };
               });
             }
 
-            // Switch workspace click
-            document.querySelectorAll('.btn-select-workspace').forEach(btn => {
-              btn.addEventListener('click', async function() {
-                const merchantId = this.getAttribute('data-id');
-                if (!merchantId) return;
-                try {
-                  const res = await fetch('/api/v1/workspaces/switch', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ merchantId })
-                  });
-                  const json = await res.json();
-                  if (json.success) {
-                    window.location.reload();
-                  } else {
-                    window.showToast({ type: 'error', title: 'Workspace Switch Failed', message: json.error || 'Failed to switch workspace.' });
-                  }
-                } catch (e) {
-                  window.showToast({ type: 'error', title: 'Network Error', message: 'Network error switching workspace.' });
-                }
-              });
-            });
+            window.initAppInteractiveBehaviors = initInteractiveBehaviors;
+            initInteractiveBehaviors();
 
-            // --- E. Modern Shadcn Toast System ---
+            // =========================================================================
+            // E. Modern Toast Notification System
+            // =========================================================================
             window.showToast = function(opts) {
               const container = document.getElementById('global-toast-container');
               if (!container) return;
@@ -741,7 +1084,7 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
                 toast.classList.add('opacity-0', 'translate-y-2');
                 setTimeout(() => toast.remove(), 300);
               };
-              if (closeBtn) closeBtn.addEventListener('click', dismiss);
+              if (closeBtn) closeBtn.onclick = dismiss;
               setTimeout(dismiss, duration);
 
               container.appendChild(toast);
@@ -750,7 +1093,9 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
               });
             };
 
-            // --- F. Modern Shadcn Confirmation Dialog ---
+            // =========================================================================
+            // F. Modern Confirmation Dialog
+            // =========================================================================
             let confirmCallback = null;
             window.showConfirmDialog = function(opts) {
               const modal = document.getElementById('global-confirm-dialog');
@@ -808,11 +1153,121 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
               }, 200);
             }
 
-            document.getElementById('confirm-dialog-btn-cancel')?.addEventListener('click', closeGlobalConfirmModal);
-            document.querySelector('#global-confirm-dialog .confirm-backdrop')?.addEventListener('click', closeGlobalConfirmModal);
-            document.getElementById('confirm-dialog-btn-action')?.addEventListener('click', function() {
-              if (confirmCallback) confirmCallback();
-              closeGlobalConfirmModal();
+            const cancelBtn = document.getElementById('confirm-dialog-btn-cancel');
+            const backdropEl = document.querySelector('#global-confirm-dialog .confirm-backdrop');
+            const actionBtn = document.getElementById('confirm-dialog-btn-action');
+
+            if (cancelBtn) cancelBtn.onclick = closeGlobalConfirmModal;
+            if (backdropEl) backdropEl.onclick = closeGlobalConfirmModal;
+            if (actionBtn) {
+              actionBtn.onclick = function() {
+                if (confirmCallback) confirmCallback();
+                closeGlobalConfirmModal();
+              };
+            }
+
+            // =========================================================================
+            // G. International Standard PWA Install Engine & iOS Helper
+            // =========================================================================
+            let deferredPrompt = null;
+            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+            const installBanner = document.getElementById('pwa-install-banner');
+            const installActionBtn = document.getElementById('btn-pwa-install-action');
+            const installDismissBtn = document.getElementById('btn-pwa-dismiss');
+            const installMobileBtn = document.getElementById('btn-pwa-install-mobile');
+            const installDesktopBtn = document.getElementById('btn-pwa-install-desktop');
+            const iosGuideModal = document.getElementById('modal-ios-pwa-guide');
+
+            function showPwaBanner() {
+              if (isStandalone || !installBanner) return;
+              const dismissedAt = localStorage.getItem('pwa-prompt-dismissed');
+              // Snooze for 24 hours
+              if (dismissedAt && (Date.now() - parseInt(dismissedAt, 10) < 24 * 60 * 60 * 1000)) {
+                return;
+              }
+              installBanner.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+            }
+
+            function hidePwaBanner() {
+              if (!installBanner) return;
+              installBanner.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+            }
+
+            function openIosGuide() {
+              if (!iosGuideModal) return;
+              iosGuideModal.classList.remove('opacity-0', 'pointer-events-none');
+              const card = iosGuideModal.querySelector('.sheet-spring');
+              if (card) {
+                card.classList.remove('translate-y-4', 'sm:scale-95');
+                card.classList.add('translate-y-0', 'sm:scale-100');
+              }
+            }
+
+            function closeIosGuide() {
+              if (!iosGuideModal) return;
+              iosGuideModal.classList.add('opacity-0', 'pointer-events-none');
+              const card = iosGuideModal.querySelector('.sheet-spring');
+              if (card) {
+                card.classList.add('translate-y-4', 'sm:scale-95');
+                card.classList.remove('translate-y-0', 'sm:scale-100');
+              }
+            }
+
+            document.querySelectorAll('.ios-guide-close, .ios-guide-backdrop').forEach(el => {
+              el.onclick = closeIosGuide;
+            });
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+              e.preventDefault();
+              deferredPrompt = e;
+              setTimeout(showPwaBanner, 3000);
+            });
+
+            async function triggerPwaInstall() {
+              if (isStandalone) {
+                window.showToast({ type: 'info', title: 'Already Installed', message: 'The application is already running in native standalone mode!' });
+                return;
+              }
+
+              if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                  hidePwaBanner();
+                }
+                deferredPrompt = null;
+              } else if (isIos) {
+                hidePwaBanner();
+                openIosGuide();
+              } else {
+                window.showToast({
+                  type: 'info',
+                  title: 'Install PWA',
+                  message: 'To install, click the Install icon in your browser URL bar or Add to Home Screen in browser menu.'
+                });
+              }
+            }
+
+            if (installActionBtn) installActionBtn.onclick = triggerPwaInstall;
+            if (installMobileBtn) installMobileBtn.onclick = function() {
+              closeDrawer();
+              setTimeout(triggerPwaInstall, 250);
+            };
+            if (installDesktopBtn) installDesktopBtn.onclick = triggerPwaInstall;
+
+            if (installDismissBtn) {
+              installDismissBtn.onclick = function() {
+                localStorage.setItem('pwa-prompt-dismissed', String(Date.now()));
+                hidePwaBanner();
+              };
+            }
+
+            window.addEventListener('appinstalled', () => {
+              hidePwaBanner();
+              deferredPrompt = null;
+              window.showToast({ type: 'success', title: 'App Installed', message: 'Application installed successfully to your home screen!' });
             });
 
           })();

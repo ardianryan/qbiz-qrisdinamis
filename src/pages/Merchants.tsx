@@ -1,6 +1,7 @@
 import React from 'react';
 import { Layout } from '../components/Layout.tsx';
 import { MerchantContext } from '../middleware/auth.ts';
+import { SystemSettingsConfig } from '../services/settings.ts';
 
 interface Merchant {
   id: string;
@@ -19,11 +20,12 @@ interface MerchantsPageProps {
   currentUser?: any;
   activeMerchant?: MerchantContext | null;
   accessibleMerchants?: MerchantContext[];
+  systemSettings?: SystemSettingsConfig;
 }
 
-export function MerchantsPage({ merchants, currentUser, activeMerchant, accessibleMerchants }: MerchantsPageProps) {
+export function MerchantsPage({ merchants, currentUser, activeMerchant, accessibleMerchants, systemSettings }: MerchantsPageProps) {
   return (
-    <Layout activePath="/merchants" user={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants}>
+    <Layout activePath="/merchants" user={currentUser} activeMerchant={activeMerchant} accessibleMerchants={accessibleMerchants} systemSettings={systemSettings}>
       
       {/* ========================================================================= */}
       {/* 1. HEADER SECTION */}

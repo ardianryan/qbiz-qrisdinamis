@@ -141,4 +141,68 @@ Deno.test("Notification Test API - should validate invalid channel", async () =>
   assertEquals(res.status === 401 || res.status === 403, true);
 });
 
+Deno.test("Settings Route - should reject unauthenticated access to /settings", async () => {
+  const res = await app.request("/settings");
+  // Should redirect to login or return 401/403
+  assertEquals(res.status === 302 || res.status === 401 || res.status === 403, true);
+});
+
+Deno.test("Settings API - should reject unauthenticated access to /api/v1/settings", async () => {
+  const res = await app.request("/api/v1/settings");
+  assertEquals(res.status === 401 || res.status === 403, true);
+});
+
+Deno.test("PWA - GET /manifest.webmanifest should return valid W3C manifest JSON", async () => {
+  const res = await app.request("/manifest.webmanifest");
+  assertEquals(res.status, 200);
+  const contentType = res.headers.get("content-type");
+  assertEquals(contentType?.includes("application/manifest+json"), true);
+  const json = await res.json();
+  assertEquals(typeof json.name, "string");
+  assertEquals(json.display, "standalone");
+  assertEquals(Array.isArray(json.icons), true);
+  assertEquals(json.icons.length >= 2, true);
+});
+
+Deno.test("PWA - GET /sw.js should serve caching service worker script", async () => {
+  const res = await app.request("/sw.js");
+  assertEquals(res.status, 200);
+  const contentType = res.headers.get("content-type");
+  assertEquals(contentType?.includes("javascript"), true);
+  const script = await res.text();
+  assertEquals(script.includes("self.addEventListener('install'"), true);
+  assertEquals(script.includes("self.addEventListener('fetch'"), true);
+});
+
+Deno.test("Settings API - should reject unauthenticated cache-flush", async () => {
+  const res = await app.request("/api/v1/settings/cache-flush", { method: "POST" });
+  assertEquals(res.status === 401 || res.status === 403, true);
+});
+
+Deno.test("Developer Hub Security - test-webhook should reject unauthenticated requests", async () => {
+  const res = await app.request("/api/v1/developer/test-webhook", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: "http://169.254.169.254/latest/meta-data" })
+  });
+  assertEquals(res.status === 401 || res.status === 403, true);
+});
+
+Deno.test("Developer Hub Security - keys endpoints should reject unauthenticated requests", async () => {
+  const res = await app.request("/api/v1/developer/keys");
+  assertEquals(res.status === 401 || res.status === 403, true);
+});
+
+Deno.test("Developer Hub Security - webhooks endpoints should reject unauthenticated requests", async () => {
+  const res = await app.request("/api/v1/developer/webhooks");
+  assertEquals(res.status === 401 || res.status === 403, true);
+
+  const postRes = await app.request("/api/v1/developer/webhooks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "POS Webhook", url: "https://example.com/webhook", events: ["payment.success"] })
+  });
+  assertEquals(postRes.status === 401 || postRes.status === 403, true);
+});
+
 
