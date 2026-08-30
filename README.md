@@ -180,6 +180,8 @@ Because QBiz utilizes **Puppeteer (headless Chromium)** in the background to syn
 * **Docker Compose Deployment**:
   Build and run multi-container setups locally:
   ```bash
+  docker compose up -d
+  ```
 * **Full Multi-Platform Deployment Guide**: Detailed step-by-step instructions for **Docker**, **Portainer**, **Coolify**, **Railway**, **aaPanel** (Nginx reverse proxy + SSL), and **Direct VPS Bare Metal** are available in the [Comprehensive Deployment Guide](DEPLOYMENT.md).
 
 ---
