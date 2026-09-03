@@ -67,20 +67,32 @@ export function formatNotificationMessage(template: string | null | undefined, d
  */
 export function isValidOutboundUrl(urlString: string, allowedProtocols = ['http:', 'https:']): boolean {
   try {
-    const parsed = new URL(urlString.trim());
+    const raw = urlString.trim();
+    if (!raw || raw.length > 2048) {
+      return false;
+    }
+
+    const parsed = new URL(raw);
     if (!allowedProtocols.includes(parsed.protocol)) {
       return false;
     }
-    const hostname = parsed.hostname.toLowerCase();
+
+    // Block embedded credentials in outbound URL (userinfo abuse)
+    if (parsed.username || parsed.password) {
+      return false;
+    }
+
+    const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
     
-    // Block Cloud metadata service IPs (AWS, GCP, Azure, Alibaba, OpenStack)
+    // Prohibited Cloud metadata service IPs & Hostnames (AWS, GCP, Azure, Alibaba, OpenStack)
     const blockedHostnames = [
       '169.254.169.254',
       '100.100.100.200',
       '168.63.129.16',
       'metadata.google.internal',
       'metadata.internal',
-      'instance-data'
+      'instance-data',
+      '169.254.169.253'
     ];
 
     if (blockedHostnames.includes(hostname)) {
@@ -93,7 +105,12 @@ export function isValidOutboundUrl(urlString: string, allowedProtocols = ['http:
     }
 
     // Block IPv6 link-local (fe80::)
-    if (hostname.startsWith('fe80:') || hostname.startsWith('[fe80:')) {
+    if (hostname.startsWith('fe80:')) {
+      return false;
+    }
+
+    // Block IPv4-mapped IPv6 metadata bypass (::ffff:169.254.169.254)
+    if (hostname.startsWith('::ffff:169.254.') || hostname.startsWith('::ffff:100.100.')) {
       return false;
     }
 
