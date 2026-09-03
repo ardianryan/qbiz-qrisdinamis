@@ -115,6 +115,21 @@ export async function hashPassword(password: string, customSalt?: Uint8Array): P
 }
 
 /**
+ * Constant-time string comparison to defend against timing side-channel attacks
+ */
+export function timingSafeEqualString(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) {
+    return false;
+  }
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+/**
  * Verify plaintext password against stored hash (supporting both modern PBKDF2 and legacy SHA-256)
  */
 export async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
@@ -151,7 +166,7 @@ export async function verifyPassword(password: string, storedHash: string): Prom
     );
 
     const computedHashHex = Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
-    return computedHashHex === expectedHashHex;
+    return timingSafeEqualString(computedHashHex, expectedHashHex);
   }
 
   // Legacy single-round SHA-256 fallback
@@ -162,7 +177,7 @@ export async function verifyPassword(password: string, storedHash: string): Prom
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 
-  return legacyHash === storedHash;
+  return timingSafeEqualString(legacyHash, storedHash);
 }
 
 /**
