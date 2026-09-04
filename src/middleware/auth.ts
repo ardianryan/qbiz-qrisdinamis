@@ -3,8 +3,85 @@ import { db } from '../../db/db.ts';
 import { users, merchants, regionalAdminMerchants } from '../../db/schema.ts';
 import { eq, inArray } from 'drizzle-orm';
 
-// Secret key for cookie signing
-export const COOKIE_SECRET = Deno.env.get("COOKIE_SECRET") || "qbiz_cookie_signing_secret_key_2026";
+/**
+ * Known insecure / placeholder secrets from documentation or templates.
+ * These must NEVER be permitted in production environments.
+ */
+export const INSECURE_SECRET_PLACEHOLDERS = new Set([
+  "qbiz_cookie_signing_secret_key_2026",
+  "qbiz_jwt_secret_key_2026",
+  "change_me_to_a_secure_random_cookie_secret_key_2026",
+  "change_me_to_a_secure_random_jwt_secret_key_2026",
+  "your_cookie_signing_secret",
+  "your_jwt_secret",
+  "random_cookie_secret_2026_hex_value",
+  "random_jwt_secret_2026_hex_value",
+  "your_secure_db_password",
+  "secret",
+  "password",
+  "12345678"
+]);
+
+/**
+ * Ephemeral random fallback secret for development/testing if no env var is provided.
+ * Generates a fresh 24-byte cryptographically random hex string at runtime.
+ */
+const EPHEMERAL_DEV_SECRET = Array.from(crypto.getRandomValues(new Uint8Array(24)))
+  .map(b => b.toString(16).padStart(2, '0'))
+  .join('');
+
+/**
+ * Validate that a secret is safe for production use.
+ */
+export function validateSecret(secretName: string, secretValue: string | undefined, isProduction: boolean = false): { isValid: boolean; error?: string } {
+  if (!secretValue || secretValue.trim().length === 0) {
+    if (isProduction) {
+      return { isValid: false, error: `CRITICAL: Environment variable ${secretName} is missing in production.` };
+    }
+    return { isValid: true };
+  }
+
+  const trimmed = secretValue.trim();
+  if (trimmed.length < 16) {
+    if (isProduction) {
+      return { isValid: false, error: `CRITICAL: Environment variable ${secretName} is too short (minimum 16 characters required).` };
+    }
+  }
+
+  if (INSECURE_SECRET_PLACEHOLDERS.has(trimmed.toLowerCase())) {
+    if (isProduction) {
+      return { isValid: false, error: `CRITICAL: ${secretName} is set to an insecure default/placeholder value ("${trimmed}"). You must generate a unique random secret before running in production.` };
+    }
+  }
+
+  return { isValid: true };
+}
+
+/**
+ * Resolve and validate the application's COOKIE_SECRET.
+ */
+export function resolveCookieSecret(): string {
+  const envSecret = Deno.env.get("COOKIE_SECRET");
+  const isProd = Deno.env.get("DENO_ENV") === "production" || Deno.env.get("NODE_ENV") === "production";
+
+  const validation = validateSecret("COOKIE_SECRET", envSecret, isProd);
+  if (!validation.isValid) {
+    console.error(`\n🚨 [SECURITY CONFIG ERROR] ${validation.error}`);
+    console.error(`👉 Please set a strong random secret in your .env file: COOKIE_SECRET=$(openssl rand -hex 16)\n`);
+    if (isProd) {
+      throw new Error(validation.error);
+    }
+  }
+
+  if (envSecret && envSecret.trim().length >= 16 && !INSECURE_SECRET_PLACEHOLDERS.has(envSecret.trim().toLowerCase())) {
+    return envSecret.trim();
+  }
+
+  return envSecret?.trim() || EPHEMERAL_DEV_SECRET;
+}
+
+// Secret key for cookie signing (guaranteed non-empty, validated, or ephemeral random)
+export const COOKIE_SECRET = resolveCookieSecret();
 
 export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'REGIONAL_ADMIN' | 'MERCHANT' | 'MERCHANT_EMPLOYEE';
 

@@ -9,9 +9,9 @@ services:
     ports:
       - "${PORT:-8000}:8000"
     environment:
-      - DATABASE_URL=postgres://${DB_USER:-qbiz_user}:${DB_PASSWORD:-your_secure_db_password}@db:5432/${DB_NAME:-qrispaymti}
-      - COOKIE_SECRET=${COOKIE_SECRET:-qbiz_cookie_signing_secret_key_2026}
-      - JWT_SECRET=${JWT_SECRET:-qbiz_jwt_secret_key_2026}
+      - DATABASE_URL=postgres://${DB_USER:-qbiz_user}:${DB_PASSWORD:?Error: DB_PASSWORD must be configured in .env}@db:5432/${DB_NAME:-qrispaymti}
+      - COOKIE_SECRET=${COOKIE_SECRET:?Error: COOKIE_SECRET must be configured in .env}
+      - JWT_SECRET=${JWT_SECRET:?Error: JWT_SECRET must be configured in .env}
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
     depends_on:
       db:
@@ -27,7 +27,7 @@ services:
     environment:
       - POSTGRES_DB=${DB_NAME:-qrispaymti}
       - POSTGRES_USER=${DB_USER:-qbiz_user}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-your_secure_db_password}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?Error: DB_PASSWORD must be configured in .env}
     ports:
       - "5432:5432"
     volumes:

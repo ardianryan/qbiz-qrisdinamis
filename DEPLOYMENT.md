@@ -67,6 +67,9 @@ docker compose up -d --build
 3. Name your stack `qbiz-gateway`.
 4. Paste the following Compose configuration in the Web Editor:
 
+> [!IMPORTANT]
+> **Mandatory Security Rule**: Never deploy with sample placeholder strings. In production (`DENO_ENV=production`), QBiz automatically terminates startup if insecure default placeholder secrets are detected. Generate strong random 32-character hex secrets using `openssl rand -hex 16`.
+
 ```yaml
 version: '3.8'
 
@@ -78,9 +81,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgres://qbiz_user:your_secure_password_2026@db:5432/qrispaymti
-      - COOKIE_SECRET=random_cookie_secret_2026_hex_value
-      - JWT_SECRET=random_jwt_secret_2026_hex_value
+      - DATABASE_URL=postgres://qbiz_user:GENERATE_STRONG_DB_PASSWORD@db:5432/qrispaymti
+      - COOKIE_SECRET=GENERATE_RANDOM_32HEX_COOKIE_SECRET
+      - JWT_SECRET=GENERATE_RANDOM_32HEX_JWT_SECRET
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
     depends_on:
       db:
@@ -96,7 +99,7 @@ services:
     environment:
       - POSTGRES_DB=qrispaymti
       - POSTGRES_USER=qbiz_user
-      - POSTGRES_PASSWORD=your_secure_password_2026
+      - POSTGRES_PASSWORD=GENERATE_STRONG_DB_PASSWORD
     ports:
       - "5432:5432"
     volumes:

@@ -23,9 +23,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgres://${DB_USER:-qbiz_user}:${DB_PASSWORD:-your_secure_db_password}@db:5432/${DB_NAME:-qrispaymti}
-      - COOKIE_SECRET=${COOKIE_SECRET:-qbiz_cookie_signing_secret_key_2026}
-      - JWT_SECRET=${JWT_SECRET:-qbiz_jwt_secret_key_2026}
+      - DATABASE_URL=postgres://${DB_USER:-qbiz_user}:${DB_PASSWORD:?DB_PASSWORD must be configured}@db:5432/${DB_NAME:-qrispaymti}
+      - COOKIE_SECRET=${COOKIE_SECRET:?COOKIE_SECRET must be configured (generate with openssl rand -hex 16)}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be configured (generate with openssl rand -hex 16)}
     depends_on:
       db:
         condition: service_healthy
@@ -40,7 +40,7 @@ services:
     environment:
       - POSTGRES_DB=${DB_NAME:-qrispaymti}
       - POSTGRES_USER=${DB_USER:-qbiz_user}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-your_secure_db_password}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be configured}
     ports:
       - "5432:5432"
     volumes:

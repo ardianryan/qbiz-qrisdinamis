@@ -1,6 +1,6 @@
 import { COOKIE_SECRET } from '../middleware/auth.ts';
 
-const ENCRYPTION_KEY_RAW = COOKIE_SECRET || "qbiz_cookie_signing_secret_key_2026";
+const ENCRYPTION_KEY_RAW = COOKIE_SECRET;
 
 /**
  * Derive 256-bit AES key using Web Crypto PBKDF2 for encryption at rest
