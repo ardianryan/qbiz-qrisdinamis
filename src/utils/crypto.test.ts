@@ -66,3 +66,29 @@ Deno.test("Password Cryptography - should hash with PBKDF2 (100,000 iterations) 
   const isLegacyWrong = await verifyPassword("WrongPass", legacyHashHex);
   assertEquals(isLegacyWrong, false);
 });
+
+Deno.test("Environment Secret Hardening - validateSecret should reject insecure default placeholders in production", async () => {
+  const { validateSecret } = await import("../middleware/auth.ts");
+
+  // 1. Should accept strong random secrets
+  const validCheck = validateSecret("COOKIE_SECRET", "a1b2c3d4e5f67890123456789abcdef0", true);
+  assertEquals(validCheck.isValid, true);
+
+  // 2. Should reject missing secrets in production
+  const missingCheck = validateSecret("COOKIE_SECRET", "", true);
+  assertEquals(missingCheck.isValid, false);
+
+  // 3. Should reject short secrets (< 16 chars) in production
+  const shortCheck = validateSecret("COOKIE_SECRET", "short_secret", true);
+  assertEquals(shortCheck.isValid, false);
+
+  // 4. Should reject known template placeholder strings in production
+  const placeholderCheck1 = validateSecret("COOKIE_SECRET", "qbiz_cookie_signing_secret_key_2026", true);
+  assertEquals(placeholderCheck1.isValid, false);
+
+  const placeholderCheck2 = validateSecret("COOKIE_SECRET", "change_me_to_a_secure_random_cookie_secret_key_2026", true);
+  assertEquals(placeholderCheck2.isValid, false);
+
+  const placeholderCheck3 = validateSecret("JWT_SECRET", "qbiz_jwt_secret_key_2026", true);
+  assertEquals(placeholderCheck3.isValid, false);
+});
