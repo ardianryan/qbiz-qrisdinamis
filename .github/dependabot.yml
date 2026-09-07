@@ -1,0 +1,56 @@
+version: 2
+updates:
+  # 1. Node.js / npm Ecosystem
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 10
+    target-branch: "main"
+    reviewers:
+      - "ardianryan"
+    labels:
+      - "dependencies"
+      - "security"
+      - "javascript"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # 2. GitHub Actions Workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    target-branch: "main"
+    reviewers:
+      - "ardianryan"
+    labels:
+      - "ci"
+      - "github-actions"
+    commit-message:
+      prefix: "ci(actions)"
+
+  # 3. Docker Base Images (Dockerfile)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    target-branch: "main"
+    reviewers:
+      - "ardianryan"
+    labels:
+      - "docker"
+      - "dependencies"
+    commit-message:
+      prefix: "chore(docker)"
