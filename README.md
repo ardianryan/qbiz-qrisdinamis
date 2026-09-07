@@ -264,6 +264,3 @@ On application startup, default accounts are seeded into the database for quick 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-
-<!-- Security scan triggered at 2026-09-04 13:02:53 -->
