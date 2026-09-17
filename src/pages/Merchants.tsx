@@ -325,7 +325,7 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
             </button>
           </div>
           <div className="p-6 flex-grow flex items-center justify-center overflow-y-auto">
-            <img id="zoom-image" src="" alt="QRIS Zoom" className="w-full max-w-xs object-contain border border-slate-100 dark:border-zinc-800 rounded-xl shadow-lg p-2 bg-white" />
+            <img id="zoom-image" alt="QRIS Zoom" className="w-full max-w-xs object-contain border border-slate-100 dark:border-zinc-800 rounded-xl shadow-lg p-2 bg-white" />
           </div>
         </div>
       </div>

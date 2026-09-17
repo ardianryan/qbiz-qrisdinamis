@@ -1125,18 +1125,20 @@ app.get('/api/v1/transactions', async (c) => {
   return c.json({ success: true, transactions: txList });
 });
 
-// API: Trigger GoBiz WhatsApp OTP
-app.post('/api/v1/merchants/:id/otp/request', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
+// API: Trigger GoBiz WhatsApp OTP (supports both /otp and /otp/request)
+const handleOtpRequest = async (c: any) => {
   const id = c.req.param('id');
   if (id.startsWith('mrc_toko')) {
     return c.json({ success: true });
   }
   const result = await triggerGoBizOTP(id);
   return c.json(result);
-});
+};
+app.post('/api/v1/merchants/:id/otp', requireRole(['SUPER_ADMIN', 'ADMIN']), handleOtpRequest);
+app.post('/api/v1/merchants/:id/otp/request', requireRole(['SUPER_ADMIN', 'ADMIN']), handleOtpRequest);
 
-// API: Verify GoBiz OTP & Save Cookie Session
-app.post('/api/v1/merchants/:id/otp/verify', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
+// API: Verify GoBiz OTP & Save Cookie Session (supports both /verify and /otp/verify)
+const handleOtpVerify = async (c: any) => {
   const id = c.req.param('id');
   const body = await c.req.json();
   const otpCode = body.otp;
@@ -1149,6 +1151,30 @@ app.post('/api/v1/merchants/:id/otp/verify', requireRole(['SUPER_ADMIN', 'ADMIN'
   }
   const result = await verifyGoBizOTP(id, otpCode);
   return c.json(result);
+};
+app.post('/api/v1/merchants/:id/verify', requireRole(['SUPER_ADMIN', 'ADMIN']), handleOtpVerify);
+app.post('/api/v1/merchants/:id/otp/verify', requireRole(['SUPER_ADMIN', 'ADMIN']), handleOtpVerify);
+
+// API: Start Listener Worker
+app.post('/api/v1/merchants/:id/start', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
+  const id = c.req.param('id');
+  try {
+    await startMerchantListener(id);
+    return c.json({ success: true });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message });
+  }
+});
+
+// API: Stop Listener Worker
+app.post('/api/v1/merchants/:id/stop', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
+  const id = c.req.param('id');
+  try {
+    await stopMerchantListener(id);
+    return c.json({ success: true });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message });
+  }
 });
 
 // API: Toggle Listener Worker (Pause/Resume)
