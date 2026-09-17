@@ -5,11 +5,11 @@ All notable changes to the **QBiz Gateway Hub** project will be documented in th
 ## [1.2.0] - 2026-09-17
 
 ### Added
-- **Rekapitulasi Omzet & Revenue Reconciliation (`/transactions`)**:
-  - **Dynamic Range Filtering**: Interactive period toggles for *Hari Ini*, *7 Hari*, *Bulan Ini*, and *Semua* with instant metrics recalculation.
-  - **4 Financial Metrics Cards**: Total Omzet Masuk (IDR), Transaksi Sukses with conversion rates, Rata-Rata Nilai Transaksi (AOV), and Pending / Kadaluarsa breakdown.
-  - **1-Click CSV Data Export**: Client-side sanitized CSV export (`Waktu, Merchant, Order ID, Invoice ID, Nominal Dasar, Kode Unik, Total Bayar, Status, Webhook`) based on active filter criteria.
-  - **Printer-Friendly Layout**: Optimized `@media print` layout specifically tailored for financial audits, receipts, and accounting handoffs.
+- **Revenue Reconciliation & Financial Analytics (`/transactions`)**:
+  - **Dynamic Range Filtering**: Interactive period toggles for *Today*, *7 Days*, *This Month*, and *All Time* with instant metric recalculation.
+  - **4 Financial Metric Cards**: Total Settled Revenue (IDR), Successful Transactions with conversion rates, Average Order Value (AOV), and Pending & Expired breakdown.
+  - **1-Click CSV Data Export**: Client-side sanitized CSV export (`Timestamp, Merchant, Order ID, Invoice ID, Base Amount, Unique Code, Total Amount, Status, Webhook`) based on active filter criteria.
+  - **Printer-Friendly Layout**: Optimized `@media print` layout specifically tailored for financial audits, paper receipts, and accounting handoffs.
 
 - **Real-Time Zero-Latency Payment Synchronization (SSE)**:
   - **In-Memory Event Broker (`src/services/sse.ts`)**: High-performance broker with invoice-specific channels (`/api/v1/invoices/:id/sse`) and transaction feed channels (`/api/v1/transactions/sse`).

@@ -68,32 +68,32 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. REKAPITULASI OMZET & REVENUE RECONCILIATION */}
+      {/* 2. REVENUE RECONCILIATION & SUMMARY */}
       {/* ========================================================================= */}
       <div id="rekap-omzet-card" className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-5 mb-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-zinc-800/80">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-slate-900 dark:text-zinc-50">
-                Rekapitulasi Omzet
+                Revenue Reconciliation
               </h2>
               <span id="sse-live-indicator" className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                SSE Aktif
+                SSE Active
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-              Ringkasan pendapatan QRIS dinamis dan volume transaksi secara realtime.
+              Real-time summary of dynamic QRIS revenue and transaction volume.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
             {/* Range Filters */}
             <div className="inline-flex rounded-lg border border-slate-200 dark:border-zinc-800 p-0.5 bg-slate-50 dark:bg-zinc-950 text-xs">
-              <button type="button" data-range="today" className="omzet-range-btn px-2.5 py-1 font-semibold rounded-md transition-colors bg-white dark:bg-zinc-800 text-sky-600 dark:text-sky-400 shadow-xs cursor-pointer">Hari Ini</button>
-              <button type="button" data-range="7d" className="omzet-range-btn px-2.5 py-1 font-medium rounded-md transition-colors text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 cursor-pointer">7 Hari</button>
-              <button type="button" data-range="month" className="omzet-range-btn px-2.5 py-1 font-medium rounded-md transition-colors text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 cursor-pointer">Bulan Ini</button>
-              <button type="button" data-range="all" className="omzet-range-btn px-2.5 py-1 font-medium rounded-md transition-colors text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 cursor-pointer">Semua</button>
+              <button type="button" data-range="today" className="omzet-range-btn px-2.5 py-1 font-semibold rounded-md transition-colors bg-white dark:bg-zinc-800 text-sky-600 dark:text-sky-400 shadow-xs cursor-pointer">Today</button>
+              <button type="button" data-range="7d" className="omzet-range-btn px-2.5 py-1 font-medium rounded-md transition-colors text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 cursor-pointer">7 Days</button>
+              <button type="button" data-range="month" className="omzet-range-btn px-2.5 py-1 font-medium rounded-md transition-colors text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 cursor-pointer">This Month</button>
+              <button type="button" data-range="all" className="omzet-range-btn px-2.5 py-1 font-medium rounded-md transition-colors text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 cursor-pointer">All Time</button>
             </div>
 
             {/* Export & Print */}
@@ -102,19 +102,19 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                 id="btn-export-csv" 
                 type="button"
                 className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors shadow-xs cursor-pointer"
-                title="Unduh laporan transaksi CSV"
+                title="Export transactions CSV report"
               >
                 <svg className="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                <span>Unduh CSV</span>
+                <span>Export CSV</span>
               </button>
               <button 
                 id="btn-print-rekap" 
                 type="button"
                 className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors shadow-xs cursor-pointer"
-                title="Cetak ringkasan omzet"
+                title="Print revenue summary"
               >
                 <svg className="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                <span>Cetak</span>
+                <span>Print</span>
               </button>
             </div>
           </div>
@@ -123,35 +123,35 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
         {/* 4 Metric Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4">
           <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-100 dark:border-zinc-800/80">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Total Omzet Masuk</span>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Total Settled Revenue</span>
             <div className="text-lg sm:text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1" id="metric-total-omzet">
               Rp 0
             </div>
-            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block" id="metric-omzet-subtext">0 transaksi terbayar</span>
+            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block" id="metric-omzet-subtext">0 settled transactions</span>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-100 dark:border-zinc-800/80">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Transaksi Sukses</span>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Successful Transactions</span>
             <div className="text-lg sm:text-xl font-bold font-mono text-slate-900 dark:text-zinc-100 mt-1" id="metric-paid-count">
               0
             </div>
-            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block" id="metric-paid-subtext">0% dari total</span>
+            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block" id="metric-paid-subtext">0% of total</span>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-100 dark:border-zinc-800/80">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Rata-Rata Nilai (AOV)</span>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Average Order Value (AOV)</span>
             <div className="text-lg sm:text-xl font-bold font-mono text-sky-600 dark:text-sky-400 mt-1" id="metric-aov">
               Rp 0
             </div>
-            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block">Per pembayaran sukses</span>
+            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block">Per settled payment</span>
           </div>
 
           <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-100 dark:border-zinc-800/80">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Pending / Kadaluarsa</span>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Pending & Expired</span>
             <div className="text-lg sm:text-xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1" id="metric-pending-expired">
               0
             </div>
-            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block" id="metric-pending-subtext">0 pending, 0 kadaluarsa</span>
+            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block" id="metric-pending-subtext">0 pending, 0 expired</span>
           </div>
         </div>
       </div>
@@ -569,15 +569,15 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                 const pendingSubtextEl = document.getElementById('metric-pending-subtext');
 
                 if (totalOmzetEl) totalOmzetEl.textContent = 'Rp ' + totalOmzet.toLocaleString('id-ID');
-                if (omzetSubtextEl) omzetSubtextEl.textContent = paidCount + ' transaksi terbayar';
+                if (omzetSubtextEl) omzetSubtextEl.textContent = paidCount + ' settled transactions';
                 if (paidCountEl) paidCountEl.textContent = paidCount.toLocaleString('id-ID');
                 if (paidSubtextEl) {
                   const pct = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
-                  paidSubtextEl.textContent = pct + '% dari total (' + totalCount + ' transaksi)';
+                  paidSubtextEl.textContent = pct + '% conversion rate (' + totalCount + ' total)';
                 }
                 if (aovEl) aovEl.textContent = 'Rp ' + aov.toLocaleString('id-ID');
                 if (pendingExpiredEl) pendingExpiredEl.textContent = (pendingCount + expiredCount).toLocaleString('id-ID');
-                if (pendingSubtextEl) pendingSubtextEl.textContent = pendingCount + ' pending, ' + expiredCount + ' kadaluarsa';
+                if (pendingSubtextEl) pendingSubtextEl.textContent = pendingCount + ' pending, ' + expiredCount + ' expired';
               }
 
               // Range buttons
@@ -604,11 +604,11 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                   });
 
                   if (filtered.length === 0) {
-                    window.showToast({ type: 'warning', title: 'Data Kosong', message: 'Tidak ada transaksi pada rentang waktu ini.' });
+                    window.showToast({ type: 'warning', title: 'No Data', message: 'No transactions found within the selected time range.' });
                     return;
                   }
 
-                  const headers = ['Waktu', 'Merchant', 'Order ID', 'Invoice ID', 'Nominal Dasar', 'Kode Unik', 'Total Bayar', 'Status', 'Webhook'];
+                  const headers = ['Timestamp', 'Merchant', 'Order ID', 'Invoice ID', 'Base Amount', 'Unique Code', 'Total Amount', 'Status', 'Webhook'];
                   const rows = filtered.map(tx => [
                     '"' + (tx.timestamp || '').replace(/"/g, '""') + '"',
                     '"' + (tx.merchantName || '').replace(/"/g, '""') + '"',
@@ -626,12 +626,12 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement('a');
                   a.href = url;
-                  a.download = 'rekap_transaksi_' + activeOmzetRange + '_' + new Date().toISOString().slice(0, 10) + '.csv';
+                  a.download = 'revenue_report_' + activeOmzetRange + '_' + new Date().toISOString().slice(0, 10) + '.csv';
                   document.body.appendChild(a);
                   a.click();
                   document.body.removeChild(a);
                   URL.revokeObjectURL(url);
-                  window.showToast({ type: 'success', title: 'Ekspor Berhasil', message: 'Laporan CSV (' + filtered.length + ' baris) berhasil diunduh.' });
+                  window.showToast({ type: 'success', title: 'Export Completed', message: 'CSV report (' + filtered.length + ' rows) exported successfully.' });
                 });
               }
 
@@ -801,7 +801,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                     const ind = document.getElementById('sse-live-indicator');
                     if (ind) {
                       ind.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800';
-                      ind.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> SSE Aktif';
+                      ind.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> SSE Active';
                     }
                   };
                   sseSource.onmessage = function(event) {
@@ -823,7 +823,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                     const ind = document.getElementById('sse-live-indicator');
                     if (ind) {
                       ind.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border border-amber-200 dark:border-amber-800';
-                      ind.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Polling Aktif';
+                      ind.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Polling Active';
                     }
                   };
                 } catch (_err) {}
