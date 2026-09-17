@@ -6,6 +6,7 @@ interface CheckoutPageProps {
     orderId: string;
     baseAmount: number;
     uniqueCode: number;
+    adminFee?: number;
     totalAmount: number;
     status: string;
     expiredAt: string;
@@ -388,6 +389,14 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                       </div>
                     ))}
                   </div>
+
+                  {/* Biaya Admin / Layanan jika ada */}
+                  {invoice.adminFee !== undefined && invoice.adminFee > 0 && (
+                    <div className="flex justify-between items-center text-xs text-sky-600 dark:text-sky-400 font-semibold border-t border-slate-100 dark:border-zinc-800/50 pt-2.5 mb-2.5">
+                      <span>Biaya Layanan (Admin)</span>
+                      <span className="font-mono-qbiz">Rp{invoice.adminFee.toLocaleString('id-ID')}</span>
+                    </div>
+                  )}
 
                   {/* Kode Unik (Unique Code line item display) */}
                   <div className="flex justify-between items-center text-xs text-amber-600 dark:text-amber-500 font-semibold border-t border-slate-100 dark:border-zinc-800/50 pt-2.5 mb-2.5">

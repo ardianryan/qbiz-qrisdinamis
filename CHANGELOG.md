@@ -2,6 +2,20 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.2.3] - 2026-09-17
+
+### Added
+- **Admin Fee & MDR Policy Configuration**:
+  - Added full support for invoice service fee / admin fee policies (`NONE`, `FIXED`, `PERCENTAGE`).
+  - Configure global policies directly from Settings tab 3 ("Payment & QRIS Policies") with automatic unit toggle (`Rp` vs `%`).
+  - Invoices automatically calculate `totalAmount = baseAmount + adminFee + uniqueCode`, injecting `adminFee` transparently into the generated dynamic QRIS.
+  - Added self-healing database migration adding column `admin_fee` (default 0) to `invoices` table.
+- **Transparent Customer Checkout Breakdown**:
+  - Enhanced `/pay/:id` checkout interface with clear breakdown rows: Subtotal Belanja, Biaya Layanan (Admin), and Kode Unik (Verifikasi Otomatis).
+  - API endpoint `POST /api/v1/invoices` accepts optional custom `admin_fee` override per invoice and returns `admin_fee` in JSON responses.
+
+---
+
 ## [1.2.2] - 2026-09-17
 
 ### Added

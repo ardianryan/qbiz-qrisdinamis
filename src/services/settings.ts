@@ -28,6 +28,8 @@ export interface SystemSettingsConfig {
   defaultStaticQris: string;
   defaultWebhookRetryLimit: number;
   webhookRetryDelaySeconds: number;
+  adminFeeType: 'NONE' | 'FIXED' | 'PERCENTAGE';
+  adminFeeAmount: number;
 
   // Tab 4: Scraper & Engine Fleet
   scraperIntervalSeconds: number;
@@ -74,6 +76,8 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettingsConfig = {
   defaultStaticQris: '',
   defaultWebhookRetryLimit: 3,
   webhookRetryDelaySeconds: 5,
+  adminFeeType: 'NONE',
+  adminFeeAmount: 0,
 
   // Tab 4: Scraper
   scraperIntervalSeconds: 30,
@@ -144,6 +148,12 @@ export async function getSystemSettings(forceRefresh = false): Promise<SystemSet
         ? Math.max(1, parseInt(map.get('default_webhook_retry_limit') || '3', 10))
         : DEFAULT_SYSTEM_SETTINGS.defaultWebhookRetryLimit,
       webhookRetryDelaySeconds: map.has('webhook_retry_delay_seconds') ? parseInt(map.get('webhook_retry_delay_seconds') || '5', 10) : DEFAULT_SYSTEM_SETTINGS.webhookRetryDelaySeconds,
+      adminFeeType: (['NONE', 'FIXED', 'PERCENTAGE'].includes(map.get('admin_fee_type') || '')
+        ? map.get('admin_fee_type')
+        : DEFAULT_SYSTEM_SETTINGS.adminFeeType) as 'NONE' | 'FIXED' | 'PERCENTAGE',
+      adminFeeAmount: map.has('admin_fee_amount')
+        ? parseFloat(map.get('admin_fee_amount') || '0')
+        : DEFAULT_SYSTEM_SETTINGS.adminFeeAmount,
 
       // Tab 4: Scraper
       scraperIntervalSeconds: map.has('scraper_interval_seconds') ? parseInt(map.get('scraper_interval_seconds') || '30', 10) : DEFAULT_SYSTEM_SETTINGS.scraperIntervalSeconds,
@@ -205,6 +215,8 @@ export async function updateSystemSettings(updates: Partial<SystemSettingsConfig
     defaultStaticQris: 'default_static_qris',
     defaultWebhookRetryLimit: 'default_webhook_retry_limit',
     webhookRetryDelaySeconds: 'webhook_retry_delay_seconds',
+    adminFeeType: 'admin_fee_type',
+    adminFeeAmount: 'admin_fee_amount',
 
     // Tab 4: Scraper
     scraperIntervalSeconds: 'scraper_interval_seconds',

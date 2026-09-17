@@ -44,7 +44,8 @@ export const invoices = pgTable('invoices', {
   orderId: text('order_id').notNull(), // Client's POS Order ID
   baseAmount: integer('base_amount').notNull(), // e.g. 50000
   uniqueCode: integer('unique_code').notNull(), // e.g. 123
-  totalAmount: integer('total_amount').notNull(), // e.g. 50123
+  adminFee: integer('admin_fee').default(0).notNull(), // Service fee / Admin fee (e.g. 1000)
+  totalAmount: integer('total_amount').notNull(), // e.g. 51123 (baseAmount + adminFee + uniqueCode)
   status: text('status').$type<'PENDING' | 'PAID' | 'EXPIRED'>().default('PENDING').notNull(),
   callbackUrl: text('callback_url'),
   redirectUrl: text('redirect_url'), // Customer browser redirection target on payment success

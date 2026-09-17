@@ -110,6 +110,11 @@ async function runAutoMigrations() {
     await db.execute(sql`
       ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "gofood_transaction_id" text;
     `);
+
+    // Ensure admin_fee exists on invoices table
+    await db.execute(sql`
+      ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "admin_fee" integer DEFAULT 0;
+    `);
   } catch (err: any) {
     console.warn('[Boot] Self-healing DDL notice:', err.message);
   }
@@ -2035,7 +2040,17 @@ app.post('/api/v1/invoices', invoiceApiRateLimiter, async (c) => {
     suffix = Math.floor(Math.random() * 999) + 1;
   }
 
-  const totalAmount = amount + suffix;
+  // Calculate Admin Fee if configured
+  let adminFee = 0;
+  if (body.admin_fee !== undefined && !isNaN(Number(body.admin_fee))) {
+    adminFee = Math.max(0, Math.round(Number(body.admin_fee)));
+  } else if (sysSettings.adminFeeType === 'FIXED') {
+    adminFee = Math.max(0, Math.round(Number(sysSettings.adminFeeAmount) || 0));
+  } else if (sysSettings.adminFeeType === 'PERCENTAGE') {
+    adminFee = Math.max(0, Math.round((amount * (Number(sysSettings.adminFeeAmount) || 0)) / 100));
+  }
+
+  const totalAmount = amount + adminFee + suffix;
   const randomSuffix = Array.from(crypto.getRandomValues(new Uint8Array(12)))
     .map(b => b.toString(16).padStart(2, '0')).join('');
   const newInvoiceId = `inv_${Date.now()}_${randomSuffix}`;
@@ -2053,6 +2068,7 @@ app.post('/api/v1/invoices', invoiceApiRateLimiter, async (c) => {
       orderId,
       baseAmount: amount,
       uniqueCode: suffix,
+      adminFee,
       totalAmount,
       status: 'PENDING',
       callbackUrl,
@@ -2073,10 +2089,7 @@ app.post('/api/v1/invoices', invoiceApiRateLimiter, async (c) => {
     dynamicQrisString = generateDynamicQRIS(staticPayload, totalAmount, newInvoiceId);
   } catch (_e) {}
 
-  const baseUrl = resolveBaseUrl(c);
-
-  // Publish SSE live update to cashier transaction monitors
-  if (merchantId) {
+  if (dynamicQrisString) {
     sseBroker.publishTransactionUpdate({
       merchantId,
       invoiceId: newInvoiceId,
@@ -2087,12 +2100,15 @@ app.post('/api/v1/invoices', invoiceApiRateLimiter, async (c) => {
     });
   }
 
+  const baseUrl = resolveBaseUrl(c);
+
   return c.json({
     success: true,
     invoice: {
       id: newInvoiceId,
       order_id: orderId,
       base_amount: amount,
+      admin_fee: adminFee,
       unique_code: suffix,
       total_amount: totalAmount,
       status: 'PENDING',
@@ -2212,6 +2228,7 @@ app.get('/pay/:id', async (c) => {
             orderId: invoice.orderId,
             baseAmount: invoice.baseAmount,
             uniqueCode: invoice.uniqueCode,
+            adminFee: (invoice as any).adminFee || 0,
             totalAmount: invoice.totalAmount,
             status: invoice.status,
             expiredAt: invoice.expiredAt.toISOString(),

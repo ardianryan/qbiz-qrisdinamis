@@ -439,6 +439,53 @@ export function SettingsPage({ currentUser, activeMerchant, accessibleMerchants,
               </div>
             </div>
 
+            {/* Admin Fee & MDR Policy */}
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-zinc-800/50 border border-slate-200/80 dark:border-zinc-700/60 space-y-4">
+              <div>
+                <span className="text-xs font-bold text-slate-900 dark:text-zinc-100 block">
+                  Admin Fee & MDR Policies (Kebijakan Biaya Layanan / Admin)
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-zinc-400 block mt-0.5">
+                  Tambahkan biaya admin otomatis ke setiap invoice QRIS. Biaya ini akan diakumulasikan ke total bayar dan dirinci transparan pada layar checkout pembeli.
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                    Tipe Biaya Admin (Fee Type)
+                  </label>
+                  <select
+                    id="setting-admin-fee-type"
+                    defaultValue={settings.adminFeeType || 'NONE'}
+                    className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer"
+                  >
+                    <option value="NONE">Tanpa Biaya Admin (Hanya Subtotal + Kode Unik)</option>
+                    <option value="FIXED">Biaya Tetap / Flat IDR (Contoh: Rp 1.000 / transaksi)</option>
+                    <option value="PERCENTAGE">Persentase MDR % (Contoh: 0.7% MDR QRIS dari subtotal)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
+                    Besaran Biaya (<span id="label-fee-unit">{settings.adminFeeType === 'PERCENTAGE' ? '%' : 'Rp'}</span>)
+                  </label>
+                  <input
+                    type="number"
+                    step="any"
+                    id="setting-admin-fee-amount"
+                    defaultValue={settings.adminFeeAmount || 0}
+                    placeholder="0"
+                    min="0"
+                    className="w-full bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Masukkan nominal Rupiah (misal: <strong>1000</strong>) atau persentase (misal: <strong>0.7</strong> untuk 0.7%).
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {/* Static QRIS Fallback */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1.5">
@@ -931,6 +978,24 @@ export function SettingsPage({ currentUser, activeMerchant, accessibleMerchants,
               appNameInput.addEventListener('input', (e) => tabTitlePrev.textContent = e.target.value || 'QBiz Gateway');
             }
 
+            // Sync admin fee type to unit label
+            const feeTypeSelect = document.getElementById('setting-admin-fee-type');
+            const feeUnitLabel = document.getElementById('label-fee-unit');
+            const feeAmountInput = document.getElementById('setting-admin-fee-amount');
+            if (feeTypeSelect && feeUnitLabel) {
+              const updateFeeUnit = () => {
+                const val = feeTypeSelect.value;
+                if (val === 'PERCENTAGE') {
+                  feeUnitLabel.textContent = '%';
+                  if (feeAmountInput) feeAmountInput.placeholder = '0.7';
+                } else {
+                  feeUnitLabel.textContent = 'Rp';
+                  if (feeAmountInput) feeAmountInput.placeholder = val === 'FIXED' ? '1000' : '0';
+                }
+              };
+              feeTypeSelect.addEventListener('change', updateFeeUnit);
+            }
+
             // 4. Save All Settings Action
             const saveBtn = document.getElementById('btn-save-settings');
             if (saveBtn) {
@@ -970,6 +1035,8 @@ export function SettingsPage({ currentUser, activeMerchant, accessibleMerchants,
                   defaultStaticQris: document.getElementById('setting-default-static-qris')?.value,
                   defaultWebhookRetryLimit: Number(document.getElementById('setting-webhook-retry-limit')?.value || 3),
                   webhookRetryDelaySeconds: Number(document.getElementById('setting-webhook-delay')?.value || 5),
+                  adminFeeType: document.getElementById('setting-admin-fee-type')?.value || 'NONE',
+                  adminFeeAmount: parseFloat(document.getElementById('setting-admin-fee-amount')?.value || '0'),
 
                   // Tab 4: Scraper
                   scraperIntervalSeconds: Number(document.getElementById('setting-scraper-interval')?.value || 30),
