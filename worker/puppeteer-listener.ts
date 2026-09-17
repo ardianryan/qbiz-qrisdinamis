@@ -157,8 +157,8 @@ export async function startMerchantListener(merchantId: string) {
 
     // Initial navigation
     console.log(`[Worker ${merchantId}] Navigating to GoBiz transactions page (today)...`);
-    await page.goto('https://portal.gofoodmerchant.co.id/transactions?data_range=today', {
-      waitUntil: 'networkidle2',
+    await page.goto('https://portal.gofoodmerchant.co.id/transactions?date_range=today', {
+      waitUntil: 'domcontentloaded',
       timeout: 30000
     });
 
@@ -177,25 +177,41 @@ export async function startMerchantListener(merchantId: string) {
     activeListeners.get(merchantId).page = page;
     activeListeners.get(merchantId).status = 'ACTIVE';
 
+    // Wait 2s for React SPA to initialize table
+    await new Promise(r => setTimeout(r, 2000));
+
     // Initial DOM scrape right after page load
     await syncMerchantMutations(merchantId);
 
-    // Safe page reload loop (every 10s)
-    let isReloading = false;
+    // Safe in-page poll loop (every 6s) - triggers in-page AJAX without destroying browser context
+    let isPolling = false;
+    let pollCount = 0;
     const intervalId = setInterval(async () => {
-      if (isReloading) {
-        console.log(`[Worker ${merchantId}] Previous reload still active. Skipping.`);
-        return;
-      }
+      if (isPolling) return;
       
       try {
-        isReloading = true;
-        console.log(`[Worker ${merchantId}] Reloading transactions page...`);
-        
-        await page.reload({ waitUntil: 'networkidle2', timeout: 20000 });
-        
+        isPolling = true;
+        pollCount++;
+
+        // Only do full page reload once every 50 polls (~5 minutes) for memory hygiene
+        if (pollCount % 50 === 0) {
+          console.log(`[Worker ${merchantId}] Periodic hygiene reload...`);
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+          await new Promise(r => setTimeout(r, 2000));
+        } else {
+          // Trigger in-page refresh by clicking "Terapkan filter" button
+          await page.evaluate(() => {
+            const doc = (globalThis as any).document;
+            if (!doc) return;
+            const buttons = Array.from(doc.querySelectorAll('button'));
+            const filterBtn = buttons.find((b: any) => (b.innerText || '').includes('Terapkan filter'));
+            if (filterBtn) (filterBtn as any).click();
+          }).catch(() => {});
+          await new Promise(r => setTimeout(r, 1000));
+        }
+
         if (page.url().includes('/login')) {
-          console.warn(`[Worker ${merchantId}] Session expired during reload. Setting NEEDS_OTP.`);
+          console.warn(`[Worker ${merchantId}] Session expired. Setting NEEDS_OTP.`);
           await db.update(merchants).set({ status: 'NEEDS_OTP' }).where(eq(merchants.id, merchantId));
           clearInterval(intervalId);
           await browser.close();
@@ -203,18 +219,16 @@ export async function startMerchantListener(merchantId: string) {
           return;
         }
 
-        // Wait 2s for DOM to stabilize before scraping
-        await new Promise(r => setTimeout(r, 2000));
         await syncMerchantMutations(merchantId).catch(() => {});
       } catch (err: any) {
-        console.error(`[Worker ${merchantId}] Reload error (non-fatal):`, err.message);
+        console.error(`[Worker ${merchantId}] Poll error (non-fatal):`, err.message);
       } finally {
-        isReloading = false;
+        isPolling = false;
       }
-    }, 10000);
+    }, 6000);
 
     activeListeners.get(merchantId).intervalId = intervalId;
-    console.log(`[Worker ${merchantId}] Safe reload listener active (every 10s). ✅`);
+    console.log(`[Worker ${merchantId}] In-page mutation listener active (every 6s). ✅`);
 
   } catch (err: any) {
     console.error(`[Worker ${merchantId}] Listener crashed:`, err.message);
@@ -245,12 +259,21 @@ export async function syncMerchantMutations(merchantId: string): Promise<number>
   }
   const page = active.page;
   try {
-    // 1. Scrape rendered DOM table (from portal.gofoodmerchant.co.id/transactions?data_range=today)
+    // 1. Scrape rendered DOM table (from portal.gofoodmerchant.co.id/transactions?date_range=today)
     const domList = await page.evaluate(() => {
       const doc = (globalThis as any).document;
       if (!doc) return [];
       const items: any[] = [];
-      const rows = doc.querySelectorAll('table tbody tr, table tr, [role="row"]');
+      let rows = Array.from(doc.querySelectorAll('table tbody tr, table tr, [role="row"]'));
+      
+      if (rows.length === 0) {
+        const candidates = Array.from(doc.querySelectorAll('tr, div[class*="row"], div[class*="item"], li'));
+        rows = candidates.filter((el: any) => {
+          const t = el.innerText || '';
+          return t.includes('Rp') && /settlement|sukses|berhasil/i.test(t) && t.length < 500;
+        });
+      }
+
       for (const row of rows) {
         const text = (row as any).innerText || '';
         if (!text.includes('Rp')) continue;
@@ -290,13 +313,13 @@ export async function syncMerchantMutations(merchantId: string): Promise<number>
       count += domList.length;
     }
 
-    // 2. Also try in-page fetch fallback to API
+    // 2. Also try in-page fetch fallback to API (no payment_types filter to ensure GoPay Instore included)
     try {
       const inPageData = await page.evaluate(async () => {
         try {
           const now = new Date();
           const startTime = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
-          const res = await fetch(`https://api.gojekapi.com/merchant-analytics/v2/merchants/transactions?from=0&size=20&statuses=SETTLEMENT,CAPTURE&payment_types=QRIS,GOPAY&start_time=${encodeURIComponent(startTime)}&end_time=${encodeURIComponent(now.toISOString())}`, {
+          const res = await fetch(`https://api.gojekapi.com/merchant-analytics/v2/merchants/transactions?from=0&size=50&statuses=SETTLEMENT,CAPTURE&start_time=${encodeURIComponent(startTime)}&end_time=${encodeURIComponent(now.toISOString())}`, {
             credentials: 'include'
           });
           if (res.ok) return await res.json();
@@ -307,6 +330,7 @@ export async function syncMerchantMutations(merchantId: string): Promise<number>
       if (inPageData) {
         const list = inPageData.transactions || inPageData.data?.transactions || (Array.isArray(inPageData.data) ? inPageData.data : []);
         if (list.length > 0) {
+          console.log(`[Sync ${merchantId}] Fetched ${list.length} mutations from in-page API.`);
           await processIncomingMutations(merchantId, list);
           count += list.length;
         }

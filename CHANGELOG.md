@@ -2,6 +2,17 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.2.5] - 2026-09-17
+
+### Fixed
+- **GoFood In-Page Mutation Sync (Eliminate 10s Reload Freeze)**:
+  - Replaced destructive 10-second full browser reload (`page.reload`) with non-destructive in-page AJAX filter trigger (`Terapkan filter`).
+  - Corrected query parameter typo from `data_range=today` to `date_range=today`.
+  - Broadened in-page Gojek transactions API query by removing restrictive `payment_types` filter to ensure all settlements (`GoPay Instore`, `QRIS`) are captured.
+  - Added multi-level DOM row fallback for non-table rendered portal layouts.
+
+---
+
 ## [1.2.4] - 2026-09-17
 
 ### Fixed
