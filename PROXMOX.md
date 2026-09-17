@@ -29,9 +29,25 @@ The installer presents an interactive whiptail wizard (Default / Advanced Settin
 | **Container Type** | Unprivileged LXC | Secure and isolated namespace |
 | **Operating System** | Debian 12 (Bookworm) | Clean stable base distribution |
 | **CPU Cores** | 2 vCPU | Required for Puppeteer headless Chrome & Deno |
-| **RAM** | 2048 MB (2 GB) | Minimal memory for headless Chromium + PostgreSQL |
-| **Disk Storage** | 10 GB | Sufficient for OS, PostgreSQL database, and cache |
+| **RAM** | 2048 MB (2 GB) | For Local DB (can be reduced to 1024 MB if using External DB / Supabase) |
+| **Disk Storage** | 10 GB | Sufficient for OS, dependencies, and local data |
 | **Service Port** | `8000` | HTTP Web Dashboard and Webhook API port |
+
+---
+
+## 🗄️ Database Backend Selection
+
+During installation, the wizard prompts you to select your preferred database architecture:
+
+1. **Local PostgreSQL (All-in-One)**:
+   - Automatically installs PostgreSQL 15/16 inside the LXC container.
+   - Automatically provisions a dedicated `qbiz` database and user with a secure random password.
+   - Perfect for homelabs or standalone deployments without external infrastructure.
+
+2. **External PostgreSQL (Supabase, Neon, Cloud, or Remote VM)**:
+   - Completely skips local PostgreSQL installation, saving **500 MB – 1 GB of RAM** in Proxmox.
+   - Prompts for your PostgreSQL Connection URI (e.g. Supabase pooler URL).
+   - Allows leaving it blank to configure manually later in `/opt/qbiz/.env`.
 
 ---
 
@@ -39,12 +55,14 @@ The installer presents an interactive whiptail wizard (Default / Advanced Settin
 
 The helper script handles the entire lifecycle automatically:
 
-1. **PostgreSQL Server**: Installs and enables a dedicated local PostgreSQL database (`qbiz`) and user (`qbiz`) with a cryptographically secure random password.
+1. **Database Provisioning**: Configures local PostgreSQL or binds to your remote connection URI based on your selection.
 2. **Headless Chromium & Graphic Dependencies**: Installs Chromium and required system libraries (`libnss3`, `libatk`, `libcups2`, `libdrm2`, `libxkbcommon0`, fonts) for receipt generation and merchant portal scraping.
 3. **Deno Runtime**: Downloads and provisions the latest stable Deno binary to `/usr/local/bin/deno`.
 4. **QBiz Source Code**: Clones the repository to `/opt/qbiz`.
 5. **Secure Cryptographic Secrets**: Generates 256-bit random hex values for `COOKIE_SECRET` and `JWT_SECRET` in `/opt/qbiz/.env`.
-6. **Systemd Service**: Configures, enables, and starts `/etc/systemd/system/qbiz.service` to run continuously with auto-restart on failure or host reboot.
+6. **Automatic Schema Migrations**: Runs `deno task db:migrate` to guarantee database schema readiness.
+7. **Systemd Service**: Configures, enables, and starts `/etc/systemd/system/qbiz.service` to run continuously with auto-restart on failure or host reboot.
+8. **In-Container Update Manager**: Symlinks `/usr/local/bin/update` to the interactive update utility.
 
 ---
 
