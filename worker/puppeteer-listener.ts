@@ -78,6 +78,7 @@ export async function startMerchantListener(merchantId: string) {
     });
 
     const page = await browser.newPage();
+    await page.setCacheEnabled(false);
     if (proxyConfig.enabled && (proxyConfig.username || proxyConfig.password)) {
       await page.authenticate({
         username: proxyConfig.username,
@@ -155,8 +156,8 @@ export async function startMerchantListener(merchantId: string) {
     }
 
     // Initial navigation
-    console.log(`[Worker ${merchantId}] Navigating to GoBiz transactions page...`);
-    await page.goto('https://portal.gofoodmerchant.co.id/transactions?data_range=this_week', {
+    console.log(`[Worker ${merchantId}] Navigating to GoBiz transactions page (today)...`);
+    await page.goto('https://portal.gofoodmerchant.co.id/transactions?data_range=today', {
       waitUntil: 'networkidle2',
       timeout: 30000
     });
@@ -176,7 +177,10 @@ export async function startMerchantListener(merchantId: string) {
     activeListeners.get(merchantId).page = page;
     activeListeners.get(merchantId).status = 'ACTIVE';
 
-    // Safe page reload loop (prevent overlapping reloads)
+    // Initial DOM scrape right after page load
+    await syncMerchantMutations(merchantId);
+
+    // Safe page reload loop (every 10s)
     let isReloading = false;
     const intervalId = setInterval(async () => {
       if (isReloading) {
@@ -199,38 +203,17 @@ export async function startMerchantListener(merchantId: string) {
           return;
         }
 
-        // Active in-page fetch fallback to guarantee transactions are captured
-        try {
-          const inPageData = await page.evaluate(async () => {
-            try {
-              const now = new Date();
-              const startTime = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
-              const res = await fetch(`https://api.gojekapi.com/merchant-analytics/v2/merchants/transactions?from=0&size=20&statuses=SETTLEMENT,CAPTURE&payment_types=QRIS,GOPAY&start_time=${encodeURIComponent(startTime)}&end_time=${encodeURIComponent(now.toISOString())}`, {
-                credentials: 'include'
-              });
-              if (res.ok) return await res.json();
-            } catch (_) {}
-            return null;
-          });
-
-          if (inPageData) {
-            const list = inPageData.transactions || inPageData.data?.transactions || (Array.isArray(inPageData.data) ? inPageData.data : []);
-            if (list.length > 0) {
-              await processIncomingMutations(merchantId, list);
-            }
-          }
-        } catch (_evalErr) {
-          // Non-fatal if page was re-navigating
-        }
+        // Run sync on both DOM table and in-page fetch
+        await syncMerchantMutations(merchantId);
       } catch (err: any) {
         console.error(`[Worker ${merchantId}] Reload error (non-fatal):`, err.message);
       } finally {
         isReloading = false;
       }
-    }, 15000);
+    }, 10000);
 
     activeListeners.get(merchantId).intervalId = intervalId;
-    console.log(`[Worker ${merchantId}] Safe reload listener active (every 15s). ✅`);
+    console.log(`[Worker ${merchantId}] Safe reload listener active (every 10s). ✅`);
 
   } catch (err: any) {
     console.error(`[Worker ${merchantId}] Listener crashed:`, err.message);
@@ -239,6 +222,91 @@ export async function startMerchantListener(merchantId: string) {
     if (active?.browser) try { await active.browser.close(); } catch (_) {}
     if (active?.intervalId) clearInterval(active.intervalId);
     activeListeners.delete(merchantId);
+  }
+}
+
+/**
+ * On-demand manual sync for an active merchant listener.
+ * Directly scrapes the current page DOM table and in-page API.
+ */
+export async function syncMerchantMutations(merchantId: string): Promise<number> {
+  const active = activeListeners.get(merchantId);
+  if (!active || !active.page) {
+    return 0;
+  }
+  const page = active.page;
+  try {
+    // 1. Scrape rendered DOM table (from portal.gofoodmerchant.co.id/transactions?data_range=today)
+    const domList = await page.evaluate(() => {
+      const doc = (globalThis as any).document;
+      if (!doc) return [];
+      const items: any[] = [];
+      const rows = doc.querySelectorAll('table tbody tr');
+      for (const row of rows) {
+        const text = (row as any).innerText || '';
+        if (!text.includes('Rp')) continue;
+        if (!/settlement|sukses|berhasil/i.test(text)) continue;
+
+        const amountMatch = text.match(/Rp\s*([\d\.,]+)/i);
+        if (!amountMatch) continue;
+
+        const cleanNum = amountMatch[1].replace(/\./g, '').replace(/,/g, '.');
+        const amount = Math.round(parseFloat(cleanNum));
+        if (!amount || isNaN(amount)) continue;
+
+        const link = (row as any).querySelector('a');
+        let orderId = link ? ((link as any).innerText || '').trim() : '';
+        if (!orderId) {
+          const idMatch = text.match(/(QRIS-[\w]+|[\w-]{8,})/i);
+          orderId = idMatch ? idMatch[1] : '';
+        }
+        const txId = orderId || `dom_${amount}`;
+
+        items.push({
+          id: txId,
+          order_id: txId,
+          gross_amount: amount,
+          transaction_status: 'SETTLEMENT',
+          created_at: new Date().toISOString()
+        });
+      }
+      return items;
+    });
+
+    let count = 0;
+    if (domList && domList.length > 0) {
+      console.log(`[Sync ${merchantId}] Extracted ${domList.length} mutations from DOM table.`);
+      await processIncomingMutations(merchantId, domList);
+      count += domList.length;
+    }
+
+    // 2. Also try in-page fetch fallback to API
+    try {
+      const inPageData = await page.evaluate(async () => {
+        try {
+          const now = new Date();
+          const startTime = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
+          const res = await fetch(`https://api.gojekapi.com/merchant-analytics/v2/merchants/transactions?from=0&size=20&statuses=SETTLEMENT,CAPTURE&payment_types=QRIS,GOPAY&start_time=${encodeURIComponent(startTime)}&end_time=${encodeURIComponent(now.toISOString())}`, {
+            credentials: 'include'
+          });
+          if (res.ok) return await res.json();
+        } catch (_) {}
+        return null;
+      });
+
+      if (inPageData) {
+        const list = inPageData.transactions || inPageData.data?.transactions || (Array.isArray(inPageData.data) ? inPageData.data : []);
+        if (list.length > 0) {
+          await processIncomingMutations(merchantId, list);
+          count += list.length;
+        }
+      }
+    } catch (_) {}
+
+    return count;
+  } catch (err: any) {
+    console.warn(`[Sync ${merchantId}] Error during mutation sync:`, err.message);
+    return 0;
   }
 }
 

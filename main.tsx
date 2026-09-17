@@ -17,7 +17,7 @@ import { renderToString } from 'react-dom/server';
 import { db } from './db/db.ts';
 import { merchants, invoices, mutations, users, regionalAdminMerchants, merchantNotifications, systemSettings, apiKeys, webhooks } from './db/schema.ts';
 import { eq, desc, inArray, and, or, sql } from 'drizzle-orm';
-import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener, dispatchWebhook, closeAllListeners } from './worker/puppeteer-listener.ts';
+import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener, syncMerchantMutations, dispatchWebhook, closeAllListeners } from './worker/puppeteer-listener.ts';
 import { authMiddleware, requireRole, hashPassword, verifyPassword, COOKIE_SECRET, UserSession, MerchantContext } from './src/middleware/auth.ts';
 import { securityHeadersMiddleware, createRateLimiter, bodySizeLimiter } from './src/middleware/security.ts';
 import { generateDynamicQRIS, decodeQRISFromImage } from './src/utils/qris.ts';
@@ -2173,6 +2173,11 @@ app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
 
     // Active Reconciliation: If invoice is still PENDING, check if a matching mutation has arrived in DB
     if (status === 'PENDING' && invoice.merchantId) {
+      // Trigger live sync with the merchant's browser listener if active
+      try {
+        await syncMerchantMutations(invoice.merchantId);
+      } catch (_syncErr) {}
+
       const matchedMutations = await db.select()
         .from(mutations)
         .where(
