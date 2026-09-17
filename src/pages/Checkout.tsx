@@ -483,26 +483,64 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               updateTimer(); // Initial call
 
               // --- 2. PAYMENT STATUS POLLING ---
+              // --- 2. REAL-TIME SERVER-SENT EVENTS (SSE) & POLLING FALLBACK ---
+              let eventSource = null;
+
+              function handlePaymentSuccess(data) {
+                clearInterval(timerInterval);
+                if (statusInterval) clearInterval(statusInterval);
+                if (eventSource) {
+                  eventSource.close();
+                  eventSource = null;
+                }
+                if (successOverlay) successOverlay.style.display = 'flex';
+                
+                const targetRedirect = data.redirectUrl || data.callbackUrl;
+                if (targetRedirect) {
+                  setTimeout(() => {
+                    window.location.href = targetRedirect;
+                  }, 2500);
+                }
+              }
+
+              function handlePaymentExpired() {
+                clearInterval(timerInterval);
+                if (statusInterval) clearInterval(statusInterval);
+                if (eventSource) {
+                  eventSource.close();
+                  eventSource = null;
+                }
+                if (expiredOverlay) expiredOverlay.style.display = 'flex';
+              }
+
+              // Connect to real-time SSE for instant (<50ms) settlement detection
+              if (window.EventSource) {
+                try {
+                  eventSource = new EventSource('/api/v1/invoices/' + invoiceId + '/sse');
+                  eventSource.addEventListener('status', function(e) {
+                    try {
+                      const data = JSON.parse(e.data);
+                      if (data.status === 'PAID') {
+                        handlePaymentSuccess(data);
+                      } else if (data.status === 'EXPIRED') {
+                        handlePaymentExpired();
+                      }
+                    } catch (_err) {}
+                  });
+                  eventSource.onerror = function() {
+                    // Corporate proxy fallback: statusInterval below keeps running seamlessly
+                  };
+                } catch (_err) {}
+              }
+
               function checkPaymentStatus() {
                 fetch('/api/v1/invoices/' + invoiceId + '/status')
                   .then(res => res.json())
                   .then(data => {
                     if (data.status === 'PAID') {
-                      clearInterval(timerInterval);
-                      clearInterval(statusInterval);
-                      if (successOverlay) successOverlay.style.display = 'flex';
-                      
-                      // Redirect to client success page after 3 seconds
-                      const targetRedirect = data.redirectUrl || data.callbackUrl;
-                      if (targetRedirect) {
-                        setTimeout(() => {
-                          window.location.href = targetRedirect;
-                        }, 3000);
-                      }
+                      handlePaymentSuccess(data);
                     } else if (data.status === 'EXPIRED') {
-                      clearInterval(timerInterval);
-                      clearInterval(statusInterval);
-                      if (expiredOverlay) expiredOverlay.style.display = 'flex';
+                      handlePaymentExpired();
                     }
                   })
                   .catch(err => console.error('Status check failed:', err));

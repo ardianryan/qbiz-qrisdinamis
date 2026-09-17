@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
+import { streamSSE } from 'hono/streaming';
 import { serveStatic } from 'hono/deno';
 import { setSignedCookie, deleteCookie, getSignedCookie } from 'hono/cookie';
+import { sseBroker } from './src/services/sse.ts';
 import { renderer } from './src/renderer.tsx';
 import { LoginPage } from './src/pages/Login.tsx';
 import { MerchantsPage } from './src/pages/Merchants.tsx';
@@ -1926,6 +1928,18 @@ app.post('/api/v1/invoices', invoiceApiRateLimiter, async (c) => {
 
   const baseUrl = Deno.env.get("BASE_URL") || "http://localhost:8000";
 
+  // Publish SSE live update to cashier transaction monitors
+  if (merchantId) {
+    sseBroker.publishTransactionUpdate({
+      merchantId,
+      invoiceId: newInvoiceId,
+      orderId,
+      amount: totalAmount,
+      status: 'PENDING',
+      timestamp: new Date().toISOString()
+    });
+  }
+
   return c.json({
     success: true,
     invoice: {
@@ -1986,6 +2000,27 @@ app.post('/api/v1/sandbox/simulate-payment', async (c) => {
     if (invoice.merchantId) {
       dispatchMerchantNotifications(invoice.merchantId, invoice, paidAt.toISOString()).catch(err => {
         console.error(`[Sandbox] Notification dispatch error for invoice ${invoiceId}:`, err);
+      });
+    }
+
+    // 3. Publish Real-time SSE Events (<50ms zero-latency sync)
+    sseBroker.publishInvoiceUpdate({
+      invoiceId: invoice.id,
+      orderId: invoice.orderId,
+      status: 'PAID',
+      paidAt: paidAt.toISOString(),
+      amount: invoice.totalAmount,
+      redirectUrl: invoice.redirectUrl || invoice.callbackUrl
+    });
+
+    if (invoice.merchantId) {
+      sseBroker.publishTransactionUpdate({
+        merchantId: invoice.merchantId,
+        invoiceId: invoice.id,
+        orderId: invoice.orderId,
+        amount: invoice.totalAmount,
+        status: 'PAID',
+        timestamp: paidAt.toISOString()
       });
     }
 
@@ -2080,6 +2115,107 @@ app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
   }
+});
+
+// API: SSE Live Invoice Status Stream (Real-Time Zero-Polling for /pay/:id)
+app.get('/api/v1/invoices/:id/sse', async (c) => {
+  const id = c.req.param('id');
+  if (!id) {
+    return c.text('Invoice ID is required', 400);
+  }
+
+  const invList = await db.select().from(invoices).where(eq(invoices.id, id));
+  if (invList.length === 0) {
+    return c.text('Invoice not found', 404);
+  }
+  const invoice = invList[0];
+
+  return streamSSE(c, async (stream) => {
+    // 1. Immediately emit current status
+    let currentStatus = invoice.status;
+    if (currentStatus === 'PENDING' && new Date() > invoice.expiredAt) {
+      currentStatus = 'EXPIRED';
+      await db.update(invoices).set({ status: 'EXPIRED' }).where(eq(invoices.id, id));
+    }
+
+    await stream.writeSSE({
+      event: 'status',
+      data: JSON.stringify({
+        invoiceId: invoice.id,
+        orderId: invoice.orderId,
+        status: currentStatus,
+        paidAt: invoice.paidAt ? invoice.paidAt.toISOString() : null,
+        totalAmount: invoice.totalAmount,
+        callbackUrl: invoice.callbackUrl,
+        redirectUrl: invoice.redirectUrl
+      })
+    });
+
+    if (currentStatus === 'PAID' || currentStatus === 'EXPIRED') {
+      return;
+    }
+
+    // 2. Subscribe to SSE broker for real-time payment updates
+    const unsubscribe = sseBroker.subscribeInvoice(id, async (event) => {
+      try {
+        await stream.writeSSE({
+          event: 'status',
+          data: JSON.stringify(event)
+        });
+      } catch (_e) {
+        unsubscribe();
+      }
+    });
+
+    // 3. Keep-alive heartbeat every 15s to keep connection open through proxies
+    const heartbeat = setInterval(async () => {
+      try {
+        await stream.writeSSE({ event: 'ping', data: 'heartbeat' });
+      } catch (_e) {
+        clearInterval(heartbeat);
+        unsubscribe();
+      }
+    }, 15000);
+
+    stream.onAbort(() => {
+      clearInterval(heartbeat);
+      unsubscribe();
+    });
+  });
+});
+
+// API: SSE Live Store Transactions Stream (For Cashier / Transactions Page)
+app.get('/api/v1/transactions/sse', async (c) => {
+  const merchantId = c.req.query('merchantId') || '*';
+
+  return streamSSE(c, async (stream) => {
+    // Subscribe to SSE broker for transactions
+    const unsubscribe = sseBroker.subscribeTransactions(merchantId, async (event) => {
+      try {
+        await stream.writeSSE({
+          event: 'transaction',
+          data: JSON.stringify(event)
+        });
+      } catch (_e) {
+        unsubscribe();
+      }
+    });
+
+    // Keep-alive heartbeat
+    const heartbeat = setInterval(async () => {
+      try {
+        await stream.writeSSE({ event: 'ping', data: 'heartbeat' });
+      } catch (_e) {
+        clearInterval(heartbeat);
+        unsubscribe();
+      }
+    }, 15000);
+
+    stream.onAbort(() => {
+      clearInterval(heartbeat);
+      unsubscribe();
+    });
+  });
 });
 
 // Start Deno Serve (Only when run directly as main script)

@@ -68,7 +68,129 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. FILTER TOOLBAR */}
+      {/* 2. REKAPITULASI OMZET & REVENUE RECONCILIATION */}
+      {/* ========================================================================= */}
+      <div id="rekap-omzet-card" className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-5 mb-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-zinc-800/80">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-zinc-50">
+                Rekapitulasi Omzet
+              </h2>
+              <span id="sse-live-indicator" className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                SSE Aktif
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+              Ringkasan pendapatan QRIS dinamis dan volume transaksi secara realtime.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Range Filters */}
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-zinc-800 p-0.5 bg-slate-50 dark:bg-zinc-950 text-xs">
+              <button type="button" data-range="today" className="omzet-range-btn px-2.5 py-1 font-semibold rounded-md transition-colors bg-white dark:bg-zinc-800 text-sky-600 dark:text-sky-400 shadow-xs cursor-pointer">Hari Ini</button>
+              <button type="button" data-range="7d" className="omzet-range-btn px-2.5 py-1 font-medium rounded-md transition-colors text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 cursor-pointer">7 Hari</button>
+              <button type="button" data-range="month" className="omzet-range-btn px-2.5 py-1 font-medium rounded-md transition-colors text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 cursor-pointer">Bulan Ini</button>
+              <button type="button" data-range="all" className="omzet-range-btn px-2.5 py-1 font-medium rounded-md transition-colors text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 cursor-pointer">Semua</button>
+            </div>
+
+            {/* Export & Print */}
+            <div className="flex items-center gap-1.5">
+              <button 
+                id="btn-export-csv" 
+                type="button"
+                className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors shadow-xs cursor-pointer"
+                title="Unduh laporan transaksi CSV"
+              >
+                <svg className="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <span>Unduh CSV</span>
+              </button>
+              <button 
+                id="btn-print-rekap" 
+                type="button"
+                className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors shadow-xs cursor-pointer"
+                title="Cetak ringkasan omzet"
+              >
+                <svg className="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                <span>Cetak</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 4 Metric Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4">
+          <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-100 dark:border-zinc-800/80">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Total Omzet Masuk</span>
+            <div className="text-lg sm:text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1" id="metric-total-omzet">
+              Rp 0
+            </div>
+            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block" id="metric-omzet-subtext">0 transaksi terbayar</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-100 dark:border-zinc-800/80">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Transaksi Sukses</span>
+            <div className="text-lg sm:text-xl font-bold font-mono text-slate-900 dark:text-zinc-100 mt-1" id="metric-paid-count">
+              0
+            </div>
+            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block" id="metric-paid-subtext">0% dari total</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-100 dark:border-zinc-800/80">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Rata-Rata Nilai (AOV)</span>
+            <div className="text-lg sm:text-xl font-bold font-mono text-sky-600 dark:text-sky-400 mt-1" id="metric-aov">
+              Rp 0
+            </div>
+            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block">Per pembayaran sukses</span>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-50/80 dark:bg-zinc-950/60 border border-slate-100 dark:border-zinc-800/80">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-zinc-400 block">Pending / Kadaluarsa</span>
+            <div className="text-lg sm:text-xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1" id="metric-pending-expired">
+              0
+            </div>
+            <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 block" id="metric-pending-subtext">0 pending, 0 kadaluarsa</span>
+          </div>
+        </div>
+      </div>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @media print {
+            body * {
+              visibility: hidden;
+            }
+            #rekap-omzet-card, #rekap-omzet-card *, #desktop-tx-table-container, #desktop-tx-table-container * {
+              visibility: visible;
+            }
+            #rekap-omzet-card {
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 100%;
+              border: none !important;
+              box-shadow: none !important;
+            }
+            #desktop-tx-table-container {
+              position: absolute;
+              left: 0;
+              top: 220px;
+              width: 100%;
+              display: block !important;
+              border: none !important;
+              box-shadow: none !important;
+            }
+            .omzet-range-btn, #btn-export-csv, #btn-print-rekap, #tx-pagination-bar, .btn-resend-webhook, .btn-copy-payment-link, #btn-clear-all-transactions, #btn-create-invoice, #filter-search, #filter-status {
+              display: none !important;
+            }
+          }
+        `
+      }} />
+
+      {/* ========================================================================= */}
+      {/* 3. FILTER TOOLBAR */}
       {/* ========================================================================= */}
       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-4 mb-6 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
@@ -134,8 +256,13 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
             key={tx.id} 
             className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm flex flex-col gap-3 tx-card"
             data-merchant={tx.merchantId}
+            data-merchant-name={tx.merchantName}
             data-status={tx.status}
-            data-search-term={`${tx.id} ${tx.orderId} ${tx.totalAmount}`}
+            data-amount={tx.totalAmount}
+            data-timestamp={tx.timestamp}
+            data-order-id={tx.orderId}
+            data-invoice-id={tx.id}
+            data-search-term={`${tx.id} ${tx.orderId} ${tx.totalAmount} ${tx.merchantName}`}
           >
             <div className="flex justify-between items-start">
               <div className="flex flex-col">
@@ -260,8 +387,13 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                   key={tx.id}
                   className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition-colors tx-row"
                   data-merchant={tx.merchantId}
+                  data-merchant-name={tx.merchantName}
                   data-status={tx.status}
-                  data-search-term={`${tx.id} ${tx.orderId} ${tx.totalAmount}`}
+                  data-amount={tx.totalAmount}
+                  data-timestamp={tx.timestamp}
+                  data-order-id={tx.orderId}
+                  data-invoice-id={tx.id}
+                  data-search-term={`${tx.id} ${tx.orderId} ${tx.totalAmount} ${tx.merchantName}`}
                 >
                   <td className="py-3 px-4 font-mono text-[10.5px] text-slate-500 dark:text-zinc-400">{tx.timestamp}</td>
                   <td className="py-3 px-4 font-semibold text-slate-900 dark:text-zinc-100">{tx.merchantName}</td>
@@ -367,6 +499,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
       {/* ========================================================================= */}
       <script dangerouslySetInnerHTML={{
         __html: `
+          window.__INITIAL_TRANSACTIONS__ = ${JSON.stringify(transactions)};
           (function() {
             function init() {
               const searchInput = document.getElementById('filter-search');
@@ -382,8 +515,135 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               let currentPage = 1;
               let pageSize = 10;
               let currentFilteredRows = [];
+              let currentTransactionsData = window.__INITIAL_TRANSACTIONS__ || [];
+              let activeOmzetRange = 'today';
 
-              // --- A. Pagination & Filtering Controller ---
+              // --- A. Rekapitulasi Omzet Controller ---
+              function parseDate(ts) {
+                if (!ts) return new Date();
+                if (ts.includes('T')) return new Date(ts);
+                return new Date(ts.replace(' ', 'T') + 'Z');
+              }
+
+              function isWithinRange(date, range) {
+                const now = new Date();
+                if (range === 'today') {
+                  return date.getFullYear() === now.getFullYear() &&
+                         date.getMonth() === now.getMonth() &&
+                         date.getDate() === now.getDate();
+                }
+                if (range === '7d') {
+                  const diff = now.getTime() - date.getTime();
+                  return diff >= 0 && diff <= 7 * 24 * 60 * 60 * 1000;
+                }
+                if (range === 'month') {
+                  return date.getFullYear() === now.getFullYear() &&
+                         date.getMonth() === now.getMonth();
+                }
+                return true; // 'all'
+              }
+
+              function updateOmzetSummary() {
+                const filtered = currentTransactionsData.filter(tx => {
+                  const d = parseDate(tx.timestamp);
+                  return isWithinRange(d, activeOmzetRange);
+                });
+
+                const paidTxs = filtered.filter(tx => tx.status === 'PAID');
+                const pendingTxs = filtered.filter(tx => tx.status === 'PENDING');
+                const expiredTxs = filtered.filter(tx => tx.status === 'EXPIRED');
+
+                const totalOmzet = paidTxs.reduce((acc, tx) => acc + (Number(tx.totalAmount) || 0), 0);
+                const paidCount = paidTxs.length;
+                const totalCount = filtered.length;
+                const aov = paidCount > 0 ? Math.round(totalOmzet / paidCount) : 0;
+                const pendingCount = pendingTxs.length;
+                const expiredCount = expiredTxs.length;
+
+                const totalOmzetEl = document.getElementById('metric-total-omzet');
+                const omzetSubtextEl = document.getElementById('metric-omzet-subtext');
+                const paidCountEl = document.getElementById('metric-paid-count');
+                const paidSubtextEl = document.getElementById('metric-paid-subtext');
+                const aovEl = document.getElementById('metric-aov');
+                const pendingExpiredEl = document.getElementById('metric-pending-expired');
+                const pendingSubtextEl = document.getElementById('metric-pending-subtext');
+
+                if (totalOmzetEl) totalOmzetEl.textContent = 'Rp ' + totalOmzet.toLocaleString('id-ID');
+                if (omzetSubtextEl) omzetSubtextEl.textContent = paidCount + ' transaksi terbayar';
+                if (paidCountEl) paidCountEl.textContent = paidCount.toLocaleString('id-ID');
+                if (paidSubtextEl) {
+                  const pct = totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0;
+                  paidSubtextEl.textContent = pct + '% dari total (' + totalCount + ' transaksi)';
+                }
+                if (aovEl) aovEl.textContent = 'Rp ' + aov.toLocaleString('id-ID');
+                if (pendingExpiredEl) pendingExpiredEl.textContent = (pendingCount + expiredCount).toLocaleString('id-ID');
+                if (pendingSubtextEl) pendingSubtextEl.textContent = pendingCount + ' pending, ' + expiredCount + ' kadaluarsa';
+              }
+
+              // Range buttons
+              document.querySelectorAll('.omzet-range-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                  document.querySelectorAll('.omzet-range-btn').forEach(b => {
+                    b.classList.remove('bg-white', 'dark:bg-zinc-800', 'text-sky-600', 'dark:text-sky-400', 'shadow-xs', 'font-semibold');
+                    b.classList.add('text-slate-600', 'dark:text-zinc-400', 'font-medium');
+                  });
+                  this.classList.remove('text-slate-600', 'dark:text-zinc-400', 'font-medium');
+                  this.classList.add('bg-white', 'dark:bg-zinc-800', 'text-sky-600', 'dark:text-sky-400', 'shadow-xs', 'font-semibold');
+                  activeOmzetRange = this.getAttribute('data-range') || 'today';
+                  updateOmzetSummary();
+                });
+              });
+
+              // Export CSV
+              const btnExportCsv = document.getElementById('btn-export-csv');
+              if (btnExportCsv) {
+                btnExportCsv.addEventListener('click', function() {
+                  const filtered = currentTransactionsData.filter(tx => {
+                    const d = parseDate(tx.timestamp);
+                    return isWithinRange(d, activeOmzetRange);
+                  });
+
+                  if (filtered.length === 0) {
+                    window.showToast({ type: 'warning', title: 'Data Kosong', message: 'Tidak ada transaksi pada rentang waktu ini.' });
+                    return;
+                  }
+
+                  const headers = ['Waktu', 'Merchant', 'Order ID', 'Invoice ID', 'Nominal Dasar', 'Kode Unik', 'Total Bayar', 'Status', 'Webhook'];
+                  const rows = filtered.map(tx => [
+                    '"' + (tx.timestamp || '').replace(/"/g, '""') + '"',
+                    '"' + (tx.merchantName || '').replace(/"/g, '""') + '"',
+                    '"' + (tx.orderId || '').replace(/"/g, '""') + '"',
+                    '"' + (tx.id || '').replace(/"/g, '""') + '"',
+                    tx.baseAmount || 0,
+                    tx.uniqueCode || 0,
+                    tx.totalAmount || 0,
+                    '"' + (tx.status || '') + '"',
+                    '"' + (tx.webhookStatus || '') + '"'
+                  ]);
+
+                  const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\\r\\n');
+                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'rekap_transaksi_' + activeOmzetRange + '_' + new Date().toISOString().slice(0, 10) + '.csv';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  window.showToast({ type: 'success', title: 'Ekspor Berhasil', message: 'Laporan CSV (' + filtered.length + ' baris) berhasil diunduh.' });
+                });
+              }
+
+              // Print Rekap
+              const btnPrintRekap = document.getElementById('btn-print-rekap');
+              if (btnPrintRekap) {
+                btnPrintRekap.addEventListener('click', function() {
+                  window.print();
+                });
+              }
+
+              // --- B. Pagination & Filtering Controller ---
               function updatePagination() {
                 const total = currentFilteredRows.length;
                 const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -516,23 +776,58 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                 });
               }
 
-              // Initialize first render
-              applyFilters();
-
-              // --- B. Auto-Refresh Logic (SSE/Polling simulation) ---
-              // Poll for new transactions or status changes every 8 seconds
+              // --- C. Auto-Refresh Logic (Real-Time SSE + Polling Fallback) ---
               function fetchTransactions() {
                 fetch('/api/v1/transactions')
                   .then(res => res.json())
                   .then(data => {
                     if (data.success && data.transactions) {
+                      currentTransactionsData = data.transactions;
                       updateTableDOM(data.transactions);
+                      updateOmzetSummary();
                     }
                   })
                   .catch(() => {});
               }
 
-              const refreshInterval = setInterval(fetchTransactions, 8000);
+              // Fallback poll every 15 seconds
+              setInterval(fetchTransactions, 15000);
+
+              // Real-Time Server-Sent Events (SSE) Listener
+              function connectSSE() {
+                try {
+                  const sseSource = new EventSource('/api/v1/transactions/sse');
+                  sseSource.onopen = function() {
+                    const ind = document.getElementById('sse-live-indicator');
+                    if (ind) {
+                      ind.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800';
+                      ind.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> SSE Aktif';
+                    }
+                  };
+                  sseSource.onmessage = function(event) {
+                    try {
+                      const data = JSON.parse(event.data);
+                      if (data.type === 'keepalive') return;
+
+                      const ind = document.getElementById('sse-live-indicator');
+                      if (ind) {
+                        ind.classList.add('ring-2', 'ring-emerald-400');
+                        setTimeout(() => ind.classList.remove('ring-2', 'ring-emerald-400'), 800);
+                      }
+
+                      // Instantly refresh transactions
+                      fetchTransactions();
+                    } catch (_err) {}
+                  };
+                  sseSource.onerror = function() {
+                    const ind = document.getElementById('sse-live-indicator');
+                    if (ind) {
+                      ind.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border border-amber-200 dark:border-amber-800';
+                      ind.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Polling Aktif';
+                    }
+                  };
+                } catch (_err) {}
+              }
 
               function updateTableDOM(transactions) {
                 const tbody = document.getElementById('desktop-tx-tbody');
@@ -581,8 +876,13 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                   tbodyHtml += \`
                     <tr class="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40 transition-colors border-b border-slate-100 dark:border-zinc-800/60 tx-row"
                         data-merchant="\${tx.merchantId}"
+                        data-merchant-name="\${tx.merchantName}"
                         data-status="\${tx.status}"
-                        data-search-term="\${tx.id} \${tx.orderId} \${tx.totalAmount}">
+                        data-amount="\${tx.totalAmount}"
+                        data-timestamp="\${tx.timestamp}"
+                        data-order-id="\${tx.orderId}"
+                        data-invoice-id="\${tx.id}"
+                        data-search-term="\${tx.id} \${tx.orderId} \${tx.totalAmount} \${tx.merchantName}">
                       <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-zinc-400 font-mono">\${tx.timestamp}</td>
                       <td class="px-4 py-3.5 text-sm font-semibold text-slate-800 dark:text-zinc-200">\${tx.merchantName}</td>
                       <td class="px-4 py-3.5 text-xs text-slate-600 dark:text-zinc-300 font-mono">\${tx.orderId}</td>
@@ -631,8 +931,13 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                   mobileHtml += \`
                     <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm flex flex-col gap-3 tx-card"
                          data-merchant="\${tx.merchantId}"
+                         data-merchant-name="\${tx.merchantName}"
                          data-status="\${tx.status}"
-                         data-search-term="\${tx.id} \${tx.orderId} \${tx.totalAmount}">
+                         data-amount="\${tx.totalAmount}"
+                         data-timestamp="\${tx.timestamp}"
+                         data-order-id="\${tx.orderId}"
+                         data-invoice-id="\${tx.id}"
+                         data-search-term="\${tx.id} \${tx.orderId} \${tx.totalAmount} \${tx.merchantName}">
                       <div class="flex justify-between items-start">
                         <div class="flex flex-col">
                           <span class="text-[10px] font-mono text-slate-400 dark:text-zinc-500">\${tx.timestamp}</span>
@@ -695,6 +1000,11 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                 // Re-apply search filters on newly generated DOM elements
                 applyFilters();
               }
+
+              // Initialize first render & SSE
+              applyFilters();
+              updateOmzetSummary();
+              connectSSE();
 
               function bindResendButtons() {
                 document.querySelectorAll('.btn-resend-webhook').forEach(btn => {
