@@ -100,26 +100,35 @@ export async function startMerchantListener(merchantId: string) {
     // 2. Intercept internal GoBiz API transactions data
     page.on('response', async (response) => {
       const url = response.url();
-      const isOldTransactions = url.includes('/v1/transactions');
-      const isNewTransactions = url.includes('merchant-analytics/v2/merchants/transactions');
+      const isTransactions = 
+        url.includes('/transactions') || 
+        url.includes('merchant-analytics') || 
+        url.includes('/merchants/transactions');
       
-      if ((isOldTransactions || isNewTransactions) && response.status() === 200) {
+      const contentType = response.headers()['content-type'] || '';
+      
+      if (isTransactions && response.status() === 200 && contentType.includes('application/json')) {
         try {
           const payload = await response.json();
-          console.log(`[Worker ${merchantId}] Transaction data intercepted successfully.`);
-          
           let list: any[] = [];
-          if (isNewTransactions && payload && payload.transactions) {
+          if (Array.isArray(payload)) {
+            list = payload;
+          } else if (Array.isArray(payload?.transactions)) {
             list = payload.transactions;
-          } else if (isOldTransactions && payload && payload.data) {
+          } else if (Array.isArray(payload?.data?.transactions)) {
+            list = payload.data.transactions;
+          } else if (Array.isArray(payload?.data)) {
             list = payload.data;
+          } else if (Array.isArray(payload?.items)) {
+            list = payload.items;
           }
 
           if (list.length > 0) {
+            console.log(`[Worker ${merchantId}] Intercepted ${list.length} transactions from API.`);
             await processIncomingMutations(merchantId, list);
           }
-        } catch (e) {
-          console.error(`[Worker ${merchantId}] Error parsing response JSON:`, e);
+        } catch (e: any) {
+          console.error(`[Worker ${merchantId}] Error parsing transaction response JSON:`, e.message);
         }
       }
     });
@@ -187,6 +196,31 @@ export async function startMerchantListener(merchantId: string) {
           clearInterval(intervalId);
           await browser.close();
           activeListeners.delete(merchantId);
+          return;
+        }
+
+        // Active in-page fetch fallback to guarantee transactions are captured
+        try {
+          const inPageData = await page.evaluate(async () => {
+            try {
+              const now = new Date();
+              const startTime = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
+              const res = await fetch(`https://api.gojekapi.com/merchant-analytics/v2/merchants/transactions?from=0&size=20&statuses=SETTLEMENT,CAPTURE&payment_types=QRIS,GOPAY&start_time=${encodeURIComponent(startTime)}&end_time=${encodeURIComponent(now.toISOString())}`, {
+                credentials: 'include'
+              });
+              if (res.ok) return await res.json();
+            } catch (_) {}
+            return null;
+          });
+
+          if (inPageData) {
+            const list = inPageData.transactions || inPageData.data?.transactions || (Array.isArray(inPageData.data) ? inPageData.data : []);
+            if (list.length > 0) {
+              await processIncomingMutations(merchantId, list);
+            }
+          }
+        } catch (_evalErr) {
+          // Non-fatal if page was re-navigating
         }
       } catch (err: any) {
         console.error(`[Worker ${merchantId}] Reload error (non-fatal):`, err.message);
@@ -394,24 +428,40 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
  */
 async function processIncomingMutations(merchantId: string, transactionList: any[]) {
   for (const tx of transactionList) {
-    const txId = tx.id || `mut_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const txId = String(tx.id || tx.order_id || tx.wallstreet_transaction_id || tx.transaction_id || `mut_${Date.now()}_${Math.floor(Math.random() * 1000)}`);
     
-    // Support both gross_amount (new API, divided by 100) and amount (old API)
-    let txAmount = 0;
-    if (tx.gross_amount !== undefined) {
-      txAmount = Math.round(Number(tx.gross_amount) / 100);
-    } else {
-      txAmount = Math.round(Number(tx.amount || 0));
+    // Status check: only process settlement or captured transactions
+    const status = (tx.transaction_status || tx.status || 'SETTLEMENT').toUpperCase();
+    if (!['SETTLEMENT', 'CAPTURE', 'SUCCESS'].includes(status)) {
+      continue;
     }
 
-    // Support both transaction_time (new API) and created_at (old API)
-    const txTime = tx.transaction_time || tx.created_at || new Date().toISOString();
+    // Support gross_amount, real_gross_amount, amount.value, or amount.
+    // NEVER divide by 100. In GoBiz/GoPay merchant analytics API, gross_amount is directly in IDR.
+    let rawAmount = tx.gross_amount ?? tx.real_gross_amount ?? tx.amount?.value ?? tx.amount ?? 0;
+    let txAmount = 0;
+    if (typeof rawAmount === 'string') {
+      let cleaned = rawAmount.trim();
+      if (cleaned.includes(',') && !cleaned.includes('.')) {
+        cleaned = cleaned.replace(',', '.');
+      } else if (cleaned.includes('.') && cleaned.includes(',')) {
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+      }
+      txAmount = Math.round(parseFloat(cleaned));
+    } else {
+      txAmount = Math.round(Number(rawAmount));
+    }
+
+    if (txAmount <= 0) continue;
+
+    // Support both transaction_time (new API), settlement_time, and created_at (old API)
+    const txTime = tx.transaction_time || tx.settlement_time || tx.created_at || new Date().toISOString();
 
     // Check if mutation already logged
     const existing = await db.select().from(mutations).where(eq(mutations.id, txId));
     if (existing.length > 0) continue;
 
-    console.log(`[Worker ${merchantId}] New mutation logged: ${txId} - Rp ${txAmount}`);
+    console.log(`[Worker ${merchantId}] New mutation logged: ${txId} - Rp ${txAmount} (${status})`);
 
     // Insert mutation log
     await db.insert(mutations).values({

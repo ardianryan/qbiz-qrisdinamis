@@ -25,16 +25,25 @@ Deno.test("computeCRC16 - should calculate correct CRC-16-CCITT checksum", () =>
   assertEquals(crc, "29B1");
 });
 
-Deno.test("generateDynamicQRIS - should inject transaction amount and dynamic indicator", () => {
-  const staticPayload = "00020101021151240016ID.CO.QRIS.WWW020412346304ABCD";
+Deno.test("generateDynamicQRIS - should inject transaction amount and dynamic indicator while preserving tags", () => {
+  const staticPayload = "00020101021151260016ID.CO.QRIS.WWW020412345802ID6304ABCD";
   const dynamic = generateDynamicQRIS(staticPayload, 25000, "inv_test_999");
   
   const tags = parseEMVCo(dynamic);
   assertEquals(tags.get("01"), "12"); // Initiation Method should be 12 (Dynamic)
   assertEquals(tags.get("54"), "25000"); // Amount tag 54 should be set
-  
-  // Tag 62 subtag 01 should contain the invoice ID
-  const tag62Val = tags.get("62");
-  const subTags = parseEMVCo(tag62Val!);
-  assertEquals(subTags.get("01"), "inv_test_999");
+  assertEquals(tags.get("58"), "ID"); // Tag 58 should be preserved
 });
+
+Deno.test("generateDynamicQRIS - should correctly convert real GoPay/GoFood QRIS to dynamic", () => {
+  const realGoPayStatic = "00020101021126610014COM.GO-JEK.WWW01189360091435575271210210G5575271210303UMI51440014ID.CO.QRIS.WWW0215ID10253801132960303UMI5204504553033605802ID5920Mango Teknusa, MGRSR6009MOJOKERTO61056131762070703A0163044ACC";
+  const dynamic = generateDynamicQRIS(realGoPayStatic, 5001);
+  
+  const tags = parseEMVCo(dynamic);
+  assertEquals(tags.get("01"), "12");
+  assertEquals(tags.get("54"), "5001");
+  assertEquals(tags.get("58"), "ID");
+  assertEquals(tags.get("62"), "0703A01"); // Tag 62 terminal label must be preserved untouched!
+  assertEquals(tags.get("59"), "Mango Teknusa, MGRSR");
+});
+

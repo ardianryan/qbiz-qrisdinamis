@@ -49,36 +49,72 @@ export function computeCRC16(data: string): string {
 
 /**
  * Convert a Static QRIS payload string to a Dynamic QRIS payload string
- * by injecting the transaction amount and invoice reference.
+ * by changing tag 01 to '12' (Dynamic) and inserting Tag 54 (Transaction Amount).
+ * Preserves the exact tag order of the static template and avoids mutating Tag 62,
+ * ensuring 100% compatibility with GoPay, BCA, Livin Mandiri, and other QRIS scanners.
  * 
  * @param staticPayload The raw static QRIS string (e.g. 000201010211...)
  * @param amount The payment amount (e.g. 50023)
- * @param invoiceId The invoice reference ID to inject into tag 62 subtag 01
+ * @param _invoiceId Optional invoice ID (preserved for backwards-compatibility)
  */
-export function generateDynamicQRIS(staticPayload: string, amount: number, invoiceId: string): string {
-  const tags = parseEMVCo(staticPayload);
+export function generateDynamicQRIS(staticPayload: string, amount: number, _invoiceId?: string): string {
+  if (!staticPayload) return "";
+  let payload = staticPayload.trim();
 
-  // 1. Set Initiation Method to 12 (Dynamic QR) instead of 11 (Static QR)
-  tags.set('01', '12');
+  // Strip trailing Tag 63 (CRC) if present
+  const idx63 = payload.indexOf('6304');
+  if (idx63 !== -1) {
+    payload = payload.substring(0, idx63);
+  }
 
-  // 2. Set Transaction Amount (Tag 54)
-  tags.set('54', amount.toString());
+  // Parse EMVCo TLV preserving original tag sequence
+  const tags: Array<{ tag: string; val: string }> = [];
+  let i = 0;
+  while (i < payload.length) {
+    if (i + 4 > payload.length) break;
+    const tag = payload.substring(i, i + 2);
+    const length = parseInt(payload.substring(i + 2, i + 4), 10);
+    if (isNaN(length) || length < 0) break;
+    if (i + 4 + length > payload.length) break;
+    const val = payload.substring(i + 4, i + 4 + length);
+    tags.push({ tag, val });
+    i += 4 + length;
+  }
 
-  // 3. Inject Invoice ID into Tag 62 (Additional Data) under subtag 01 (Bill Number)
-  const tag62Val = tags.get('62');
-  const subTags = tag62Val ? parseEMVCo(tag62Val) : new Map<string, string>();
-  subTags.set('01', invoiceId);
-  tags.set('62', serializeEMVCo(subTags));
+  const amountStr = Math.round(amount).toString();
+  const newTags: Array<{ tag: string; val: string }> = [];
+  let hasTag54 = false;
 
-  // 4. Serialize all tags
-  const partialSerialized = serializeEMVCo(tags);
+  for (const item of tags) {
+    if (item.tag === '01') {
+      // Change Static (11) to Dynamic (12)
+      newTags.push({ tag: '01', val: '12' });
+    } else if (item.tag === '54') {
+      newTags.push({ tag: '54', val: amountStr });
+      hasTag54 = true;
+    } else if (item.tag === '58' && !hasTag54) {
+      // Insert Tag 54 right before Tag 58 (Country Code) per EMVCo standard
+      newTags.push({ tag: '54', val: amountStr });
+      hasTag54 = true;
+      newTags.push(item);
+    } else {
+      newTags.push(item);
+    }
+  }
 
-  // 5. Append tag 6304 (CRC-16 tag indicator)
-  const finalPreCrc = partialSerialized + "6304";
+  if (!hasTag54) {
+    newTags.push({ tag: '54', val: amountStr });
+  }
 
-  // 6. Calculate CRC-16-CCITT and append it
-  const crc = computeCRC16(finalPreCrc);
-  return finalPreCrc + crc;
+  let result = '';
+  for (const item of newTags) {
+    const lenStr = item.val.length.toString().padStart(2, '0');
+    result += `${item.tag}${lenStr}${item.val}`;
+  }
+
+  result += '6304';
+  const checksum = computeCRC16(result);
+  return result + checksum;
 }
 
 export async function decodeQRISFromImage(filePath: string): Promise<string | null> {
