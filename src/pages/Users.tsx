@@ -131,13 +131,24 @@ export function UsersPage({ users, merchants, currentUser, activeMerchant, acces
                    u.merchantName ? u.merchantName : 'All / Platform Access'}
                 </span>
               </div>
-              <button 
-                className="text-xs text-red-600 dark:text-red-400 font-bold hover:underline btn-delete-user"
-                data-id={u.id}
-                data-name={u.name}
-              >
-                Delete
-              </button>
+              <div className="flex items-center gap-3">
+                {(currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN') && (
+                  <button 
+                    className="text-xs text-sky-600 dark:text-sky-400 font-semibold hover:underline btn-reset-user-pwd cursor-pointer"
+                    data-id={u.id}
+                    data-name={u.name}
+                  >
+                    Reset Pwd
+                  </button>
+                )}
+                <button 
+                  className="text-xs text-red-600 dark:text-red-400 font-bold hover:underline btn-delete-user cursor-pointer"
+                  data-id={u.id}
+                  data-name={u.name}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -194,13 +205,24 @@ export function UsersPage({ users, merchants, currentUser, activeMerchant, acces
                     )}
                   </td>
                   <td className="py-3.5 px-4 text-center">
-                    <button 
-                      className="text-red-600 dark:text-red-400 font-bold hover:underline btn-delete-user"
-                      data-id={u.id}
-                      data-name={u.name}
-                    >
-                      Delete
-                    </button>
+                    <div className="flex items-center justify-center gap-3">
+                      {(currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN') && (
+                        <button 
+                          className="text-sky-600 dark:text-sky-400 font-semibold hover:underline btn-reset-user-pwd cursor-pointer"
+                          data-id={u.id}
+                          data-name={u.name}
+                        >
+                          Reset Pwd
+                        </button>
+                      )}
+                      <button 
+                        className="text-red-600 dark:text-red-400 font-bold hover:underline btn-delete-user cursor-pointer"
+                        data-id={u.id}
+                        data-name={u.name}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -432,6 +454,37 @@ export function UsersPage({ users, merchants, currentUser, activeMerchant, acces
                       });
                   }
                 });
+              });
+            });
+
+            // Bind Reset Password triggers
+            document.querySelectorAll('.btn-reset-user-pwd').forEach(btn => {
+              btn.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                const newPwd = window.prompt('Masukkan password baru untuk user "' + name + '" (minimal 6 karakter):');
+                if (newPwd === null) return;
+                if (!newPwd || newPwd.trim().length < 6) {
+                  window.showToast({ type: 'error', title: 'Invalid Password', message: 'Password minimal 6 karakter.' });
+                  return;
+                }
+
+                fetch('/api/v1/users/' + id + '/reset-password', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ newPassword: newPwd.trim() })
+                })
+                  .then(res => res.json())
+                  .then(data => {
+                    if (data.success) {
+                      window.showToast({ type: 'success', title: 'Password Direset', message: data.message || 'Password berhasil direset.' });
+                    } else {
+                      window.showToast({ type: 'error', title: 'Reset Gagal', message: data.error || 'Gagal mereset password.' });
+                    }
+                  })
+                  .catch(() => {
+                    window.showToast({ type: 'error', title: 'Network Error', message: 'Terjadi kesalahan jaringan.' });
+                  });
               });
             });
 

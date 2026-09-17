@@ -2,6 +2,31 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.2.2] - 2026-09-17
+
+### Added
+- **Account Profile & Change Password Modal**:
+  - Added dedicated Profile & Security Modal accessible from desktop sidebar and mobile drawer navigation.
+  - Added `POST /api/v1/auth/change-password` endpoint for authenticated users with PBKDF2 cryptographic verification.
+  - Added `POST /api/v1/users/:id/reset-password` endpoint for Super Admin & Admin to reset passwords from the `/users` directory.
+- **GoFood Transaction ID Linkage**:
+  - Added `gofood_transaction_id` column to `invoices` table with self-healing schema migration.
+  - Linked GoFood transaction UUIDs directly to invoices, displayed in Live Transaction Monitor (desktop and mobile cards) and dispatched in POS webhook payloads.
+- **Proxmox VE Custom Branding & MOTD**:
+  - Replaced third-party community banner references with native QBiz Gateway Hub ASCII art and container login banner (`/etc/profile.d/00_lxc-details.sh` and `/etc/motd`).
+  - In-container `update` helper now automatically refreshes system MOTD on upgrade.
+
+### Fixed
+- **Dynamic QRIS TLV Sequence & Checksum**:
+  - Resolved dynamic QRIS payment failures by maintaining strict sequential TLV order and leaving Tag 62 (Terminal Label) untouched.
+  - Placed Tag 54 (Transaction Amount) immediately before Tag 58 (Country Code `ID`) per EMVCo standard.
+- **GoBiz Sen Currency Normalization**:
+  - Corrected GoBiz analytics API raw amounts that are transmitted in sen (`gross_amount: 200100` for Rp 2.001) with automatic division and dual-format database matching.
+- **Active Real-Time Mutation Reconciliation**:
+  - Added on-demand transaction table scraping and mutation matching inside `GET /api/v1/invoices/:id/status` to immediately mark invoices as PAID when customer payment clears.
+
+---
+
 ## [1.2.1] - 2026-09-17
 
 ### Added

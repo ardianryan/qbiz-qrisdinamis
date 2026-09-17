@@ -1091,6 +1091,78 @@ app.post('/api/v1/users/:id/delete', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIO
   }
 });
 
+// API: Change Current User Password
+app.post('/api/v1/auth/change-password', async (c) => {
+  const currentUser = (c as any).get('user') as UserSession;
+  if (!currentUser) {
+    return c.json({ success: false, error: 'Unauthorized: Harap login terlebih dahulu' }, 401);
+  }
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const currentPassword = String(body.currentPassword || '').trim();
+    const newPassword = String(body.newPassword || '').trim();
+    const confirmPassword = String(body.confirmPassword || '').trim();
+
+    if (!currentPassword || !newPassword) {
+      return c.json({ success: false, error: 'Password saat ini dan password baru wajib diisi' }, 400);
+    }
+
+    if (newPassword.length < 6) {
+      return c.json({ success: false, error: 'Password baru minimal 6 karakter' }, 400);
+    }
+
+    if (confirmPassword && newPassword !== confirmPassword) {
+      return c.json({ success: false, error: 'Konfirmasi password baru tidak cocok' }, 400);
+    }
+
+    const userList = await db.select().from(users).where(eq(users.id, currentUser.id));
+    if (userList.length === 0) {
+      return c.json({ success: false, error: 'User tidak ditemukan' }, 404);
+    }
+
+    const targetUser = userList[0];
+    const isMatch = await verifyPassword(currentPassword, targetUser.password);
+    if (!isMatch) {
+      return c.json({ success: false, error: 'Password saat ini tidak cocok' }, 400);
+    }
+
+    const newHashed = await hashPassword(newPassword);
+    await db.update(users).set({ password: newHashed }).where(eq(users.id, targetUser.id));
+
+    console.log(`[Auth] User ${targetUser.email} successfully updated their password.`);
+    return c.json({ success: true, message: 'Password berhasil diperbarui! Silakan gunakan password baru pada sesi berikutnya.' });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
+// API: Reset Password for Specific User (Admin / Super Admin)
+app.post('/api/v1/users/:id/reset-password', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
+  const id = c.req.param('id');
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const newPassword = String(body.newPassword || '').trim();
+
+    if (!newPassword || newPassword.length < 6) {
+      return c.json({ success: false, error: 'Password baru minimal 6 karakter' }, 400);
+    }
+
+    const userList = await db.select().from(users).where(eq(users.id, id));
+    if (userList.length === 0) {
+      return c.json({ success: false, error: 'User tidak ditemukan' }, 404);
+    }
+
+    const newHashed = await hashPassword(newPassword);
+    await db.update(users).set({ password: newHashed }).where(eq(users.id, id));
+
+    console.log(`[Admin] Reset password for user ${id}`);
+    return c.json({ success: true, message: 'Password pengguna berhasil direset!' });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
 // =========================================================================
 // API ACTIONS ROUTING (Protected by session checks)
 // =========================================================================

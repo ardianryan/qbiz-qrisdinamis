@@ -237,15 +237,26 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
 
           {/* User Profile & Logout */}
           <div className="mt-auto pt-4 border-t border-slate-100 dark:border-zinc-800 space-y-3">
-            <div className="flex items-center gap-3 p-2.5 bg-slate-50 dark:bg-zinc-800/40 rounded-xl">
-              <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400 font-bold text-xs flex items-center justify-center uppercase">
-                {currentUser.name.slice(0, 2)}
+            <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-zinc-800/40 rounded-xl trigger-profile-modal cursor-pointer hover:bg-slate-100 dark:hover:bg-zinc-800/70 transition-colors" title="Buka Profil & Ganti Password">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400 font-bold text-xs flex items-center justify-center uppercase shrink-0">
+                  {currentUser.name.slice(0, 2)}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 truncate">{currentUser.name}</span>
+                  <span className="text-[10px] text-slate-400 truncate">{currentUser.email} • {roleLabels[currentUser.role]}</span>
+                </div>
               </div>
-              <div className="flex flex-col min-w-0">
-                <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 truncate">{currentUser.name}</span>
-                <span className="text-[10px] text-slate-400 truncate">{currentUser.email} • {roleLabels[currentUser.role]}</span>
-              </div>
+              <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
             </div>
+
+            <button
+              id="btn-profile-mobile"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold text-sky-700 bg-sky-50 dark:bg-sky-950/40 dark:text-sky-300 hover:bg-sky-100 border border-sky-200/60 dark:border-sky-900/60 transition-colors cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
+              Profil & Ganti Password
+            </button>
 
             <a 
               href="/logout"
@@ -356,14 +367,17 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
 
         {/* Footer User details & Theme Toggle */}
         <div className="border-t border-slate-200 dark:border-zinc-800 p-3 flex flex-col gap-1.5 shrink-0">
-          <div className="flex items-center gap-2.5 p-2 bg-slate-50 dark:bg-zinc-800/30 rounded-lg sidebar-logo-container transition-opacity duration-200">
-            <div className="w-7 h-7 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400 font-bold text-[11px] flex items-center justify-center shrink-0 uppercase">
-              {currentUser.name.slice(0, 2)}
+          <div className="flex items-center justify-between p-2 bg-slate-50 dark:bg-zinc-800/30 rounded-lg sidebar-logo-container transition-opacity duration-200 trigger-profile-modal cursor-pointer hover:bg-slate-100 dark:hover:bg-zinc-800/70" title="Buka Profil & Ganti Password">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-7 h-7 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-400 font-bold text-[11px] flex items-center justify-center shrink-0 uppercase">
+                {currentUser.name.slice(0, 2)}
+              </div>
+              <div className="flex flex-col min-w-0 sidebar-item-text">
+                <span className="font-bold text-[11px] text-slate-800 dark:text-zinc-200 truncate leading-none">{currentUser.name}</span>
+                <span className="text-[9px] text-slate-400 truncate mt-0.5">{roleLabels[currentUser.role]}</span>
+              </div>
             </div>
-            <div className="flex flex-col min-w-0 sidebar-item-text">
-              <span className="font-bold text-[11px] text-slate-800 dark:text-zinc-200 truncate leading-none">{currentUser.name}</span>
-              <span className="text-[9px] text-slate-400 truncate mt-0.5">{roleLabels[currentUser.role]}</span>
-            </div>
+            <svg className="w-3.5 h-3.5 text-slate-400 shrink-0 sidebar-item-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
           </div>
 
           <div className="flex items-center gap-1">
@@ -379,6 +393,15 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
               <svg id="moon-icon-desktop" className="w-4 h-4 block dark:hidden text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
               </svg>
+            </button>
+
+            <button
+              id="btn-profile-desktop"
+              aria-label="Profil & Ganti Password"
+              className="flex items-center justify-center p-2 rounded-lg text-xs font-medium text-slate-500 hover:text-sky-600 hover:bg-sky-50 dark:text-zinc-400 dark:hover:text-sky-400 dark:hover:bg-sky-950/40 transition-all flex-grow cursor-pointer"
+              title="Profil & Ganti Password"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
             </button>
 
             <button
@@ -660,6 +683,124 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
           <button className="ios-guide-close w-full py-2.5 rounded-xl text-xs font-semibold bg-sky-600 text-white cursor-pointer active:scale-95">
             Mengerti & Tutup
           </button>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 9. USER PROFILE & CHANGE PASSWORD MODAL */}
+      {/* ========================================================================= */}
+      <div id="modal-profile-password" className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm profile-modal-backdrop cursor-pointer"></div>
+        <div className="relative bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-t-3xl sm:rounded-2xl shadow-2xl z-10 w-full max-w-md overflow-hidden sheet-spring transform translate-y-4 sm:translate-y-0 sm:scale-95 flex flex-col max-h-[90vh]">
+          {/* Mobile Drag Indicator */}
+          <div className="w-12 h-1.5 bg-slate-300 dark:bg-zinc-700 rounded-full mx-auto sm:hidden mt-3 shrink-0"></div>
+
+          {/* Modal Header */}
+          <div className="flex items-center justify-between p-5 border-b border-slate-100 dark:border-zinc-800 shrink-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400 flex items-center justify-center shrink-0">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-zinc-50">Profil Akun & Keamanan</h3>
+                <p className="text-[11px] text-slate-500 dark:text-zinc-400">Kelola identitas akun dan ubah kata sandi.</p>
+              </div>
+            </div>
+            <button className="profile-modal-close text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+
+          {/* Modal Body */}
+          <div className="p-5 space-y-4 overflow-y-auto">
+            {/* User Info Card */}
+            <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200/80 dark:border-zinc-800 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-sky-600 text-white font-bold text-sm flex items-center justify-center uppercase shrink-0 shadow-sm">
+                {currentUser.name.slice(0, 2)}
+              </div>
+              <div className="flex flex-col min-w-0 flex-grow">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-xs text-slate-900 dark:text-zinc-100 truncate">{currentUser.name}</span>
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 shrink-0">
+                    {roleLabels[currentUser.role] || currentUser.role}
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-mono truncate">{currentUser.email}</span>
+                {activeMerchant && (
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate mt-0.5">
+                    Toko Aktif: {activeMerchant.name}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Change Password Form */}
+            <form id="form-change-password" className="space-y-3 pt-1">
+              <div className="border-b border-slate-100 dark:border-zinc-800 pb-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">Ganti Kata Sandi</span>
+                <p className="text-[10px] text-slate-400 dark:text-zinc-500">Masukkan password saat ini dan buat password baru yang aman.</p>
+              </div>
+
+              <div id="change-pwd-alert" className="hidden p-2.5 rounded-lg text-xs font-medium"></div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                  Password Saat Ini <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  id="input-current-password"
+                  required
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                  Password Baru <span className="text-red-500">*</span> (minimal 6 karakter)
+                </label>
+                <input
+                  type="password"
+                  id="input-new-password"
+                  required
+                  minLength={6}
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-zinc-300 mb-1">
+                  Konfirmasi Password Baru <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  id="input-confirm-password"
+                  required
+                  minLength={6}
+                  placeholder="••••••••"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  className="profile-modal-close px-3 py-2 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-100 dark:text-zinc-300 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  id="btn-submit-password"
+                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-sky-600 hover:bg-sky-700 text-white transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <span id="btn-submit-pwd-text">Simpan Password</span>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -994,6 +1135,40 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
             }
             window.closeWorkspaceModal = closeWorkspaceModal;
 
+            // Global User Profile & Change Password Modal
+            const modalProfile = document.getElementById('modal-profile-password');
+            const formChangePwd = document.getElementById('form-change-password');
+            const alertChangePwd = document.getElementById('change-pwd-alert');
+            const btnSubmitPwd = document.getElementById('btn-submit-password');
+            const btnSubmitPwdText = document.getElementById('btn-submit-pwd-text');
+
+            function openProfileModal() {
+              if (!modalProfile) return;
+              if (alertChangePwd) {
+                alertChangePwd.className = 'hidden';
+                alertChangePwd.textContent = '';
+              }
+              if (formChangePwd) formChangePwd.reset();
+              modalProfile.classList.remove('opacity-0', 'pointer-events-none');
+              const body = modalProfile.querySelector('.sheet-spring');
+              if (body) {
+                body.classList.remove('translate-y-4', 'sm:scale-95');
+                body.classList.add('translate-y-0', 'sm:scale-100');
+              }
+            }
+
+            function closeProfileModal() {
+              if (!modalProfile) return;
+              modalProfile.classList.add('opacity-0', 'pointer-events-none');
+              const body = modalProfile.querySelector('.sheet-spring');
+              if (body) {
+                body.classList.add('translate-y-4', 'sm:scale-95');
+                body.classList.remove('translate-y-0', 'sm:scale-100');
+              }
+            }
+            window.openProfileModal = openProfileModal;
+            window.closeProfileModal = closeProfileModal;
+
             function initInteractiveBehaviors() {
               document.querySelectorAll('#desktop-workspace-trigger, #mobile-workspace-trigger, .trigger-workspace-modal, #dashboard-btn-switch-store').forEach(el => {
                 el.onclick = openWorkspaceModal;
@@ -1002,6 +1177,73 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
               document.querySelectorAll('.modal-close-trigger, .modal-backdrop-trigger').forEach(btn => {
                 btn.onclick = closeWorkspaceModal;
               });
+
+              document.querySelectorAll('.trigger-profile-modal, #btn-profile-desktop, #btn-profile-mobile').forEach(el => {
+                el.onclick = function() {
+                  if (typeof closeDrawer === 'function') closeDrawer();
+                  openProfileModal();
+                };
+              });
+
+              document.querySelectorAll('.profile-modal-close, .profile-modal-backdrop').forEach(btn => {
+                btn.onclick = closeProfileModal;
+              });
+
+              if (formChangePwd) {
+                formChangePwd.onsubmit = async function(e) {
+                  e.preventDefault();
+                  const curPwd = (document.getElementById('input-current-password') || {}).value;
+                  const newPwd = (document.getElementById('input-new-password') || {}).value;
+                  const confPwd = (document.getElementById('input-confirm-password') || {}).value;
+
+                  if (newPwd !== confPwd) {
+                    if (alertChangePwd) {
+                      alertChangePwd.className = 'p-2.5 rounded-lg text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900';
+                      alertChangePwd.textContent = 'Konfirmasi password baru tidak cocok!';
+                    }
+                    return;
+                  }
+
+                  if (btnSubmitPwd) btnSubmitPwd.disabled = true;
+                  if (btnSubmitPwdText) btnSubmitPwdText.textContent = 'Menyimpan...';
+
+                  try {
+                    const res = await fetch('/api/v1/auth/change-password', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        currentPassword: curPwd,
+                        newPassword: newPwd,
+                        confirmPassword: confPwd
+                      })
+                    });
+
+                    const json = await res.json();
+                    if (json.success) {
+                      formChangePwd.reset();
+                      closeProfileModal();
+                      window.showToast({
+                        type: 'success',
+                        title: 'Berhasil',
+                        message: json.message || 'Password berhasil diperbarui!'
+                      });
+                    } else {
+                      if (alertChangePwd) {
+                        alertChangePwd.className = 'p-2.5 rounded-lg text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900';
+                        alertChangePwd.textContent = json.error || 'Gagal mengubah password.';
+                      }
+                    }
+                  } catch (_err) {
+                    if (alertChangePwd) {
+                      alertChangePwd.className = 'p-2.5 rounded-lg text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-900';
+                      alertChangePwd.textContent = 'Terjadi kesalahan jaringan saat memperbarui password.';
+                    }
+                  } finally {
+                    if (btnSubmitPwd) btnSubmitPwd.disabled = false;
+                    if (btnSubmitPwdText) btnSubmitPwdText.textContent = 'Simpan Password';
+                  }
+                };
+              }
 
               if (searchInput) {
                 searchInput.oninput = function(e) {
