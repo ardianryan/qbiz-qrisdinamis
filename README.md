@@ -15,6 +15,8 @@
   <a href="https://render.com/deploy?repo=https://github.com/ardianryan/qbiz-qrisdinamis"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" height="32" /></a>
   &nbsp;
   <a href="https://hub.docker.com/r/ardianryan/qbiz-qrisdinamis"><img src="https://img.shields.io/badge/Docker_Hub-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Hub Image" height="32" /></a>
+  &nbsp;
+  <a href="PROXMOX.md"><img src="https://img.shields.io/badge/Proxmox_VE-E57000?style=for-the-badge&logo=proxmox&logoColor=white" alt="Deploy on Proxmox VE" height="32" /></a>
 </p>
 
 **QBiz** is a modern, self-hosted dynamic QRIS payment gateway hub. It acts as an in-house middleware to connect QRIS Food Merchant portals with custom Point-of-Sale (POS) systems, automates transaction synchronization via headless browser automation, dispatches instant multi-channel alerts (Telegram, Discord, WhatsApp GOWA), and sends HMAC-SHA256 signed webhooks directly to your POS system without relying on third-party payment gateways.
@@ -156,6 +158,13 @@ Because QBiz utilizes **Puppeteer (headless Chromium)** in the background to syn
 
 > [!IMPORTANT]
 > **Swap Allocation Warning**: If you deploy QBiz on a entry-level VPS with only 1 GB of RAM (such as DigitalOcean Basic or Linode Shared Nano), you **must** configure at least 1 GB of virtual swap space, otherwise Puppeteer will crash under load due to OOM limits.
+
+* **Proxmox VE LXC One-Liner (Community-Script Helper)**:
+  Run directly in your Proxmox VE Node Shell to spin up an automated Debian 12 LXC container:
+  ```bash
+  bash -c "$(wget -qLO - https://raw.githubusercontent.com/ardianryan/qbiz-qrisdinamis/main/proxmox/qbiz.sh)"
+  ```
+  See the full [Proxmox VE Guide](PROXMOX.md) for architecture, resource tuning, and service management.
 
 * **One-Click Automated VPS Installer**:
   ```bash

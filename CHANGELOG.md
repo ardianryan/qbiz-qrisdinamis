@@ -4,6 +4,12 @@ All notable changes to the **QBiz Gateway Hub** project will be documented in th
 
 ## [1.2.1] - 2026-09-17
 
+### Added
+- **Proxmox VE LXC Helper Scripts**:
+  - Added native 1-liner Proxmox VE LXC helper installer compatible with `community-scripts` standards (`proxmox/qbiz.sh`, `proxmox/ct/qbiz.sh`, and `proxmox/install/qbiz-install.sh`).
+  - Automatic unprivileged Debian 12 LXC provisioning with pre-configured PostgreSQL, headless Chromium, Deno runtime, and `qbiz.service` systemd daemon.
+  - Added comprehensive English installation and lifecycle management documentation (`PROXMOX.md`).
+
 ### Security
 - **Multi-Tenant SSE Stream Authorization**:
   - Restricted wildcard (`*`) transaction stream subscriptions strictly to `SUPER_ADMIN` and `ADMIN` roles (`main.tsx`).
