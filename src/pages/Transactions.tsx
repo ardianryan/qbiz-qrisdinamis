@@ -1088,7 +1088,8 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                     const amount = this.getAttribute('data-amount') || '';
                     const formatted = amount ? 'Rp ' + Number(amount).toLocaleString('id-ID') : '';
                     
-                    const gofoodId = prompt('⚡ Konfirmasi Pembayaran & Rekonsiliasi Manual:\n\nInvoice ID: ' + txId + '\nTotal: ' + formatted + '\n\nMasukkan ID Transaksi GoBiz / GoFood (contoh: 74fe458a-e99a-3bc6-9b33-8dbaa7d10c6a) atau kosongkan jika ingin langsung konfirmasi bayar:');
+                    const promptMsg = '⚡ Konfirmasi Pembayaran & Rekonsiliasi Manual: Invoice ' + txId + ' (' + formatted + '). Masukkan ID Transaksi GoBiz / GoFood (opsional):';
+                    const gofoodId = prompt(promptMsg, '');
                     if (gofoodId === null) return;
                     
                     this.disabled = true;

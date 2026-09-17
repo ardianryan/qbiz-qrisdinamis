@@ -2,6 +2,15 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.2.8] - 2026-09-17
+
+### Fixed
+- **Transactions Page Client-Side SyntaxError**:
+  - Fixed `Uncaught SyntaxError: Invalid or unexpected token (at transactions:688:45)` caused by unescaped newline characters inside a template string prompt dialog in `Transactions.tsx`.
+  - Re-enabled full interactivity for manual reconciliation buttons, table actions, filters, search, and pagination.
+
+---
+
 ## [1.2.7] - 2026-09-17
 
 ### Added
