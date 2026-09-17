@@ -2270,6 +2270,7 @@ app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
 
     // Active Reconciliation: If invoice is still PENDING, check if a matching mutation has arrived in DB
     if (status === 'PENDING' && invoice.merchantId) {
+      console.log(`[Status Check] Polling invoice ${invoice.id} for Rp ${invoice.totalAmount} (merchant: ${invoice.merchantId})`);
       // Trigger instant active scraping of transactions DOM table before checking
       try {
         await syncMerchantMutations(invoice.merchantId);
@@ -2289,6 +2290,8 @@ app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
             eq(mutations.isMatched, false)
           )
         );
+
+      console.log(`[Status Check] Result: ${matchedMutations.length} matching mutations found in DB.`);
 
       if (matchedMutations.length > 0) {
         const mut = matchedMutations[0];

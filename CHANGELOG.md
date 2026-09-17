@@ -2,6 +2,15 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.2.6] - 2026-09-17
+
+### Added
+- **Real-Time Diagnostics & Scraper State Inspection**:
+  - Added live page DOM and row inspection logging to `syncMerchantMutations` to display actual rendered rows and URLs.
+  - Added detailed diagnostic logging to `GET /api/v1/invoices/:id/status` tracking exact target amount and mutation matches.
+
+---
+
 ## [1.2.5] - 2026-09-17
 
 ### Fixed

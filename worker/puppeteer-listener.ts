@@ -259,6 +259,19 @@ export async function syncMerchantMutations(merchantId: string): Promise<number>
   }
   const page = active.page;
   try {
+    const pageState = await page.evaluate(() => {
+      const doc = (globalThis as any).document;
+      const rows = Array.from(doc?.querySelectorAll('table tr, [role="row"]') || []);
+      const sampleTexts = rows.slice(0, 5).map((r: any) => (r.innerText || '').replace(/\s+/g, ' ').substring(0, 80));
+      return {
+        url: window.location.href,
+        rowsCount: rows.length,
+        sampleTexts
+      };
+    }).catch((err: any) => ({ url: '', rowsCount: 0, sampleTexts: [], error: err.message }));
+    
+    console.log(`[Sync ${merchantId}] Page: ${pageState.url} (${pageState.rowsCount} rows) -> ${JSON.stringify(pageState.sampleTexts)}`);
+
     // 1. Scrape rendered DOM table (from portal.gofoodmerchant.co.id/transactions?date_range=today)
     const domList = await page.evaluate(() => {
       const doc = (globalThis as any).document;
