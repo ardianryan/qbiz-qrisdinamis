@@ -2,6 +2,17 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.2.4] - 2026-09-17
+
+### Fixed
+- **DOM Scraper & Sen Amount Normalization**:
+  - Prevented DOM-scraped transactions (which are already in IDR Rupiah) from being divided by 100 as sen.
+  - Restricted `/100` sen division strictly to API payloads with values `>= 100000` (e.g. `100100` sen -> `1001` IDR).
+  - Enhanced DOM table row selector to match `table tbody tr`, `table tr`, and `[role="row"]`.
+  - Added auto-restart fallback in `syncMerchantMutations` if listener is inactive in memory.
+
+---
+
 ## [1.2.3] - 2026-09-17
 
 ### Added

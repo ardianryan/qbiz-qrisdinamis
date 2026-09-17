@@ -233,6 +233,14 @@ export async function startMerchantListener(merchantId: string) {
 export async function syncMerchantMutations(merchantId: string): Promise<number> {
   const active = activeListeners.get(merchantId);
   if (!active || !active.page) {
+    // If listener is not currently active in memory, attempt background start if merchant status is ACTIVE
+    try {
+      const mrc = await db.select().from(merchants).where(eq(merchants.id, merchantId));
+      if (mrc.length > 0 && (mrc[0].status === 'ACTIVE' || mrc[0].status === 'DISCONNECTED')) {
+        console.log(`[Sync ${merchantId}] Listener not active in memory, attempting auto-restart...`);
+        startMerchantListener(merchantId).catch(() => {});
+      }
+    } catch (_) {}
     return 0;
   }
   const page = active.page;
@@ -242,7 +250,7 @@ export async function syncMerchantMutations(merchantId: string): Promise<number>
       const doc = (globalThis as any).document;
       if (!doc) return [];
       const items: any[] = [];
-      const rows = doc.querySelectorAll('table tbody tr');
+      const rows = doc.querySelectorAll('table tbody tr, table tr, [role="row"]');
       for (const row of rows) {
         const text = (row as any).innerText || '';
         if (!text.includes('Rp')) continue;
@@ -267,6 +275,7 @@ export async function syncMerchantMutations(merchantId: string): Promise<number>
           id: txId,
           order_id: txId,
           gross_amount: amount,
+          is_dom: true,
           transaction_status: 'SETTLEMENT',
           created_at: new Date().toISOString()
         });
@@ -523,9 +532,11 @@ async function processIncomingMutations(merchantId: string, transactionList: any
 
     if (txAmount <= 0) continue;
 
-    // Normalize: If amount is in sen (e.g. 200100 for Rp 2.001), convert to IDR Rupiah (2001)
+    // Normalize: If amount is from DOM, it's ALREADY in IDR Rupiah! Never divide.
+    // If amount is from GoBiz API in sen (e.g. 100100 for Rp 1.001 or 200100 for Rp 2.001):
+    // Note: Sen values from GoBiz are 100x the actual IDR amount, so for any real invoice >= 1000 IDR, sen >= 100000.
     let normalizedAmount = txAmount;
-    if (txAmount >= 100 && (tx.gross_amount !== undefined || tx.real_gross_amount !== undefined)) {
+    if (!tx.is_dom && txAmount >= 100000 && (tx.gross_amount !== undefined || tx.real_gross_amount !== undefined)) {
       normalizedAmount = Math.round(txAmount / 100);
     }
 
