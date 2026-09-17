@@ -224,4 +224,16 @@ Deno.test("Developer Hub Security - webhooks endpoints should reject unauthentic
   assertEquals(postRes.status === 401 || postRes.status === 403, true);
 });
 
+Deno.test("Merchant Management - should reject unauthenticated merchant creation", async () => {
+  const formData = new FormData();
+  formData.append("name", "Test Warung");
+  formData.append("phone_number", "08123456789");
+  
+  const res = await app.request("/api/v1/merchants", {
+    method: "POST",
+    body: formData
+  });
+  assertEquals(res.status === 401 || res.status === 403, true);
+});
+
 

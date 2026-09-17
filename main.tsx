@@ -1398,11 +1398,11 @@ app.delete('/api/v1/merchants/:id', requireRole(['SUPER_ADMIN', 'ADMIN']), async
 app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
   const id = c.req.param('id');
   const body = await c.req.parseBody();
-  const name = body.name as string;
-  const phoneNumber = body.phoneNumber as string;
-  const qrisImage = body.qrisImage as File;
-  const qrisPayload = (body.qrisPayload as string) || '';
-  const logoImage = body.logoImage as File | undefined;
+  const name = body.name ? String(body.name).trim() : '';
+  const phoneNumber = ((body.phoneNumber || body.phone_number) ? String(body.phoneNumber || body.phone_number).trim() : '');
+  const qrisImage = (body.qrisImage || body.qris_image) as File | undefined;
+  const qrisPayload = ((body.qrisPayload || body.qris_payload) ? String(body.qrisPayload || body.qris_payload).trim() : '');
+  const logoImage = (body.logoImage || body.logo_image) as File | undefined;
 
   try {
     // 1. Fetch current merchant data
@@ -1417,7 +1417,7 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
     let finalLogoUrl = currentMerchant.logoUrl;
 
     // 2. Handle new logo upload if provided
-    if (logoImage && logoImage.size > 0) {
+    if (logoImage && typeof logoImage === 'object' && typeof logoImage.name === 'string' && logoImage.size > 0) {
       const tempDir = './static/uploads';
       await Deno.mkdir(tempDir, { recursive: true });
       const logoExt = logoImage.name.split('.').pop() || 'png';
@@ -1429,7 +1429,7 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
     }
 
     // 3. Handle new QRIS image upload if file is provided
-    if (qrisImage && qrisImage.size > 0) {
+    if (qrisImage && typeof qrisImage === 'object' && typeof qrisImage.name === 'string' && qrisImage.size > 0) {
       const tempDir = './static/uploads';
       await Deno.mkdir(tempDir, { recursive: true });
       const ext = qrisImage.name.split('.').pop() || 'png';
@@ -1458,8 +1458,8 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
 
     // 4. Update merchant row
     await db.update(merchants).set({
-      name,
-      phoneNumber,
+      name: name || currentMerchant.name,
+      phoneNumber: phoneNumber || currentMerchant.phoneNumber,
       qrisImageUrl: fileUrl,
       qrisPayload: finalQrisPayload,
       logoUrl: finalLogoUrl
@@ -1476,45 +1476,60 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
 app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN']), async (c) => {
   const currentUser = (c as any).get('user') as UserSession;
   const body = await c.req.parseBody();
-  const name = body.name as string;
-  const phoneNumber = body.phoneNumber as string;
-  const qrisImage = body.qrisImage as File;
-  const qrisPayload = (body.qrisPayload as string) || '';
-  const logoImage = body.logoImage as File | undefined;
+  const name = body.name ? String(body.name).trim() : '';
+  const phoneNumber = ((body.phoneNumber || body.phone_number) ? String(body.phoneNumber || body.phone_number).trim() : '');
+  const qrisImage = (body.qrisImage || body.qris_image) as File | undefined;
+  const qrisPayload = ((body.qrisPayload || body.qris_payload) ? String(body.qrisPayload || body.qris_payload).trim() : '');
+  const logoImage = (body.logoImage || body.logo_image) as File | undefined;
+
+  if (!name) {
+    return c.text('Merchant name is required', 400);
+  }
 
   const newId = `mrc_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString().slice(-4)}`;
   
   const tempDir = './static/uploads';
   await Deno.mkdir(tempDir, { recursive: true });
-  const ext = qrisImage.name.split('.').pop() || 'png';
-  const filePath = `${tempDir}/${newId}.${ext}`;
-  const fileUrl = `/static/uploads/${newId}.${ext}`;
 
-  const arrayBuffer = await qrisImage.arrayBuffer();
-  await Deno.writeFile(filePath, new Uint8Array(arrayBuffer));
+  let fileUrl: string = DEFAULT_MOCK_STATIC_QRIS;
+  let finalQrisPayload = qrisPayload;
 
-  // Process Merchant Logo Upload
+  // Process QRIS Image Upload if provided
+  if (qrisImage && typeof qrisImage === 'object' && typeof qrisImage.name === 'string' && qrisImage.size > 0) {
+    const ext = qrisImage.name.split('.').pop() || 'png';
+    const filePath = `${tempDir}/${newId}.${ext}`;
+    fileUrl = `/static/uploads/${newId}.${ext}`;
+
+    const arrayBuffer = await qrisImage.arrayBuffer();
+    await Deno.writeFile(filePath, new Uint8Array(arrayBuffer));
+
+    if (!finalQrisPayload) {
+      try {
+        const decoded = await decodeQRISFromImage(filePath);
+        if (decoded) {
+          finalQrisPayload = decoded;
+          console.log(`[QRIS Decoder] Successfully extracted QRIS payload from image: ${decoded}`);
+        }
+      } catch (err: any) {
+        console.error(`[QRIS Decoder] Failed decoding uploaded image:`, err);
+      }
+    }
+  }
+
+  // Fallback to default static QRIS if neither image nor payload is provided
+  if (!finalQrisPayload) {
+    finalQrisPayload = DEFAULT_MOCK_STATIC_QRIS;
+  }
+
+  // Process Merchant Logo Upload if provided
   let logoUrl: string | null = null;
-  if (logoImage && logoImage.size > 0) {
+  if (logoImage && typeof logoImage === 'object' && typeof logoImage.name === 'string' && logoImage.size > 0) {
     const logoExt = logoImage.name.split('.').pop() || 'png';
     const logoFilePath = `${tempDir}/logo_${newId}.${logoExt}`;
     logoUrl = `/static/uploads/logo_${newId}.${logoExt}`;
     const logoBuffer = await logoImage.arrayBuffer();
     await Deno.writeFile(logoFilePath, new Uint8Array(logoBuffer));
     console.log(`[Logo Upload] Successfully saved logo to ${logoFilePath}`);
-  }
-
-  let finalQrisPayload = qrisPayload;
-  if (!finalQrisPayload) {
-    try {
-      const decoded = await decodeQRISFromImage(filePath);
-      if (decoded) {
-        finalQrisPayload = decoded;
-        console.log(`[QRIS Decoder] Successfully extracted QRIS payload from image: ${decoded}`);
-      }
-    } catch (err: any) {
-      console.error(`[QRIS Decoder] Failed decoding uploaded image:`, err);
-    }
   }
 
   try {
@@ -1537,7 +1552,10 @@ app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADM
       });
       console.log(`[DB] Auto-mapped merchant ${newId} to Regional Admin ${currentUser.id}`);
     }
-  } catch (_e) {}
+  } catch (err: any) {
+    console.error(`[DB] Failed to insert merchant ${newId}:`, err);
+    return c.text(`Failed to create merchant: ${err.message}`, 500);
+  }
 
   return c.redirect('/merchants');
 });
