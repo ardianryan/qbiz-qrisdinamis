@@ -90,26 +90,32 @@ else
 fi
 
 # Step 1: Stop Service
-echo -e "\n[1/4] Stopping QBiz service..."
+echo -e "\n[1/5] Stopping QBiz service..."
 systemctl stop qbiz
 
 # Step 2: Pull Latest Source Code
-echo -e "[2/4] Fetching and pulling latest code..."
+echo -e "[2/5] Fetching and pulling latest code..."
 git pull origin main
 
 NEW_VER=$(grep '"version"' package.json 2>/dev/null | head -n1 | cut -d '"' -f 4 || echo "unknown")
 NEW_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Step 3: Pre-cache Deno Dependencies
-echo -e "[3/4] Pre-caching Deno dependencies..."
+echo -e "[3/5] Pre-caching Deno dependencies..."
 if command -v deno >/dev/null 2>&1; then
     deno cache main.tsx
 else
     echo -e "${RD}Warning: Deno runtime binary not found in PATH.${CL}"
 fi
 
-# Step 4: Restart Service
-echo -e "[4/4] Restarting QBiz service..."
+# Step 4: Run Database Migrations
+echo -e "[4/5] Applying database schema migrations..."
+if command -v deno >/dev/null 2>&1; then
+    deno task db:migrate || true
+fi
+
+# Step 5: Restart Service
+echo -e "[5/5] Restarting QBiz service..."
 systemctl start qbiz
 
 # Health verification

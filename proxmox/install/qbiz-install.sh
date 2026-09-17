@@ -88,6 +88,11 @@ cd /opt/qbiz
 $STD deno cache main.tsx
 msg_ok "Pre-cached Deno Dependencies"
 
+msg_info "Initializing Database Schema Migrations"
+cd /opt/qbiz
+$STD deno task db:migrate || true
+msg_ok "Initialized Database Schema"
+
 msg_info "Creating Systemd Service"
 cat <<EOF > /etc/systemd/system/qbiz.service
 [Unit]
