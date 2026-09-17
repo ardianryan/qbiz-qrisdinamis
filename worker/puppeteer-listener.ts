@@ -5,6 +5,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { encryptSession, decryptSession } from '../src/utils/crypto.ts';
 import { dispatchMerchantNotifications, isValidOutboundUrl } from '../src/services/notification.ts';
 import { dispatchWebhooksForInvoice } from '../src/services/webhooks.ts';
+import { sseBroker } from '../src/services/sse.ts';
 
 // Mutex or tracker for running listeners
 // Each entry stores { intervalId, browser, page, status }
@@ -443,6 +444,25 @@ async function processIncomingMutations(merchantId: string, transactionList: any
       // 3. Dispatch Multi-Channel Notifications (Telegram, Discord, WhatsApp GOWA)
       dispatchMerchantNotifications(merchantId, matchedInvoice, txTime).catch(err => {
         console.error(`[Worker] Failed dispatching notifications for ${merchantId}:`, err);
+      });
+
+      // 4. Dispatch Real-time SSE Events (<50ms zero-latency sync)
+      sseBroker.publishInvoiceUpdate({
+        invoiceId: matchedInvoice.id,
+        orderId: matchedInvoice.orderId,
+        status: 'PAID',
+        paidAt: txTime,
+        amount: matchedInvoice.totalAmount,
+        redirectUrl: matchedInvoice.redirectUrl || matchedInvoice.callbackUrl
+      });
+
+      sseBroker.publishTransactionUpdate({
+        merchantId,
+        invoiceId: matchedInvoice.id,
+        orderId: matchedInvoice.orderId,
+        amount: matchedInvoice.totalAmount,
+        status: 'PAID',
+        timestamp: txTime
       });
     }
   }
