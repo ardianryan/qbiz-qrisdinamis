@@ -24,7 +24,7 @@ import { generateDynamicQRIS, decodeQRISFromImage } from './src/utils/qris.ts';
 import { dispatchMerchantNotifications, testChannelNotification, DEFAULT_TEMPLATES, isValidOutboundUrl } from './src/services/notification.ts';
 import { getSystemSettings, updateSystemSettings, invalidateSettingsCache, SystemSettingsConfig } from './src/services/settings.ts';
 import { createApiKey, listApiKeys, revokeApiKey, deleteApiKey, verifyApiKeyAndScope, AVAILABLE_SCOPES, ApiKeyRecord } from './src/services/api-keys.ts';
-import { createWebhookEndpoint, listWebhookEndpoints, deleteWebhookEndpoint, toggleWebhookStatus, testWebhookEndpoint, AVAILABLE_WEBHOOK_EVENTS, WebhookEndpoint } from './src/services/webhooks.ts';
+import { createWebhookEndpoint, listWebhookEndpoints, deleteWebhookEndpoint, toggleWebhookStatus, testWebhookEndpoint, AVAILABLE_WEBHOOK_EVENTS, WebhookEndpoint, dispatchWebhooksForInvoice } from './src/services/webhooks.ts';
 import { migrate } from 'npm:drizzle-orm/postgres-js/migrator';
 
 const DEFAULT_MOCK_STATIC_QRIS = "00020101021138590014ID.CO.QRIS.WWW0215ID10200845344330303UMI51440014ID.CO.QRIS.WWW0215ID10200845344330303UMI5204581253033605802ID5920Resto Ayam Bakar Cbk6009Mojokerto6105613006304D116";
@@ -2170,6 +2170,68 @@ app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
     
     // Check if expired and update database dynamically
     let status = invoice.status;
+
+    // Active Reconciliation: If invoice is still PENDING, check if a matching mutation has arrived in DB
+    if (status === 'PENDING' && invoice.merchantId) {
+      const matchedMutations = await db.select()
+        .from(mutations)
+        .where(
+          and(
+            eq(mutations.merchantId, invoice.merchantId),
+            or(
+              eq(mutations.rawAmount, invoice.totalAmount),
+              // Support recovering from historical /100 division bug (e.g. 5001 saved as 50)
+              eq(mutations.rawAmount, Math.round(invoice.totalAmount / 100))
+            ),
+            eq(mutations.isMatched, false)
+          )
+        );
+
+      if (matchedMutations.length > 0) {
+        const mut = matchedMutations[0];
+        console.log(`[Status Reconciliation] Matched mutation ${mut.id} for invoice ${invoice.id}! Marking as PAID.`);
+        
+        status = 'PAID';
+        const paidAt = new Date();
+        await db.update(invoices).set({ status: 'PAID', paidAt }).where(eq(invoices.id, id));
+        await db.update(mutations).set({ isMatched: true, invoiceId: id, rawAmount: invoice.totalAmount }).where(eq(mutations.id, mut.id));
+
+        // 1. Dispatch POS Webhook
+        if (invoice.callbackUrl) {
+          dispatchWebhook(invoice, mut.transactionTime).catch(() => {});
+        }
+
+        // 2. Dispatch Enterprise Webhooks
+        dispatchWebhooksForInvoice(invoice, 'payment.success', mut.transactionTime).catch(err => {
+          console.error('[Status Reconciliation] Webhooks error:', err);
+        });
+
+        // 3. Dispatch Multi-Channel Notifications
+        dispatchMerchantNotifications(invoice.merchantId, invoice, mut.transactionTime).catch(err => {
+          console.error('[Status Reconciliation] Notif error:', err);
+        });
+
+        // 4. Publish Real-time SSE Events
+        sseBroker.publishInvoiceUpdate({
+          invoiceId: invoice.id,
+          orderId: invoice.orderId,
+          status: 'PAID',
+          paidAt: paidAt.toISOString(),
+          amount: invoice.totalAmount,
+          redirectUrl: invoice.redirectUrl || invoice.callbackUrl
+        });
+
+        sseBroker.publishTransactionUpdate({
+          merchantId: invoice.merchantId,
+          invoiceId: invoice.id,
+          orderId: invoice.orderId,
+          amount: invoice.totalAmount,
+          status: 'PAID',
+          timestamp: mut.transactionTime
+        });
+      }
+    }
+
     if (status === 'PENDING' && new Date() > invoice.expiredAt) {
       status = 'EXPIRED';
       await db.update(invoices).set({ status: 'EXPIRED' }).where(eq(invoices.id, id));

@@ -459,18 +459,28 @@ async function processIncomingMutations(merchantId: string, transactionList: any
 
     // Check if mutation already logged
     const existing = await db.select().from(mutations).where(eq(mutations.id, txId));
-    if (existing.length > 0) continue;
-
-    console.log(`[Worker ${merchantId}] New mutation logged: ${txId} - Rp ${txAmount} (${status})`);
-
-    // Insert mutation log
-    await db.insert(mutations).values({
-      id: txId,
-      merchantId,
-      rawAmount: txAmount,
-      transactionTime: txTime,
-      isMatched: false
-    });
+    if (existing.length > 0) {
+      const existingRecord = existing[0];
+      if (existingRecord.isMatched) {
+        // Truly matched already, skip
+        continue;
+      }
+      // If previously recorded with wrong rawAmount (e.g. from the /100 bug):
+      if (existingRecord.rawAmount !== txAmount) {
+        console.log(`[Worker ${merchantId}] Correcting rawAmount for unmatched mutation ${txId} from ${existingRecord.rawAmount} to ${txAmount}`);
+        await db.update(mutations).set({ rawAmount: txAmount }).where(eq(mutations.id, txId));
+      }
+    } else {
+      console.log(`[Worker ${merchantId}] New mutation logged: ${txId} - Rp ${txAmount} (${status})`);
+      // Insert mutation log
+      await db.insert(mutations).values({
+        id: txId,
+        merchantId,
+        rawAmount: txAmount,
+        transactionTime: txTime,
+        isMatched: false
+      });
+    }
 
     // Check if there is an active or recently expired invoice (within 30 minutes) matching this totalAmount
     const invoiceList = await db.select()
