@@ -45,7 +45,7 @@ During installation, the wizard prompts you to select your preferred database ar
    - Perfect for homelabs or standalone deployments without external infrastructure.
 
 2. **External PostgreSQL (Supabase, Neon, Cloud, or Remote VM)**:
-   - Completely skips local PostgreSQL installation, saving **500 MB – 1 GB of RAM** in Proxmox.
+   - Completely skips local PostgreSQL installation, saving **500 MB to 1 GB of RAM** in Proxmox.
    - Prompts for your PostgreSQL Connection URI (e.g. Supabase pooler URL).
    - Allows leaving it blank to configure manually later in `/opt/qbiz/.env`.
 
