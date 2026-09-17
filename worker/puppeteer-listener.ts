@@ -183,32 +183,18 @@ export async function startMerchantListener(merchantId: string) {
     // Initial DOM scrape right after page load
     await syncMerchantMutations(merchantId);
 
-    // Safe in-page poll loop (every 6s) - triggers in-page AJAX without destroying browser context
+    // In-page reload poll loop (every 12s) - guarantees fresh mutations from GoFood portal
     let isPolling = false;
-    let pollCount = 0;
     const intervalId = setInterval(async () => {
       if (isPolling) return;
       
       try {
         isPolling = true;
-        pollCount++;
 
-        // Only do full page reload once every 50 polls (~5 minutes) for memory hygiene
-        if (pollCount % 50 === 0) {
-          console.log(`[Worker ${merchantId}] Periodic hygiene reload...`);
-          await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
-          await new Promise(r => setTimeout(r, 2000));
-        } else {
-          // Trigger in-page refresh by clicking "Terapkan filter" button
-          await page.evaluate(() => {
-            const doc = (globalThis as any).document;
-            if (!doc) return;
-            const buttons = Array.from(doc.querySelectorAll('button'));
-            const filterBtn = buttons.find((b: any) => (b.innerText || '').includes('Terapkan filter'));
-            if (filterBtn) (filterBtn as any).click();
-          }).catch(() => {});
-          await new Promise(r => setTimeout(r, 1000));
-        }
+        // Perform clean in-page reload to fetch latest mutations from GoFood Portal
+        console.log(`[Worker ${merchantId}] Refreshing GoFood transactions...`);
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
+        await new Promise(r => setTimeout(r, 2000));
 
         if (page.url().includes('/login')) {
           console.warn(`[Worker ${merchantId}] Session expired. Setting NEEDS_OTP.`);
@@ -225,10 +211,10 @@ export async function startMerchantListener(merchantId: string) {
       } finally {
         isPolling = false;
       }
-    }, 6000);
+    }, 12000);
 
     activeListeners.get(merchantId).intervalId = intervalId;
-    console.log(`[Worker ${merchantId}] In-page mutation listener active (every 6s). ✅`);
+    console.log(`[Worker ${merchantId}] GoFood mutation listener active (refreshing every 12s). ✅`);
 
   } catch (err: any) {
     console.error(`[Worker ${merchantId}] Listener crashed:`, err.message);

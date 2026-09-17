@@ -2355,6 +2355,118 @@ app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
   }
 });
 
+// API: Manual Invoice Reconciliation (Force Match via GoBiz Transaction ID or Instant Confirm)
+app.post('/api/v1/invoices/:id/reconcile', async (c) => {
+  const id = c.req.param('id');
+  try {
+    const invList = await db.select().from(invoices).where(eq(invoices.id, id));
+    if (invList.length === 0) {
+      return c.json({ success: false, error: 'Invoice not found' }, 404);
+    }
+    const invoice = invList[0];
+    if (invoice.status === 'PAID') {
+      return c.json({ success: true, message: 'Invoice already PAID', invoice });
+    }
+
+    let body: any = {};
+    try {
+      body = await c.req.json();
+    } catch (_) {}
+
+    const rawGofoodId = body.gofood_transaction_id || body.transaction_id || body.id;
+    let txId = rawGofoodId ? String(rawGofoodId).trim() : `manual_${invoice.id}_${Date.now()}`;
+    if (rawGofoodId && !txId.startsWith('QRIS-') && !txId.startsWith('mut_') && !txId.startsWith('manual_')) {
+      txId = `QRIS-${txId}`;
+    }
+
+    const paidAt = new Date();
+    const txTime = paidAt.toISOString();
+
+    // 1. Record or update mutation
+    const existingMut = await db.select().from(mutations).where(eq(mutations.id, txId));
+    if (existingMut.length > 0) {
+      await db.update(mutations).set({
+        isMatched: true,
+        invoiceId: invoice.id,
+        rawAmount: invoice.totalAmount
+      }).where(eq(mutations.id, txId));
+    } else {
+      await db.insert(mutations).values({
+        id: txId,
+        merchantId: invoice.merchantId,
+        rawAmount: invoice.totalAmount,
+        transactionTime: txTime,
+        isMatched: true,
+        invoiceId: invoice.id
+      });
+    }
+
+    // 2. Mark invoice as PAID
+    await db.update(invoices).set({
+      status: 'PAID',
+      paidAt,
+      gofoodTransactionId: txId
+    }).where(eq(invoices.id, invoice.id));
+
+    const updatedInvoice = {
+      ...invoice,
+      status: 'PAID' as const,
+      paidAt,
+      gofoodTransactionId: txId
+    };
+
+    // 3. Dispatch POS Webhook
+    if (invoice.callbackUrl) {
+      dispatchWebhook(updatedInvoice, txTime).catch(err => {
+        console.error(`[Manual Reconcile] Webhook dispatch error:`, err);
+      });
+    }
+
+    // 4. Dispatch Multi-Webhooks
+    dispatchWebhooksForInvoice(updatedInvoice, 'payment.success', txTime).catch(err => {
+      console.error(`[Manual Reconcile] Multi-webhook error:`, err);
+    });
+
+    // 5. Dispatch Notifications
+    if (invoice.merchantId) {
+      dispatchMerchantNotifications(invoice.merchantId, updatedInvoice, txTime).catch(err => {
+        console.error(`[Manual Reconcile] Notification error:`, err);
+      });
+    }
+
+    // 6. SSE Realtime Broadcast
+    sseBroker.publishInvoiceUpdate({
+      invoiceId: invoice.id,
+      orderId: invoice.orderId,
+      status: 'PAID',
+      paidAt: txTime,
+      amount: invoice.totalAmount,
+      redirectUrl: invoice.redirectUrl || invoice.callbackUrl
+    });
+
+    if (invoice.merchantId) {
+      sseBroker.publishTransactionUpdate({
+        merchantId: invoice.merchantId,
+        invoiceId: invoice.id,
+        orderId: invoice.orderId,
+        amount: invoice.totalAmount,
+        status: 'PAID',
+        timestamp: txTime
+      });
+    }
+
+    console.log(`[Manual Reconcile] Invoice ${invoice.id} successfully reconciled with GoFood ID ${txId}.`);
+    return c.json({
+      success: true,
+      message: 'Invoice successfully reconciled and marked as PAID.',
+      invoice: updatedInvoice
+    });
+  } catch (err: any) {
+    console.error(`[Manual Reconcile] Error:`, err);
+    return c.json({ success: false, error: err.message }, 500);
+  }
+});
+
 // API: SSE Live Invoice Status Stream (Real-Time Zero-Polling for /pay/:id)
 app.get('/api/v1/invoices/:id/sse', async (c) => {
   const id = c.req.param('id');

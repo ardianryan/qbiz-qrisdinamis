@@ -327,23 +327,35 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H17.75" /></svg>
                 </button>
               )}
-              {tx.status === 'PENDING' && (
+              {(tx.status === 'PENDING' || tx.status === 'EXPIRED') && (
                 <div className="flex gap-1.5">
-                  <a 
-                    href={`/pay/${tx.id}`}
-                    target="_blank"
-                    className="p-1 rounded bg-slate-50 border border-slate-200 dark:bg-zinc-800 dark:border-zinc-700 text-sky-600 dark:text-sky-400 hover:bg-slate-100 dark:hover:bg-zinc-700/60 focus-visible:ring-2 focus-visible:ring-sky-500"
-                    title="Open payment page"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                  </a>
                   <button 
-                    className="p-1 rounded bg-slate-50 border border-slate-200 dark:bg-zinc-800 dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-700/60 focus-visible:ring-2 focus-visible:ring-sky-500 btn-copy-payment-link"
+                    className="p-1 rounded bg-slate-50 border border-slate-200 dark:bg-zinc-800 dark:border-zinc-700 text-emerald-600 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-zinc-700/60 focus-visible:ring-2 focus-visible:ring-emerald-500 btn-reconcile-tx cursor-pointer"
                     data-id={tx.id}
-                    title="Copy payment link"
+                    data-amount={tx.totalAmount}
+                    title="Rekonsiliasi / Konfirmasi Manual (ID GoBiz)"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                   </button>
+                  {tx.status === 'PENDING' && (
+                    <>
+                      <a 
+                        href={`/pay/${tx.id}`}
+                        target="_blank"
+                        className="p-1 rounded bg-slate-50 border border-slate-200 dark:bg-zinc-800 dark:border-zinc-700 text-sky-600 dark:text-sky-400 hover:bg-slate-100 dark:hover:bg-zinc-700/60 focus-visible:ring-2 focus-visible:ring-sky-500"
+                        title="Open payment page"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                      </a>
+                      <button 
+                        className="p-1 rounded bg-slate-50 border border-slate-200 dark:bg-zinc-800 dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-700/60 focus-visible:ring-2 focus-visible:ring-sky-500 btn-copy-payment-link"
+                        data-id={tx.id}
+                        title="Copy payment link"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -456,23 +468,35 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H17.75" /></svg>
                       </button>
                     )}
-                    {tx.status === 'PENDING' && (
+                    {(tx.status === 'PENDING' || tx.status === 'EXPIRED') && (
                       <div className="inline-flex items-center justify-center gap-1.5">
-                        <a 
-                          href={`/pay/${tx.id}`}
-                          target="_blank"
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-sky-600 dark:text-zinc-400 dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors focus-visible:ring-2 focus-visible:ring-sky-500"
-                          title="Open payment page"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                        </a>
                         <button 
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-sky-600 dark:text-zinc-400 dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors btn-copy-payment-link focus-visible:ring-2 focus-visible:ring-sky-500"
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-emerald-600 dark:text-zinc-400 dark:hover:text-emerald-400 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors btn-reconcile-tx focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
                           data-id={tx.id}
-                          title="Copy payment link"
+                          data-amount={tx.totalAmount}
+                          title="Rekonsiliasi / Konfirmasi Manual (ID GoBiz)"
                         >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                         </button>
+                        {tx.status === 'PENDING' && (
+                          <>
+                            <a 
+                              href={`/pay/${tx.id}`}
+                              target="_blank"
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-sky-600 dark:text-zinc-400 dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors focus-visible:ring-2 focus-visible:ring-sky-500"
+                              title="Open payment page"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                            </a>
+                            <button 
+                              className="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 text-slate-500 hover:text-sky-600 dark:text-zinc-400 dark:hover:text-sky-400 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors btn-copy-payment-link focus-visible:ring-2 focus-visible:ring-sky-500"
+                              data-id={tx.id}
+                              title="Copy payment link"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </td>
@@ -916,18 +940,26 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                                   title="Resend webhook success payload">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H17.75" /></svg>
                           </button>
-                        \` : tx.status === 'PENDING' ? \`
+                        \` : (tx.status === 'PENDING' || tx.status === 'EXPIRED') ? \`
                           <div class="inline-flex items-center justify-center gap-1.5">
+                            <button class="inline-flex items-center justify-center p-1 rounded bg-slate-50 border border-slate-200 dark:bg-zinc-800 dark:border-zinc-700 text-emerald-600 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-zinc-700/60 transition-colors btn-reconcile-tx focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+                                    data-id="\${tx.id}"
+                                    data-amount="\${tx.totalAmount}"
+                                    title="Rekonsiliasi / Konfirmasi Manual (ID GoBiz)">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            </button>
+                            \${tx.status === 'PENDING' ? \`
                             <a href="/pay/\${tx.id}" target="_blank"
                                class="inline-flex items-center justify-center p-1 rounded bg-slate-50 border border-slate-200 dark:bg-zinc-800 dark:border-zinc-700 text-sky-600 dark:text-sky-400 hover:bg-slate-100 dark:hover:bg-zinc-700/60 focus-visible:ring-2 focus-visible:ring-sky-500"
                                title="Open payment page">
-                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                             </a>
                             <button class="inline-flex items-center justify-center p-1 rounded bg-slate-50 border border-slate-200 dark:bg-zinc-800 dark:border-zinc-700 text-slate-500 hover:text-sky-600 dark:text-zinc-400 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-zinc-700/60 transition-colors btn-copy-payment-link focus-visible:ring-2 focus-visible:ring-sky-500"
                                     data-id="\${tx.id}"
                                     title="Copy payment link">
-                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                             </button>
+                            \` : ''}
                           </div>
                         \` : '-'}
                       </td>
@@ -983,18 +1015,26 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                                   title="Resend webhook success payload">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H17.75" /></svg>
                           </button>
-                        \` : tx.status === 'PENDING' ? \`
+                        \` : (tx.status === 'PENDING' || tx.status === 'EXPIRED') ? \`
                           <div class="flex gap-1.5">
+                            <button class="p-1 rounded bg-slate-50 border border-slate-200 dark:bg-zinc-800 dark:border-zinc-700 text-emerald-600 dark:text-emerald-400 hover:bg-slate-100 dark:hover:bg-zinc-700/60 focus-visible:ring-2 focus-visible:ring-emerald-500 btn-reconcile-tx cursor-pointer"
+                                    data-id="\${tx.id}"
+                                    data-amount="\${tx.totalAmount}"
+                                    title="Rekonsiliasi / Konfirmasi Manual (ID GoBiz)">
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            </button>
+                            \${tx.status === 'PENDING' ? \`
                             <a href="/pay/\${tx.id}" target="_blank"
                                class="p-1 rounded bg-slate-50 border border-slate-200 dark:bg-zinc-800 dark:border-zinc-700 text-sky-600 dark:text-sky-400 hover:bg-slate-100 dark:hover:bg-zinc-700/60 focus-visible:ring-2 focus-visible:ring-sky-500"
                                title="Open payment page">
-                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
                             </a>
                             <button class="p-1 rounded bg-slate-50 border border-slate-200 dark:bg-zinc-800 dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-700/60 focus-visible:ring-2 focus-visible:ring-sky-500 btn-copy-payment-link"
                                     data-id="\${tx.id}"
                                     title="Copy payment link">
-                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                             </button>
+                            \` : ''}
                           </div>
                         \` : ''}
                       </div>
@@ -1037,6 +1077,41 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                       .catch(() => {
                         this.disabled = false;
                         window.showToast({ type: 'error', title: 'Network Error', message: 'Network error triggering webhook dispatch' });
+                      });
+                  });
+                });
+
+                document.querySelectorAll('.btn-reconcile-tx').forEach(btn => {
+                  btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const txId = this.getAttribute('data-id');
+                    const amount = this.getAttribute('data-amount') || '';
+                    const formatted = amount ? 'Rp ' + Number(amount).toLocaleString('id-ID') : '';
+                    
+                    const gofoodId = prompt('⚡ Konfirmasi Pembayaran & Rekonsiliasi Manual:\n\nInvoice ID: ' + txId + '\nTotal: ' + formatted + '\n\nMasukkan ID Transaksi GoBiz / GoFood (contoh: 74fe458a-e99a-3bc6-9b33-8dbaa7d10c6a) atau kosongkan jika ingin langsung konfirmasi bayar:');
+                    if (gofoodId === null) return;
+                    
+                    this.disabled = true;
+                    window.showToast({ type: 'info', title: 'Processing', message: 'Merekonsiliasi pembayaran...' });
+                    
+                    fetch('/api/v1/invoices/' + txId + '/reconcile', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ gofood_transaction_id: gofoodId.trim() || undefined })
+                    })
+                      .then(res => res.json())
+                      .then(data => {
+                        this.disabled = false;
+                        if (data.success) {
+                          window.showToast({ type: 'success', title: 'Berhasil!', message: 'Invoice ' + txId + ' berhasil ditandai LUNAS dan webhook terkirim!' });
+                          fetchTransactions();
+                        } else {
+                          window.showToast({ type: 'error', title: 'Gagal', message: data.error || 'Gagal merekonsiliasi invoice.' });
+                        }
+                      })
+                      .catch(err => {
+                        this.disabled = false;
+                        window.showToast({ type: 'error', title: 'Network Error', message: err.message });
                       });
                   });
                 });

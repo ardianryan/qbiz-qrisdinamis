@@ -2,6 +2,21 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.2.7] - 2026-09-17
+
+### Added
+- **Manual Invoice Reconciliation Endpoint & Dashboard Action (`POST /api/v1/invoices/:id/reconcile`)**:
+  - Added dedicated API endpoint to immediately reconcile and confirm any pending or expired invoice by providing a GoBiz / GoFood transaction ID (or auto-generated ID).
+  - Automatically records mutation in database, updates invoice status to `PAID`, dispatches HMAC-signed POS callback webhook, multi-channel notifications (Telegram/Discord/WhatsApp), and real-time SSE stream events.
+  - Added manual reconciliation button (`btn-reconcile-tx`) to both desktop and mobile transaction tables on the Live Transaction Monitor (`/transactions`).
+
+### Fixed
+- **Puppeteer GoFood Mutation Listener Polling**:
+  - Replaced ineffective React "Terapkan filter" button clicks with a dependable 12-second clean page reload (`page.reload`).
+  - Ensures newly settled transactions appearing on `portal.gofoodmerchant.co.id` are reliably scraped and intercepted without delay.
+
+---
+
 ## [1.2.6] - 2026-09-17
 
 ### Added
