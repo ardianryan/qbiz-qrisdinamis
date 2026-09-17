@@ -232,7 +232,7 @@ export async function stopMerchantListener(merchantId: string) {
  * Trigger GoBiz WhatsApp OTP Request (using Puppeteer headless flow)
  */
 export async function triggerGoBizOTP(merchantId: string) {
-  console.log(`[Worker ${merchantId}] Requesting GoBiz OTP via WhatsApp...`);
+  console.log(`[Worker ${merchantId}] Requesting GoBiz OTP via WhatsApp/SMS...`);
   
   const mrcList = await db.select().from(merchants).where(eq(merchants.id, merchantId));
   if (mrcList.length === 0) return { success: false, error: 'Merchant not found' };
@@ -246,6 +246,8 @@ export async function triggerGoBizOTP(merchantId: string) {
       args: proxyConfig.args
     });
     const page = await browser.newPage();
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36');
+
     if (proxyConfig.enabled && (proxyConfig.username || proxyConfig.password)) {
       await page.authenticate({
         username: proxyConfig.username,
@@ -254,16 +256,29 @@ export async function triggerGoBizOTP(merchantId: string) {
       console.log(`[Worker ${merchantId}] Authenticated proxy connection for OTP request.`);
     }
 
-    await page.goto('https://portal.gofoodmerchant.co.id/login', { waitUntil: 'networkidle2' });
+    // GoFood Merchant Portal login page URL
+    await page.goto('https://portal.gofoodmerchant.co.id/auth/login', { waitUntil: 'networkidle2', timeout: 30000 });
+
+    // Format phone number to standard local format (08...)
+    let phone = merchant.phoneNumber.trim();
+    if (phone.startsWith('+62')) {
+      phone = '0' + phone.slice(3);
+    } else if (phone.startsWith('62') && phone.length > 10) {
+      phone = '0' + phone.slice(2);
+    }
 
     // Fill phone number input
-    // Assuming target input selector: input[type="tel"] or input[name="phone"]
-    await page.waitForSelector('input[type="tel"]', { timeout: 10000 });
-    await page.type('input[type="tel"]', merchant.phoneNumber);
+    await page.waitForSelector('#auth-phone-input, input[type="tel"], input[name="phone"]', { timeout: 15000 });
+    await page.type('#auth-phone-input, input[type="tel"]', phone);
+    await new Promise(r => setTimeout(r, 600));
 
-    // Click request OTP
-    // Selector based on GoBiz login button structure
-    await page.click('button[type="submit"]');
+    // Click request OTP button ("Lanjut")
+    await page.waitForSelector('#phone-next-button, button[type="submit"]', { timeout: 10000 });
+    await page.click('#phone-next-button, button[type="submit"]');
+
+    // Wait for OTP input field to confirm OTP has been dispatched
+    await page.waitForSelector('#auth-otp-input, input[name="otp"]', { timeout: 15000 });
+    console.log(`[Worker ${merchantId}] GoBiz OTP successfully sent to ${phone}.`);
 
     // Keep browser session alive in memory associated with this merchant's registration flow
     activeListeners.set(`auth_${merchantId}`, {
@@ -292,17 +307,18 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
   const { browser, page } = flow;
 
   try {
-    // Fill OTP digits
-    // Selector for 6 digit OTP input fields (or a single input)
-    await page.waitForSelector('input[name="otp"]', { timeout: 10000 });
-    await page.type('input[name="otp"]', otpCode);
+    // Fill OTP digits (4 digits for GoBiz)
+    await page.waitForSelector('#auth-otp-input, input[name="otp"]', { timeout: 15000 });
+    await page.type('#auth-otp-input, input[name="otp"]', otpCode);
+    await new Promise(r => setTimeout(r, 500));
 
     // Click submit/login button
     console.log(`[Worker ${merchantId}] Clicking OTP verify submit button...`);
-    await page.click('button[type="submit"]');
+    await page.waitForSelector('#verify-otp-button, button[type="submit"]', { timeout: 10000 });
+    await page.click('#verify-otp-button, button[type="submit"]');
 
     // Wait for redirect to dashboard indicating success
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 });
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {});
 
     if (page.url().includes('/dashboard') || !page.url().includes('/login')) {
       // 1. Save cookies to session JSON file securely (encrypted at rest)
