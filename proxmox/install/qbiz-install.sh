@@ -114,6 +114,11 @@ systemctl daemon-reload
 systemctl enable --now qbiz.service
 msg_ok "Created and Started QBiz Service"
 
+msg_info "Installing In-Container Update Helper"
+chmod +x /opt/qbiz/proxmox/update.sh
+ln -sf /opt/qbiz/proxmox/update.sh /usr/local/bin/update
+msg_ok "Configured 'update' command in /usr/local/bin/update"
+
 motd_ssh
 customize
 

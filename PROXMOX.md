@@ -62,22 +62,34 @@ Open this address in any modern web browser to access the QBiz Gateway Hub manag
 
 ## 🔄 Updates & Maintenance
 
-### Method 1: Via Proxmox VE Node Shell
-Re-run the helper script on your Proxmox VE host shell. The script detects existing QBiz containers and offers an automatic update routine:
+### Method 1: Inside the LXC Container Console (Recommended)
+Simply open the LXC container console (or SSH into the container) and type:
+
+```bash
+update
+```
+
+The interactive updater will:
+1. Fetch the latest release and commit hashes from GitHub.
+2. Compare them against your currently installed version (`v1.2.1`).
+3. Display a confirmation prompt with version details:
+   ```text
+   === QBiz Gateway Hub - Update Manager ===
+
+   Checking for latest updates from GitHub...
+     Current Installed Version : v1.2.1 (8ef786b)
+     Latest GitHub Release     : v1.2.2 (abc1234)
+
+   ⚡ A new update is available!
+   Do you want to proceed with the update now? [y/N]:
+   ```
+4. Upon confirmation (`y`), it safely stops the service, pulls the latest code, refreshes Deno dependencies, restarts `qbiz.service`, and verifies service health.
+
+### Method 2: Via Proxmox VE Node Shell
+You can also re-run the helper script directly from your Proxmox VE host shell. It detects the existing container and invokes the automated upgrade sequence:
 
 ```bash
 bash -c "$(wget -qLO - https://raw.githubusercontent.com/ardianryan/qbiz-qrisdinamis/main/proxmox/qbiz.sh)"
-```
-
-### Method 2: Inside the LXC Container Console
-Open the LXC container console and execute:
-
-```bash
-systemctl stop qbiz
-cd /opt/qbiz
-git pull
-deno cache main.tsx
-systemctl start qbiz
 ```
 
 ---

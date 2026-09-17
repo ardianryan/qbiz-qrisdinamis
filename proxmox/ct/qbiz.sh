@@ -28,13 +28,17 @@ function update_script() {
         msg_error "No ${APP} Installation Found!"
         exit 1
     fi
-    msg_info "Updating $APP"
-    systemctl stop qbiz
-    cd /opt/qbiz || exit 1
-    git pull
-    deno cache main.tsx
-    systemctl start qbiz
-    msg_ok "Updated $APP"
+    if [[ -f /opt/qbiz/proxmox/update.sh ]]; then
+        bash /opt/qbiz/proxmox/update.sh -y
+    else
+        msg_info "Updating $APP"
+        systemctl stop qbiz
+        cd /opt/qbiz || exit 1
+        git pull
+        deno cache main.tsx
+        systemctl start qbiz
+        msg_ok "Updated $APP"
+    fi
     exit
 }
 
