@@ -2185,6 +2185,7 @@ app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
             eq(mutations.merchantId, invoice.merchantId),
             or(
               eq(mutations.rawAmount, invoice.totalAmount),
+              eq(mutations.rawAmount, invoice.totalAmount * 100),
               // Support recovering from historical /100 division bug (e.g. 5001 saved as 50)
               eq(mutations.rawAmount, Math.round(invoice.totalAmount / 100))
             ),

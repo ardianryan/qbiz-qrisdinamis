@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer';
 import { db } from '../db/db.ts';
 import { merchants, invoices, mutations, users } from '../db/schema.ts';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import { encryptSession, decryptSession } from '../src/utils/crypto.ts';
 import { dispatchMerchantNotifications, isValidOutboundUrl } from '../src/services/notification.ts';
 import { dispatchWebhooksForInvoice } from '../src/services/webhooks.ts';
@@ -203,8 +203,9 @@ export async function startMerchantListener(merchantId: string) {
           return;
         }
 
-        // Run sync on both DOM table and in-page fetch
-        await syncMerchantMutations(merchantId);
+        // Wait 2s for DOM to stabilize before scraping
+        await new Promise(r => setTimeout(r, 2000));
+        await syncMerchantMutations(merchantId).catch(() => {});
       } catch (err: any) {
         console.error(`[Worker ${merchantId}] Reload error (non-fatal):`, err.message);
       } finally {
@@ -505,7 +506,7 @@ async function processIncomingMutations(merchantId: string, transactionList: any
     }
 
     // Support gross_amount, real_gross_amount, amount.value, or amount.
-    // NEVER divide by 100. In GoBiz/GoPay merchant analytics API, gross_amount is directly in IDR.
+    // In GoBiz merchant analytics API, gross_amount is in sen (multiplied by 100), e.g. Rp 2.001 is returned as 200100.
     let rawAmount = tx.gross_amount ?? tx.real_gross_amount ?? tx.amount?.value ?? tx.amount ?? 0;
     let txAmount = 0;
     if (typeof rawAmount === 'string') {
@@ -522,6 +523,12 @@ async function processIncomingMutations(merchantId: string, transactionList: any
 
     if (txAmount <= 0) continue;
 
+    // Normalize: If amount is in sen (e.g. 200100 for Rp 2.001), convert to IDR Rupiah (2001)
+    let normalizedAmount = txAmount;
+    if (txAmount >= 100 && (tx.gross_amount !== undefined || tx.real_gross_amount !== undefined)) {
+      normalizedAmount = Math.round(txAmount / 100);
+    }
+
     // Support both transaction_time (new API), settlement_time, and created_at (old API)
     const txTime = tx.transaction_time || tx.settlement_time || tx.created_at || new Date().toISOString();
 
@@ -533,18 +540,18 @@ async function processIncomingMutations(merchantId: string, transactionList: any
         // Truly matched already, skip
         continue;
       }
-      // If previously recorded with wrong rawAmount (e.g. from the /100 bug):
-      if (existingRecord.rawAmount !== txAmount) {
-        console.log(`[Worker ${merchantId}] Correcting rawAmount for unmatched mutation ${txId} from ${existingRecord.rawAmount} to ${txAmount}`);
-        await db.update(mutations).set({ rawAmount: txAmount }).where(eq(mutations.id, txId));
+      // Update with normalized amount if needed
+      if (existingRecord.rawAmount !== normalizedAmount) {
+        console.log(`[Worker ${merchantId}] Correcting rawAmount for unmatched mutation ${txId} from ${existingRecord.rawAmount} to ${normalizedAmount}`);
+        await db.update(mutations).set({ rawAmount: normalizedAmount }).where(eq(mutations.id, txId));
       }
     } else {
-      console.log(`[Worker ${merchantId}] New mutation logged: ${txId} - Rp ${txAmount} (${status})`);
+      console.log(`[Worker ${merchantId}] New mutation logged: ${txId} - Rp ${normalizedAmount} (${status})`);
       // Insert mutation log
       await db.insert(mutations).values({
         id: txId,
         merchantId,
-        rawAmount: txAmount,
+        rawAmount: normalizedAmount,
         transactionTime: txTime,
         isMatched: false
       });
@@ -556,7 +563,12 @@ async function processIncomingMutations(merchantId: string, transactionList: any
       .where(
         and(
           eq(invoices.merchantId, merchantId),
-          eq(invoices.totalAmount, txAmount),
+          or(
+            eq(invoices.totalAmount, normalizedAmount),
+            eq(invoices.totalAmount, txAmount),
+            eq(invoices.totalAmount, Math.round(txAmount / 100)),
+            eq(invoices.totalAmount, txAmount * 100)
+          ),
           sql`(${invoices.status} = 'PENDING' OR (${invoices.status} = 'EXPIRED' AND ${invoices.expiredAt} > NOW() - INTERVAL '30 minutes'))`
         )
       );
