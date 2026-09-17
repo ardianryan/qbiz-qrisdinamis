@@ -31,6 +31,28 @@ const DEFAULT_MOCK_STATIC_QRIS = "00020101021138590014ID.CO.QRIS.WWW0215ID102008
 
 export const app = new Hono();
 
+/**
+ * Resolves the public Base URL.
+ * Prioritizes BASE_URL from .env (if non-localhost).
+ * Dynamically falls back to incoming request proxy headers (X-Forwarded-Host, Host).
+ */
+export function resolveBaseUrl(c?: any): string {
+  const envBase = Deno.env.get("BASE_URL");
+  if (envBase && !envBase.includes("localhost")) {
+    return envBase.replace(/\/+$/, '');
+  }
+  if (c) {
+    try {
+      const proto = c.req.header('x-forwarded-proto') || (c.req.url.startsWith('https://') ? 'https' : 'http');
+      const host = c.req.header('x-forwarded-host') || c.req.header('host');
+      if (host && !host.includes("localhost")) {
+        return `${proto}://${host}`.replace(/\/+$/, '');
+      }
+    } catch (_e) {}
+  }
+  return (envBase || "http://localhost:8000").replace(/\/+$/, '');
+}
+
 // =========================================================================
 // AUTO-MIGRATIONS & DEFAULT DATA SEEDING (Run on startup)
 // =========================================================================
@@ -821,7 +843,7 @@ app.get('/developer', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'ME
   const keyList = await listApiKeys(user, activeMerchant?.id);
   const webhooksList = await listWebhookEndpoints(user.id, user.role, user.merchantId, activeMerchant?.id);
 
-  const baseUrl = Deno.env.get("BASE_URL") || "http://localhost:8000";
+  const baseUrl = resolveBaseUrl(c);
 
   (c as any).set('title', 'Developer Hub');
   return c.render(
@@ -1972,7 +1994,7 @@ app.post('/api/v1/invoices', invoiceApiRateLimiter, async (c) => {
     dynamicQrisString = generateDynamicQRIS(staticPayload, totalAmount, newInvoiceId);
   } catch (_e) {}
 
-  const baseUrl = Deno.env.get("BASE_URL") || "http://localhost:8000";
+  const baseUrl = resolveBaseUrl(c);
 
   // Publish SSE live update to cashier transaction monitors
   if (merchantId) {
