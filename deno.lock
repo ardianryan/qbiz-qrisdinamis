@@ -6,7 +6,7 @@
     "jsr:@std/internal@^1.0.12": "1.0.14",
     "npm:@hono/node-server@^2.0.12": "2.1.1_hono@4.12.33",
     "npm:@hono/react-renderer@^1.0.1": "1.0.1_hono@4.12.33_react@19.2.8_react-dom@19.2.8",
-    "npm:@types/node@^26.4.1": "26.4.1",
+    "npm:@types/node@^26.5.1": "26.6.1",
     "npm:@types/react-dom@^19.0.4": "19.2.4_@types+react@19.2.18",
     "npm:@types/react@^19.0.10": "19.2.18",
     "npm:drizzle-kit@*": "0.21.4",
@@ -752,8 +752,8 @@
     "@types/node@16.9.1": {
       "integrity": "sha512-QpLcX9ZSsq3YYUUnD3nFDY8H7wctAhQj/TFKL8Ya8v5fMm3CFXxo8zStsLAl780ltoYoo1WvKUVGBQK+1ifr7g=="
     },
-    "@types/node@26.4.1": {
-      "integrity": "sha512-k97ENvZWtvA6yqz5/FS6a7duDgOPEeOQOc2iKS/nY6mX6qJUKtLnWzQS+Xj6tXweyj6ZcTAK2Qecetnvi9nCLA==",
+    "@types/node@26.6.1": {
+      "integrity": "sha512-VqGJBMCtdhqkBUCcBLvywI0NJ+KLuVzgNnlBUNFOQjqVxzo2lxLUNg1DSey8+u2u6ktswSAxg+s68QLzWHNOuA==",
       "dependencies": [
         "undici-types"
       ]
@@ -773,7 +773,7 @@
     "@types/yauzl@2.10.3": {
       "integrity": "sha512-oJoftv0LSuaDZE3Le4DbKX+KS9G36NzOeSap90UIK0yMA/NhKJhqlSGtNDORNRaIbQfzjXDrQa0ytJ6mNRGz/Q==",
       "dependencies": [
-        "@types/node@26.4.1"
+        "@types/node@26.6.1"
       ]
     },
     "@typescript/typescript-aix-ppc64@7.0.2": {
@@ -2293,8 +2293,8 @@
     "uint8array-extras@1.5.0": {
       "integrity": "sha512-rvKSBiC5zqCCiDZ9kAOszZcDvdAHwwIKJG33Ykj43OKcWsnmcBRL09YTU4nOeHZ8Y2a7l1MgTd08SBe9A8Qj6A=="
     },
-    "undici-types@8.3.0": {
-      "integrity": "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="
+    "undici-types@8.9.0": {
+      "integrity": "sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg=="
     },
     "utif2@4.1.0": {
       "integrity": "sha512-+oknB9FHrJ7oW7A2WZYajOcv4FcDR4CfoGB0dPNfxbi4GO05RRnFmt5oa23+9w32EanrYcSJWspUiJkLMs+37w==",
@@ -2457,7 +2457,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@hono/node-server@^2.0.12",
-        "npm:@types/node@^26.4.1",
+        "npm:@types/node@^26.5.1",
         "npm:hono@^4.7.2",
         "npm:tsx@^4.19.0",
         "npm:typescript@^7.0.2"
