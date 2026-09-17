@@ -2,6 +2,26 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.2.1] - 2026-09-17
+
+### Security
+- **Multi-Tenant SSE Stream Authorization**:
+  - Restricted wildcard (`*`) transaction stream subscriptions strictly to `SUPER_ADMIN` and `ADMIN` roles (`main.tsx`).
+  - Enforced tenant boundary checks on `/api/v1/transactions/sse` to verify that `merchantId` belongs to the caller's assigned stores list (`accessibleMerchants`), preventing cross-tenant transaction observation.
+- **SSRF Defense Hardening (Loopback & RFC 1918 Protection)**:
+  - Extended `isValidOutboundUrl` in `src/services/notification.ts` to strictly block loopback addresses (`127.0.0.0/8`, `localhost`, `0.0.0.0`, `::1`) and RFC 1918 private subnets (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `fc00::/7`).
+  - Added safe `allowLocal` configuration flag for internal local WhatsApp GOWA gateway support.
+  - Sanitized Discord webhook error handling to prevent response reflection of internal network targets.
+- **High-Entropy Cryptographic Invoice Identifiers**:
+  - Replaced predictable `Date.now() + Math.random() * 1000` invoice ID generation with 12-byte CSPRNG hex tokens (`crypto.getRandomValues`) providing 96 bits of pure entropy, eliminating brute-force enumeration of customer PII on `/pay/:id`.
+- **Reverse Proxy Header Trust Validation**:
+  - Enforced `TRUSTED_PROXY=true` validation before trusting `X-Forwarded-For` and `X-Real-IP` headers in `src/middleware/security.ts`, mitigating IP rotation bypass of the login rate limiter.
+- **API Key Hashing at Rest**:
+  - Implemented SHA-256 cryptographic hashing for Enterprise API keys in `src/services/api-keys.ts` before database storage.
+  - Provided backward-compatible lookup with automatic transparent upgrade of legacy plaintext keys.
+
+---
+
 ## [1.2.0] - 2026-09-17
 
 ### Added

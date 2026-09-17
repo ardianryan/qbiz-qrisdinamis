@@ -47,9 +47,15 @@ export function createRateLimiter(options: {
 
   return async (c: Context, next: Next) => {
     // Determine client identifier: API key, IP address, or custom generator
+    // Only trust X-Forwarded-For / X-Real-IP if explicitly configured behind a trusted reverse proxy
+    const isTrustedProxy = Deno.env.get('TRUSTED_PROXY') === 'true';
+    const proxyIp = isTrustedProxy
+      ? (c.req.header('x-forwarded-for')?.split(',')[0].trim() || c.req.header('x-real-ip'))
+      : null;
+
     const clientKey = keyGenerator 
       ? keyGenerator(c)
-      : (c.req.header('x-forwarded-for')?.split(',')[0].trim() || c.req.header('x-real-ip') || 'client-ip');
+      : (proxyIp || (c.req.raw as any)?.conn?.remoteAddr?.hostname || 'client-ip');
 
     const routePrefix = c.req.path;
     const identifier = `${routePrefix}:${clientKey}`;

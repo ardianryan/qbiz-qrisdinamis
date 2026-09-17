@@ -1,4 +1,4 @@
-# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.1.0-beta)
+# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.2.1)
 
 [![Test & CI](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml)
 [![CodeQL Security](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml)
@@ -55,10 +55,14 @@
    * **Auto Webhook Dispatch**: Triggers target merchant webhooks with HMAC-SHA256 signature verification payloads and `X-QBiz-Timestamp` anti-replay headers.
    * **Session Security at Rest**: Encrypts browser session cookie files on disk using AES-256-GCM symmetric encryption derived via PBKDF2 (100,000 iterations).
 
-5. 🛡️ **Enterprise Security & Hardening**
+5. 🛡️ **Enterprise Security & Hardening (v1.2.1)**
+   * **Multi-Tenant SSE Stream Isolation**: Restricts wildcard transaction monitoring strictly to global administrators and enforces tenant boundary validation on cashier SSE streams.
+   * **SSRF Guard Protection**: Strictly filters outbound webhook destinations to block loopback (`127.0.0.0/8`, `localhost`, `::1`), zero addresses, and RFC 1918 private subnets.
+   * **CSPRNG High-Entropy Identifiers**: Generates dynamic invoice identifiers with 96-bit cryptographic entropy (`crypto.getRandomValues`) to prevent enumeration attacks against checkout links.
    * **PBKDF2 Password Cryptography**: Passwords protected with PBKDF2-SHA256 (100,000 iterations) with dynamic unique salts.
+   * **API Key Hashing at Rest**: Stores Enterprise API secret keys as SHA-256 digests in PostgreSQL with transparent backward compatibility.
+   * **Reverse Proxy Header Validation**: Safeguards sliding-window rate limiters against spoofed `X-Forwarded-For` header rotation.
    * **HTTP Security Headers**: Defense-in-depth headers (`X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Strict-Transport-Security`).
-   * **Sliding-Window Rate Limiting**: Built-in in-memory rate limiting on login, charges API, and status check endpoints.
    * **Graceful Process Termination**: Catches `SIGINT`/`SIGTERM` to safely terminate headless browser processes and prevent zombie processes.
 
 6. 👥 **Multi-Tenant & Role Management (RBAC)**

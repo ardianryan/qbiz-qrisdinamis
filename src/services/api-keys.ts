@@ -81,6 +81,17 @@ function createSecretKey(): { fullKey: string; prefix: string } {
 }
 
 /**
+ * Compute SHA-256 hash digest of raw API key for secure at-rest storage
+ */
+export async function hashApiKey(key: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(key.trim()));
+  return Array.from(new Uint8Array(digest))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
  * Create a new Enterprise API Key
  */
 export async function createApiKey(params: {
@@ -110,11 +121,12 @@ export async function createApiKey(params: {
     const { fullKey, prefix } = createSecretKey();
     const id = `key_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const scopesStr = params.scopes.join(',');
+    const hashedKey = await hashApiKey(fullKey);
 
     await db.insert(apiKeys).values({
       id,
       name: trimmedName,
-      key: fullKey,
+      key: hashedKey,
       keyPrefix: prefix,
       userId: params.userId,
       merchantId: params.merchantId || null,
@@ -299,11 +311,25 @@ export async function verifyApiKeyAndScope(
     return { isValid: false, error: 'Bearer authentication token is missing.' };
   }
 
-  // 1. Primary: Enterprise api_keys table check
+  // 1. Primary: Enterprise api_keys table check (supports SHA-256 hashed keys and legacy plaintext)
   try {
-    const matchedKeys = await db.select().from(apiKeys).where(eq(apiKeys.key, token));
+    const hashedToken = await hashApiKey(token);
+    const matchedKeys = await db.select().from(apiKeys).where(
+      or(
+        eq(apiKeys.key, hashedToken),
+        eq(apiKeys.key, token)
+      )
+    );
     if (matchedKeys.length > 0) {
       const keyObj = matchedKeys[0];
+
+      // Transparently upgrade legacy plaintext key to SHA-256 hash
+      if (keyObj.key === token) {
+        db.update(apiKeys)
+          .set({ key: hashedToken })
+          .where(eq(apiKeys.id, keyObj.id))
+          .catch(() => {});
+      }
 
       if (keyObj.status === 'REVOKED') {
         return { isValid: false, error: 'API key has been revoked and cannot be used.' };
@@ -355,9 +381,21 @@ export async function verifyApiKeyAndScope(
 
   // 2. Fallback: Legacy users.api_key table check (Backward Compatibility)
   try {
-    const matchedUsers = await db.select().from(users).where(eq(users.apiKey, token));
+    const hashedToken = await hashApiKey(token);
+    const matchedUsers = await db.select().from(users).where(
+      or(
+        eq(users.apiKey, hashedToken),
+        eq(users.apiKey, token)
+      )
+    );
     if (matchedUsers.length > 0) {
       const userObj = matchedUsers[0];
+      if (userObj.apiKey === token) {
+        db.update(users)
+          .set({ apiKey: hashedToken })
+          .where(eq(users.id, userObj.id))
+          .catch(() => {});
+      }
 
       // Check merchant scope if user is a single merchant
       if ((userObj.role === 'MERCHANT' || userObj.role === 'MERCHANT_EMPLOYEE') && userObj.merchantId && targetMerchantId) {

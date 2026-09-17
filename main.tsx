@@ -1891,7 +1891,9 @@ app.post('/api/v1/invoices', invoiceApiRateLimiter, async (c) => {
   }
 
   const totalAmount = amount + suffix;
-  const newInvoiceId = `inv_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  const randomSuffix = Array.from(crypto.getRandomValues(new Uint8Array(12)))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+  const newInvoiceId = `inv_${Date.now()}_${randomSuffix}`;
 
   let dynamicQrisString = '';
   try {
@@ -2186,11 +2188,35 @@ app.get('/api/v1/invoices/:id/sse', async (c) => {
 
 // API: SSE Live Store Transactions Stream (For Cashier / Transactions Page)
 app.get('/api/v1/transactions/sse', async (c) => {
-  const merchantId = c.req.query('merchantId') || '*';
+  const user = (c as any).get('user') as UserSession | undefined;
+  if (!user) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  const accessibleMerchants = ((c as any).get('accessibleMerchants') as MerchantContext[]) || [];
+  let merchantId = c.req.query('merchantId');
+
+  // Enforce Tenant Boundaries & Wildcard Authorization
+  if (!merchantId || merchantId === '*') {
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+      const active = (c as any).get('activeMerchant') as MerchantContext | null;
+      merchantId = active?.id || user.merchantId || undefined;
+      if (!merchantId) {
+        return c.json({ error: 'Forbidden: No assigned merchant store found' }, 403);
+      }
+    } else {
+      merchantId = '*';
+    }
+  } else if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN') {
+    const isAllowed = accessibleMerchants.some(m => m.id === merchantId) || (user.merchantId === merchantId);
+    if (!isAllowed) {
+      return c.json({ error: 'Forbidden: Access denied to merchant store transactions' }, 403);
+    }
+  }
 
   return streamSSE(c, async (stream) => {
     // Subscribe to SSE broker for transactions
-    const unsubscribe = sseBroker.subscribeTransactions(merchantId, async (event) => {
+    const unsubscribe = sseBroker.subscribeTransactions(merchantId!, async (event) => {
       try {
         await stream.writeSSE({
           event: 'transaction',

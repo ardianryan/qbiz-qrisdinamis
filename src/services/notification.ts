@@ -65,7 +65,7 @@ export function formatNotificationMessage(template: string | null | undefined, d
 /**
  * Validate outbound notification destination to prevent SSRF and protocol smuggling
  */
-export function isValidOutboundUrl(urlString: string, allowedProtocols = ['http:', 'https:']): boolean {
+export function isValidOutboundUrl(urlString: string, allowedProtocols = ['http:', 'https:'], allowLocal = false): boolean {
   try {
     const raw = urlString.trim();
     if (!raw || raw.length > 2048) {
@@ -83,6 +83,31 @@ export function isValidOutboundUrl(urlString: string, allowedProtocols = ['http:
     }
 
     const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+
+    // Block loopback and RFC 1918 private subnets unless allowLocal is explicitly enabled
+    if (!allowLocal) {
+      if (hostname === 'localhost' || hostname === '0.0.0.0' || hostname === '::1') {
+        return false;
+      }
+      // IPv4 loopback (127.0.0.0/8)
+      if (/^127\./.test(hostname)) {
+        return false;
+      }
+      // RFC 1918 Private subnets
+      if (/^10\./.test(hostname)) {
+        return false;
+      }
+      if (/^192\.168\./.test(hostname)) {
+        return false;
+      }
+      if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)) {
+        return false;
+      }
+      // IPv6 Unique Local Address (fc00::/7)
+      if (/^f[cd][0-9a-f]{2}:/i.test(hostname)) {
+        return false;
+      }
+    }
     
     // Prohibited Cloud metadata service IPs & Hostnames (AWS, GCP, Azure, Alibaba, OpenStack)
     const blockedHostnames = [
@@ -215,8 +240,7 @@ export async function sendDiscordNotification(
       return { success: true };
     }
 
-    const errText = await res.text();
-    return { success: false, error: `Discord Webhook Error (HTTP ${res.status}): ${errText}` };
+    return { success: false, error: `Discord Webhook delivery failed (HTTP ${res.status}).` };
   } catch (err: any) {
     return { success: false, error: `Discord Network Error: ${err.message}` };
   }
@@ -240,7 +264,8 @@ export async function sendWhatsAppGowaNotification(
   }
 
   const rawUrl = config.apiUrl.trim();
-  if (!isValidOutboundUrl(rawUrl)) {
+  const allowLocalGowa = Deno.env.get("ALLOW_LOCAL_GOWA") === "true" || Deno.env.get("DENO_ENV") !== "production";
+  if (!isValidOutboundUrl(rawUrl, ['http:', 'https:'], allowLocalGowa)) {
     return { success: false, error: 'Invalid or prohibited GOWA WhatsApp API URL.' };
   }
 

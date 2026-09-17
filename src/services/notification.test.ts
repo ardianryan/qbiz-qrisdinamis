@@ -39,14 +39,23 @@ Deno.test("Notification Service - formatNotificationMessage should fallback to d
   assertStringIncludes(result, "ORD-9988");
 });
 
-Deno.test("Security & SSRF Guard - isValidOutboundUrl should block dangerous protocols and metadata IP", async () => {
+Deno.test("Security & SSRF Guard - isValidOutboundUrl should block dangerous protocols, metadata IP, and loopback/private subnets", async () => {
   const { isValidOutboundUrl } = await import("./notification.ts");
-  // Allowed URLs
+  // Allowed Public URLs
   assertEquals(isValidOutboundUrl("https://discord.com/api/webhooks/123/abc"), true);
-  assertEquals(isValidOutboundUrl("http://localhost:3000"), true);
   assertEquals(isValidOutboundUrl("https://my-gowa-server.com"), true);
 
-  // Prohibited / SSRF targets
+  // Local URL with allowLocal flag enabled
+  assertEquals(isValidOutboundUrl("http://localhost:3000", ['http:', 'https:'], true), true);
+
+  // Prohibited loopback & private RFC 1918 subnets (SSRF targets)
+  assertEquals(isValidOutboundUrl("http://localhost:3000"), false);
+  assertEquals(isValidOutboundUrl("http://127.0.0.1:8000"), false);
+  assertEquals(isValidOutboundUrl("http://10.0.0.1:8080"), false);
+  assertEquals(isValidOutboundUrl("http://192.168.1.1/admin"), false);
+  assertEquals(isValidOutboundUrl("http://172.20.0.2"), false);
+
+  // Prohibited cloud metadata & dangerous protocols
   assertEquals(isValidOutboundUrl("http://169.254.169.254/latest/meta-data"), false);
   assertEquals(isValidOutboundUrl("http://metadata.google.internal/computeMetadata/v1/"), false);
   assertEquals(isValidOutboundUrl("javascript:alert(1)"), false);
