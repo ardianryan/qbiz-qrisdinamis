@@ -54,6 +54,7 @@ export const invoices = pgTable('invoices', {
   items: text('items'), // JSON string representing purchase item details
   expiredAt: timestamp('expired_at', { withTimezone: true }).notNull(),
   paidAt: timestamp('paid_at', { withTimezone: true }),
+  gofoodTransactionId: text('gofood_transaction_id'), // GoFood / GoBiz Transaction ID for reconciliation
   isSandbox: boolean('is_sandbox').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });

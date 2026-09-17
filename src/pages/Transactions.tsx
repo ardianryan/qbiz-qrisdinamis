@@ -11,6 +11,7 @@ interface Transaction {
   merchantId: string;
   merchantName: string;
   orderId: string;
+  gofoodTransactionId?: string;
   baseAmount: number;
   uniqueCode: number;
   totalAmount: number;
@@ -284,6 +285,11 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               <div className="flex flex-col">
                 <span className="text-[10px] text-slate-400 dark:text-zinc-500">Order & Invoice ID</span>
                 <span className="font-mono text-xs text-slate-800 dark:text-zinc-200 mt-0.5">{tx.orderId} <span className="text-slate-400">/</span> {tx.id}</span>
+                {tx.gofoodTransactionId && (
+                  <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5" title={`GoFood Transaction ID: ${tx.gofoodTransactionId}`}>
+                    GoFood: {tx.gofoodTransactionId}
+                  </span>
+                )}
               </div>
               <div className="text-right">
                 <span className="text-[10px] text-slate-400 dark:text-zinc-500 block">Total Amount</span>
@@ -401,6 +407,11 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-800 dark:text-zinc-200 font-mono text-[11px]">{tx.orderId}</span>
                       <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500 mt-0.5">Inv: {tx.id}</span>
+                      {tx.gofoodTransactionId && (
+                        <span className="text-[9.5px] font-mono text-emerald-600 dark:text-emerald-400 mt-0.5 truncate max-w-[150px]" title={`GoFood Transaction ID: ${tx.gofoodTransactionId}`}>
+                          GF: {tx.gofoodTransactionId.length > 16 ? `${tx.gofoodTransactionId.slice(0, 8)}...${tx.gofoodTransactionId.slice(-4)}` : tx.gofoodTransactionId}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="py-3 px-4 text-right font-mono font-medium text-slate-500">Rp {tx.baseAmount.toLocaleString()}</td>

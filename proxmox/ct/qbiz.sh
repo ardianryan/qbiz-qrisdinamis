@@ -16,6 +16,19 @@ var_version="12"
 var_unprivileged="1"
 
 # App Custom Settings
+function header_info() {
+  clear
+  cat <<"EOF"
+   ____  ____  _       ____        __                             
+  / __ \/ __ )(_)___  / __ \____ _/ /____ _      ______ ___  __
+ / / / / __  / /_  / / /_/ / __ `/ __/ _ \ | /| / / __ `/ / / /
+/ /_/ / /_/ / / / /_/ ____/ /_/ / /_/  __/ |/ |/ / /_/ / /_/ / 
+\___\_\____/_/ /___/_/    \__,_/\__/\___/|__/|__/\__,_/\__, /  
+                                                      /____/   
+         ⚡ QBiz Gateway Hub — Automated LXC Installer
+EOF
+}
+
 header_info "$APP"
 variables
 color

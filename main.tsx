@@ -105,6 +105,11 @@ async function runAutoMigrations() {
         "created_at" timestamp with time zone DEFAULT now() NOT NULL
       );
     `);
+
+    // Ensure gofood_transaction_id exists on invoices table
+    await db.execute(sql`
+      ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "gofood_transaction_id" text;
+    `);
   } catch (err: any) {
     console.warn('[Boot] Self-healing DDL notice:', err.message);
   }
@@ -805,6 +810,7 @@ app.get('/transactions', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 
         merchantId: inv.merchantId || '',
         merchantName: mrc ? mrc.name : 'Unknown Merchant',
         orderId: inv.orderId,
+        gofoodTransactionId: inv.gofoodTransactionId || '',
         baseAmount: inv.baseAmount,
         uniqueCode: inv.uniqueCode,
         totalAmount: inv.totalAmount,
@@ -1125,6 +1131,7 @@ app.get('/api/v1/transactions', async (c) => {
         merchantId: inv.merchantId || '',
         merchantName: mrc ? mrc.name : 'Unknown Merchant',
         orderId: inv.orderId,
+        gofoodTransactionId: inv.gofoodTransactionId || '',
         baseAmount: inv.baseAmount,
         uniqueCode: inv.uniqueCode,
         totalAmount: inv.totalAmount,
@@ -2170,10 +2177,11 @@ app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
     
     // Check if expired and update database dynamically
     let status = invoice.status;
+    let matchedGofoodTxId: string | null = (invoice as any).gofoodTransactionId || null;
 
     // Active Reconciliation: If invoice is still PENDING, check if a matching mutation has arrived in DB
     if (status === 'PENDING' && invoice.merchantId) {
-      // Trigger live sync with the merchant's browser listener if active
+      // Trigger instant active scraping of transactions DOM table before checking
       try {
         await syncMerchantMutations(invoice.merchantId);
       } catch (_syncErr) {}
@@ -2195,25 +2203,26 @@ app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
 
       if (matchedMutations.length > 0) {
         const mut = matchedMutations[0];
+        matchedGofoodTxId = mut.id;
         console.log(`[Status Reconciliation] Matched mutation ${mut.id} for invoice ${invoice.id}! Marking as PAID.`);
         
         status = 'PAID';
         const paidAt = new Date();
-        await db.update(invoices).set({ status: 'PAID', paidAt }).where(eq(invoices.id, id));
+        await db.update(invoices).set({ status: 'PAID', paidAt, gofoodTransactionId: mut.id }).where(eq(invoices.id, id));
         await db.update(mutations).set({ isMatched: true, invoiceId: id, rawAmount: invoice.totalAmount }).where(eq(mutations.id, mut.id));
 
         // 1. Dispatch POS Webhook
         if (invoice.callbackUrl) {
-          dispatchWebhook(invoice, mut.transactionTime).catch(() => {});
+          dispatchWebhook({ ...invoice, gofoodTransactionId: mut.id }, mut.transactionTime).catch(() => {});
         }
 
         // 2. Dispatch Enterprise Webhooks
-        dispatchWebhooksForInvoice(invoice, 'payment.success', mut.transactionTime).catch(err => {
+        dispatchWebhooksForInvoice({ ...invoice, gofoodTransactionId: mut.id }, 'payment.success', mut.transactionTime).catch(err => {
           console.error('[Status Reconciliation] Webhooks error:', err);
         });
 
         // 3. Dispatch Multi-Channel Notifications
-        dispatchMerchantNotifications(invoice.merchantId, invoice, mut.transactionTime).catch(err => {
+        dispatchMerchantNotifications(invoice.merchantId, { ...invoice, gofoodTransactionId: mut.id }, mut.transactionTime).catch(err => {
           console.error('[Status Reconciliation] Notif error:', err);
         });
 
@@ -2245,6 +2254,7 @@ app.get('/api/v1/invoices/:id/status', invoiceStatusRateLimiter, async (c) => {
 
     return c.json({ 
       status, 
+      gofoodTransactionId: matchedGofoodTxId,
       callbackUrl: invoice.callbackUrl,
       redirectUrl: invoice.redirectUrl 
     });

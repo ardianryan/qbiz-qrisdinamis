@@ -579,8 +579,10 @@ async function processIncomingMutations(merchantId: string, transactionList: any
 
       // Update invoice as paid
       await db.update(invoices)
-        .set({ status: 'PAID', paidAt: new Date() })
+        .set({ status: 'PAID', paidAt: new Date(), gofoodTransactionId: txId })
         .where(eq(invoices.id, matchedInvoice.id));
+
+      const updatedInvoice = { ...matchedInvoice, status: 'PAID' as const, gofoodTransactionId: txId };
 
       // Update mutation as matched
       await db.update(mutations)
@@ -589,16 +591,16 @@ async function processIncomingMutations(merchantId: string, transactionList: any
 
       // 1. Dispatch POS Webhook (Per-transaction Callback)
       if (matchedInvoice.callbackUrl) {
-        dispatchWebhook(matchedInvoice, txTime);
+        dispatchWebhook(updatedInvoice, txTime);
       }
 
       // 2. Dispatch Enterprise Multi-Webhooks (Store Scoped & Global Subscriptions)
-      dispatchWebhooksForInvoice(matchedInvoice, 'payment.success', txTime).catch(err => {
+      dispatchWebhooksForInvoice(updatedInvoice, 'payment.success', txTime).catch(err => {
         console.error(`[Worker] Failed dispatching multi-webhooks for ${merchantId}:`, err);
       });
 
       // 3. Dispatch Multi-Channel Notifications (Telegram, Discord, WhatsApp GOWA)
-      dispatchMerchantNotifications(merchantId, matchedInvoice, txTime).catch(err => {
+      dispatchMerchantNotifications(merchantId, updatedInvoice, txTime).catch(err => {
         console.error(`[Worker] Failed dispatching notifications for ${merchantId}:`, err);
       });
 
@@ -665,6 +667,7 @@ export async function dispatchWebhook(invoice: any, txTime: string, retryCount =
     event: 'payment.success',
     invoice_id: invoice.id,
     order_id: invoice.orderId,
+    gofood_transaction_id: invoice.gofoodTransactionId || undefined,
     amount_paid: invoice.totalAmount,
     paid_at: txTime || new Date().toISOString(),
   };

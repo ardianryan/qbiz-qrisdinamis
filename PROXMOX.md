@@ -1,6 +1,6 @@
-# Proxmox VE LXC Installation Guide (Helper Script)
+# QBiz Gateway Hub — Automated Proxmox VE LXC Installer
 
-QBiz Gateway Hub provides an automated installation script for **Proxmox VE (PVE)** based on an unprivileged LXC Container running Debian 12 (Bookworm 64-bit). The scripts follow the architecture and conventions established by [Proxmox VE Community-Scripts](https://github.com/community-scripts/ProxmoxVE).
+QBiz Gateway Hub provides an automated, one-liner installation script for **Proxmox VE (PVE)** based on an unprivileged LXC Container running Debian 12 (Bookworm 64-bit). It automates everything from system dependencies, Chromium headless engine, PostgreSQL provisioning, Deno runtime, and systemd service creation.
 
 ---
 
