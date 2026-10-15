@@ -181,6 +181,20 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
               height: 100% !important;
               display: block;
             }
+            @media print {
+              body {
+                background: #ffffff !important;
+                padding: 0 !important;
+              }
+              .no-print, #accordion-toggle-btn, #accordion-content, #back-btn, #theme-toggle, #btn-simulate-sandbox {
+                display: none !important;
+              }
+              .checkout-card {
+                border: none !important;
+                box-shadow: none !important;
+                max-width: 100% !important;
+              }
+            }
           `
         }} />
       </head>
@@ -273,6 +287,28 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                 <span className="text-[10px] text-slate-400 dark:text-zinc-500 mt-2 block italic">
                   *Klik untuk memperbesar kode QR
                 </span>
+
+                {/* Actions: Download QR & Print Receipt */}
+                <div className="flex items-center gap-2 mt-3 w-full max-w-[240px] no-print">
+                  <button
+                    id="btn-download-qris"
+                    type="button"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-850 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-[10.5px] font-semibold rounded-lg transition-colors border border-slate-200/80 dark:border-zinc-800 cursor-pointer active:scale-95"
+                    title="Unduh file gambar kode QRIS"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    Unduh QR
+                  </button>
+                  <button
+                    id="btn-print-receipt"
+                    type="button"
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 py-1.5 px-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-850 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-[10.5px] font-semibold rounded-lg transition-colors border border-slate-200/80 dark:border-zinc-800 cursor-pointer active:scale-95"
+                    title="Cetak struk / invoice pembayaran"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    Cetak Struk
+                  </button>
+                </div>
 
                 {invoice.isSandbox && (
                   <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl text-center max-w-[240px] w-full">
@@ -690,6 +726,32 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
                 backBtn.addEventListener('click', function(e) {
                   e.preventDefault();
                   history.back();
+                });
+              }
+
+              // --- 7. DOWNLOAD QRIS & PRINT RECEIPT UTILITIES ---
+              const btnDownloadQris = document.getElementById('btn-download-qris');
+              if (btnDownloadQris) {
+                btnDownloadQris.addEventListener('click', function() {
+                  const svgEl = document.querySelector('.qr-wrapper svg');
+                  if (!svgEl) return;
+                  const svgData = new XMLSerializer().serializeToString(svgEl);
+                  const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'QRIS-' + invoiceData.id + '.svg';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                });
+              }
+
+              const btnPrintReceipt = document.getElementById('btn-print-receipt');
+              if (btnPrintReceipt) {
+                btnPrintReceipt.addEventListener('click', function() {
+                  window.print();
                 });
               }
             })();

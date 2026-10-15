@@ -2,6 +2,35 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.3.0] - 2026-10-15
+
+### Added
+- **Soundbox Chime Synthesizer & Soundbox Toggle (`/transactions`)**:
+  - Implemented zero-dependency client-side Web Audio API synthesizer (`AudioContext`) that plays a pleasant 4-tone cashier bell chime (E5 -> G#5 -> B5 -> E6) whenever an invoice transitions to `PAID`.
+  - Added `#btn-toggle-soundbox` to the header of `/transactions` with `localStorage` memory and quick acoustic test feedback.
+  - Automatically triggered upon receiving real-time Server-Sent Events (SSE) payment status broadcasts.
+- **System Health & Diagnostic Telemetry Endpoint (`GET /api/v1/health`)**:
+  - Added public monitoring endpoint returning gateway uptime, Deno process memory metrics (RSS & heap usage in MB), database connection status with round-trip latency (`latency_ms`), and count of running Puppeteer background workers.
+- **Checkout QRIS Download & Printable Receipt (`/pay/:id`)**:
+  - Added `#btn-download-qris` to download the high-resolution dynamic QRIS barcode directly as an `.svg` file.
+  - Added `#btn-print-receipt` and `@media print` CSS rules formatting the invoice as a clean thermal receipt for in-store printing.
+- **Enhanced Search & Merchant Filtering on Transaction Monitor (`/transactions`)**:
+  - Added `#filter-merchant` dropdown allowing cashiers and store admins to instantly isolate invoices by target store.
+  - Added customer name and phone search indexing to both desktop table rows and mobile card layouts.
+  - Added `#btn-export-json` to export filtered omzet reconciliation records into structured JSON files alongside CSV.
+
+### Changed
+- **Dependencies & GitHub Actions Security Updates (Dependabot)**:
+  - Bumped `hono` to `^4.13.13` (PR #23).
+  - Bumped `@hono/node-server` to `^2.1.4` (PR #22).
+  - Bumped `@types/node` to `^26.6.4` (PR #20).
+  - Bumped `tsx` to `^4.23.15` (PR #12).
+  - Bumped `.github/workflows/docker-build-push.yml` actions: `docker/metadata-action` to `@v6` (PR #15), `docker/build-push-action` to `@v7` (PR #16), `peter-evans/dockerhub-description` to `@v5` (PR #18).
+  - Bumped `.github/workflows/codeql.yml` actions: `github/codeql-action` to `@v4` (PR #17).
+  - Completed `npm audit` with 0 high/critical vulnerabilities.
+
+---
+
 ## [1.2.8] - 2026-09-17
 
 ### Fixed

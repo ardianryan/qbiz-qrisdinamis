@@ -1,4 +1,4 @@
-# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.2.8)
+# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.3.0)
 
 [![Test & CI](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml)
 [![CodeQL Security](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml)
@@ -39,7 +39,19 @@
    * **Unique Suffixes**: Automatically appends minor unique codes (e.g., Rp 1 to Rp 999) to invoices to distinguish simultaneous payments of the same base amount.
    * **CRC-16 Re-computation**: Computes the CCITT checksum on-the-fly to compile valid dynamic QR codes.
 
-2. 🏪 **Contextual Multi-Merchant Workspace Switcher (v1.1.0)**
+2. 🔊 **Soundbox Alert Chime & Live SSE Monitor (v1.3.0)**
+   * **Synthesized Cashier Chime**: Browser-native Web Audio API synthesizer that plays an instant pleasant bell chime whenever a customer settles an invoice (no external audio files required, works offline).
+   * **Soundbox Toggle & State Memory**: Sound notification toggle button with `localStorage` persistence.
+   * **Store Dropdown & JSON Export**: Real-time filtering by store/merchant and 1-click JSON & CSV revenue reconciliation reports.
+
+3. 🧾 **Checkout QRIS Download & Receipt Printing (v1.3.0)**
+   * **Unduh QRIS SVG**: Download dynamic QRIS barcode image directly for customers on checkout (`/pay/:id`).
+   * **Cetak Struk Transaksi**: Dedicated `@media print` clean thermal receipt layout hiding web chrome and navigation.
+
+4. 🩺 **System Health & Diagnostic Telemetry (v1.3.0)**
+   * **`GET /api/v1/health`**: Real-time status reporting database latency (ms), active Puppeteer workers count, Deno memory metrics (RSS & Heap), and server uptime.
+
+5. 🏪 **Contextual Multi-Merchant Workspace Switcher (v1.1.0)**
    * **Global Store Switcher**: Top navbar dropdown for instant 1-click switching between store locations and merchant profiles (similar to modern multi-tenant SaaS & social media account switchers).
    * **Scoped Experience**: Dashboard revenue metrics, live transaction logs, QRIS static configurations, and Developer Hub SDK code snippets automatically scope to the active store.
    * **Store Search & Health Badges**: Quickly filter stores with real-time status pills (`Active Listener`, `OTP Syncing`, `Session Dead`).

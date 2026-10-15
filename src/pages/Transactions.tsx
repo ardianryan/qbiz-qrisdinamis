@@ -18,6 +18,8 @@ interface Transaction {
   status: 'PAID' | 'PENDING' | 'EXPIRED' | 'UNMATCHED';
   webhookStatus: '200 OK' | '500 ERROR' | 'RETRYING' | 'N/A';
   timestamp: string;
+  customerName?: string;
+  customerPhone?: string;
 }
 
 import { MerchantContext } from '../middleware/auth.ts';
@@ -48,7 +50,17 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
             Real-time tracking of dynamic QRIS invoice charges, bank mutations, and webhook dispatches.
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex flex-col sm:flex-row items-center gap-2">
+          {/* Soundbox Alert Toggle Button */}
+          <button
+            id="btn-toggle-soundbox"
+            type="button"
+            className="w-full sm:w-auto h-10 inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 font-semibold text-xs px-3.5 rounded-lg border border-slate-200 dark:border-zinc-700 transition-all select-none cursor-pointer active:scale-[0.98]"
+            title="Aktifkan atau matikan suara notifikasi saat pembayaran berhasil"
+          >
+            <span id="soundbox-icon">🔊</span>
+            <span id="soundbox-label">Soundbox: ON</span>
+          </button>
           {currentUser?.role === 'SUPER_ADMIN' && (
             <button 
               id="btn-clear-all-transactions"
@@ -107,6 +119,15 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               >
                 <svg className="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 <span>Export CSV</span>
+              </button>
+              <button 
+                id="btn-export-json" 
+                type="button"
+                className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors shadow-xs cursor-pointer"
+                title="Export transactions JSON report"
+              >
+                <svg className="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                <span>Export JSON</span>
               </button>
               <button 
                 id="btn-print-rekap" 
@@ -183,7 +204,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               border: none !important;
               box-shadow: none !important;
             }
-            .omzet-range-btn, #btn-export-csv, #btn-print-rekap, #tx-pagination-bar, .btn-resend-webhook, .btn-copy-payment-link, #btn-clear-all-transactions, #btn-create-invoice, #filter-search, #filter-status {
+            .omzet-range-btn, #btn-export-csv, #btn-export-json, #btn-print-rekap, #tx-pagination-bar, .btn-resend-webhook, .btn-copy-payment-link, #btn-clear-all-transactions, #btn-create-invoice, #btn-toggle-soundbox, #filter-search, #filter-status, #filter-merchant {
               display: none !important;
             }
           }
@@ -214,7 +235,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
           </div>
 
           {/* Status Dropdown */}
-          <div className="w-full sm:w-48 flex flex-col gap-1">
+          <div className="w-full sm:w-44 flex flex-col gap-1">
             <label htmlFor="filter-status" className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
               Payment Status
             </label>
@@ -227,6 +248,22 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               <option value="PENDING">PENDING</option>
               <option value="EXPIRED">EXPIRED</option>
               <option value="UNMATCHED">UNMATCHED</option>
+            </select>
+          </div>
+
+          {/* Target Merchant Dropdown */}
+          <div className="w-full sm:w-52 flex flex-col gap-1">
+            <label htmlFor="filter-merchant" className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+              Target Merchant
+            </label>
+            <select 
+              id="filter-merchant"
+              className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-zinc-50 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:border-transparent outline-none transition-all cursor-pointer truncate"
+            >
+              <option value="ALL">All Merchants ({merchants.length})</option>
+              {merchants.map(m => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -263,7 +300,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
             data-timestamp={tx.timestamp}
             data-order-id={tx.orderId}
             data-invoice-id={tx.id}
-            data-search-term={`${tx.id} ${tx.orderId} ${tx.totalAmount} ${tx.merchantName}`}
+            data-search-term={`${tx.id} ${tx.orderId} ${tx.totalAmount} ${tx.merchantName} ${tx.customerName || ''} ${tx.customerPhone || ''}`}
           >
             <div className="flex justify-between items-start">
               <div className="flex flex-col">
@@ -285,6 +322,11 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               <div className="flex flex-col">
                 <span className="text-[10px] text-slate-400 dark:text-zinc-500">Order & Invoice ID</span>
                 <span className="font-mono text-xs text-slate-800 dark:text-zinc-200 mt-0.5">{tx.orderId} <span className="text-slate-400">/</span> {tx.id}</span>
+                {tx.customerName && (
+                  <span className="text-[10.5px] text-slate-600 dark:text-zinc-400 font-medium mt-0.5">
+                    👤 {tx.customerName} {tx.customerPhone ? `(${tx.customerPhone})` : ''}
+                  </span>
+                )}
                 {tx.gofoodTransactionId && (
                   <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 mt-0.5" title={`GoFood Transaction ID: ${tx.gofoodTransactionId}`}>
                     GoFood: {tx.gofoodTransactionId}
@@ -411,7 +453,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                   data-timestamp={tx.timestamp}
                   data-order-id={tx.orderId}
                   data-invoice-id={tx.id}
-                  data-search-term={`${tx.id} ${tx.orderId} ${tx.totalAmount} ${tx.merchantName}`}
+                  data-search-term={`${tx.id} ${tx.orderId} ${tx.totalAmount} ${tx.merchantName} ${tx.customerName || ''} ${tx.customerPhone || ''}`}
                 >
                   <td className="py-3 px-4 font-mono text-[10.5px] text-slate-500 dark:text-zinc-400">{tx.timestamp}</td>
                   <td className="py-3 px-4 font-semibold text-slate-900 dark:text-zinc-100">{tx.merchantName}</td>
@@ -419,6 +461,11 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-800 dark:text-zinc-200 font-mono text-[11px]">{tx.orderId}</span>
                       <span className="text-[10px] font-mono text-slate-400 dark:text-zinc-500 mt-0.5">Inv: {tx.id}</span>
+                      {tx.customerName && (
+                        <span className="text-[10px] text-slate-600 dark:text-zinc-400 font-medium mt-0.5 truncate max-w-[180px]">
+                          👤 {tx.customerName} {tx.customerPhone ? `(${tx.customerPhone})` : ''}
+                        </span>
+                      )}
                       {tx.gofoodTransactionId && (
                         <span className="text-[9.5px] font-mono text-emerald-600 dark:text-emerald-400 mt-0.5 truncate max-w-[150px]" title={`GoFood Transaction ID: ${tx.gofoodTransactionId}`}>
                           GF: {tx.gofoodTransactionId.length > 16 ? `${tx.gofoodTransactionId.slice(0, 8)}...${tx.gofoodTransactionId.slice(-4)}` : tx.gofoodTransactionId}
@@ -539,6 +586,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
             function init() {
               const searchInput = document.getElementById('filter-search');
               const statusSelect = document.getElementById('filter-status');
+              const merchantSelect = document.getElementById('filter-merchant');
               const desktopEmptyRow = document.getElementById('desktop-empty-row');
               const mobileEmptyCard = document.getElementById('mobile-empty-card');
               const pageSizeSelect = document.getElementById('tx-page-size');
@@ -670,6 +718,34 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                 });
               }
 
+              // Export JSON
+              const btnExportJson = document.getElementById('btn-export-json');
+              if (btnExportJson) {
+                btnExportJson.addEventListener('click', function() {
+                  const filtered = currentTransactionsData.filter(tx => {
+                    const d = parseDate(tx.timestamp);
+                    return isWithinRange(d, activeOmzetRange);
+                  });
+
+                  if (filtered.length === 0) {
+                    window.showToast({ type: 'warning', title: 'No Data', message: 'No transactions found within the selected time range.' });
+                    return;
+                  }
+
+                  const jsonContent = JSON.stringify(filtered, null, 2);
+                  const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'revenue_report_' + activeOmzetRange + '_' + new Date().toISOString().slice(0, 10) + '.json';
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  window.showToast({ type: 'success', title: 'Export Completed', message: 'JSON report (' + filtered.length + ' rows) exported successfully.' });
+                });
+              }
+
               // Print Rekap
               const btnPrintRekap = document.getElementById('btn-print-rekap');
               if (btnPrintRekap) {
@@ -741,6 +817,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
               function applyFilters() {
                 const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
                 const status = statusSelect ? statusSelect.value : 'ALL';
+                const merchant = merchantSelect ? merchantSelect.value : 'ALL';
 
                 const allRows = Array.from(document.querySelectorAll('.tx-row'));
                 const allCards = Array.from(document.querySelectorAll('.tx-card'));
@@ -760,11 +837,13 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
 
                   const term = (el.getAttribute('data-search-term') || '').toLowerCase();
                   const rowStatus = el.getAttribute('data-status');
+                  const rowMerchant = el.getAttribute('data-merchant');
 
                   const matchesSearch = term.includes(query);
                   const matchesStatus = status === 'ALL' || rowStatus === status;
+                  const matchesMerchant = merchant === 'ALL' || rowMerchant === merchant;
 
-                  if (matchesSearch && matchesStatus) {
+                  if (matchesSearch && matchesStatus && matchesMerchant) {
                     currentFilteredRows.push({ row, card });
                   }
                 }
@@ -789,6 +868,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
 
               if (searchInput) searchInput.addEventListener('input', applyFilters);
               if (statusSelect) statusSelect.addEventListener('change', applyFilters);
+              if (merchantSelect) merchantSelect.addEventListener('change', applyFilters);
               if (pageSizeSelect) {
                 pageSizeSelect.addEventListener('change', function() {
                   pageSize = parseInt(this.value, 10) || 10;
@@ -808,6 +888,87 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                 btnNext.addEventListener('click', function() {
                   currentPage++;
                   updatePagination();
+                });
+              }
+
+              // --- Soundbox Audio Synthesizer (Web Audio API) ---
+              let audioCtx = null;
+              function getAudioContext() {
+                if (!audioCtx) {
+                  const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                  if (AudioCtxClass) {
+                    audioCtx = new AudioCtxClass();
+                  }
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                  audioCtx.resume();
+                }
+                return audioCtx;
+              }
+
+              function playPaymentSuccessChime() {
+                try {
+                  const ctx = getAudioContext();
+                  if (!ctx) return;
+
+                  // 4-tone cheerful cash register chime: E5 -> G#5 -> B5 -> E6
+                  const notes = [
+                    { freq: 659.25, start: 0.0, duration: 0.12 },
+                    { freq: 830.61, start: 0.1, duration: 0.14 },
+                    { freq: 987.77, start: 0.22, duration: 0.16 },
+                    { freq: 1318.51, start: 0.35, duration: 0.38 }
+                  ];
+
+                  const now = ctx.currentTime;
+                  notes.forEach(note => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(note.freq, now + note.start);
+
+                    gain.gain.setValueAtTime(0.001, now + note.start);
+                    gain.gain.exponentialRampToValueAtTime(0.28, now + note.start + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + note.start + note.duration);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(now + note.start);
+                    osc.stop(now + note.start + note.duration + 0.05);
+                  });
+                } catch (_e) {}
+              }
+
+              // Soundbox persistence & button controller
+              let soundboxEnabled = localStorage.getItem('qbiz_soundbox_enabled') !== 'false';
+              const btnToggleSoundbox = document.getElementById('btn-toggle-soundbox');
+              const soundboxIcon = document.getElementById('soundbox-icon');
+              const soundboxLabel = document.getElementById('soundbox-label');
+
+              function updateSoundboxUI() {
+                if (soundboxIcon) soundboxIcon.textContent = soundboxEnabled ? '🔊' : '🔇';
+                if (soundboxLabel) soundboxLabel.textContent = soundboxEnabled ? 'Soundbox: ON' : 'Soundbox: OFF';
+                if (btnToggleSoundbox) {
+                  if (soundboxEnabled) {
+                    btnToggleSoundbox.classList.remove('opacity-60', 'line-through');
+                  } else {
+                    btnToggleSoundbox.classList.add('opacity-60');
+                  }
+                }
+              }
+
+              if (btnToggleSoundbox) {
+                updateSoundboxUI();
+                btnToggleSoundbox.addEventListener('click', function() {
+                  soundboxEnabled = !soundboxEnabled;
+                  localStorage.setItem('qbiz_soundbox_enabled', soundboxEnabled ? 'true' : 'false');
+                  updateSoundboxUI();
+                  if (soundboxEnabled) {
+                    playPaymentSuccessChime();
+                    window.showToast({ type: 'success', title: 'Soundbox Aktif', message: 'Notifikasi suara pembayaran berhasil diaktifkan.' });
+                  } else {
+                    window.showToast({ type: 'info', title: 'Soundbox Nonaktif', message: 'Notifikasi suara dimatikan.' });
+                  }
                 });
               }
 
@@ -839,10 +1000,11 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                       ind.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> SSE Active';
                     }
                   };
-                  sseSource.onmessage = function(event) {
+
+                  function handleSSEPayload(payload) {
                     try {
-                      const data = JSON.parse(event.data);
-                      if (data.type === 'keepalive') return;
+                      const data = typeof payload === 'string' ? JSON.parse(payload) : payload;
+                      if (!data || data.type === 'keepalive') return;
 
                       const ind = document.getElementById('sse-live-indicator');
                       if (ind) {
@@ -850,10 +1012,32 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                         setTimeout(() => ind.classList.remove('ring-2', 'ring-emerald-400'), 800);
                       }
 
-                      // Instantly refresh transactions
+                      // Payment chime soundbox alert if transaction is PAID
+                      if (data.status === 'PAID') {
+                        if (soundboxEnabled) {
+                          playPaymentSuccessChime();
+                        }
+                        const amountStr = data.amount ? 'Rp ' + Number(data.amount).toLocaleString('id-ID') : '';
+                        window.showToast({
+                          type: 'success',
+                          title: 'Pembayaran Diterima! 💰',
+                          message: 'Invoice ' + (data.invoiceId || data.orderId || '') + ' ' + amountStr + ' telah LUNAS.'
+                        });
+                      }
+
+                      // Instantly refresh transactions table & summary
                       fetchTransactions();
                     } catch (_err) {}
+                  }
+
+                  sseSource.addEventListener('transaction', function(event) {
+                    handleSSEPayload(event.data);
+                  });
+
+                  sseSource.onmessage = function(event) {
+                    handleSSEPayload(event.data);
                   };
+
                   sseSource.onerror = function() {
                     const ind = document.getElementById('sse-live-indicator');
                     if (ind) {
@@ -907,6 +1091,8 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                   const totalVal = Number(tx.totalAmount);
                   const thousandsVal = Math.floor(totalVal / 1000).toLocaleString('id-ID');
                   const unitsVal = String(totalVal % 1000).padStart(3, '0');
+                  const custName = tx.customerName || '';
+                  const custPhone = tx.customerPhone || '';
 
                   tbodyHtml += \`
                     <tr class="hover:bg-slate-50/50 dark:hover:bg-zinc-800/40 transition-colors border-b border-slate-100 dark:border-zinc-800/60 tx-row"
@@ -917,11 +1103,17 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                         data-timestamp="\${tx.timestamp}"
                         data-order-id="\${tx.orderId}"
                         data-invoice-id="\${tx.id}"
-                        data-search-term="\${tx.id} \${tx.orderId} \${tx.totalAmount} \${tx.merchantName}">
+                        data-search-term="\${tx.id} \${tx.orderId} \${tx.totalAmount} \${tx.merchantName} \${custName} \${custPhone}">
                       <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-zinc-400 font-mono">\${tx.timestamp}</td>
                       <td class="px-4 py-3.5 text-sm font-semibold text-slate-800 dark:text-zinc-200">\${tx.merchantName}</td>
-                      <td class="px-4 py-3.5 text-xs text-slate-600 dark:text-zinc-300 font-mono">\${tx.orderId}</td>
-                      <td class="px-4 py-3.5 text-xs text-slate-600 dark:text-zinc-300 font-mono text-sky-600 dark:text-sky-400 font-semibold">\${tx.id}</td>
+                      <td class="px-4 py-3.5 text-xs text-slate-600 dark:text-zinc-300 font-mono">
+                        <div class="flex flex-col">
+                          <span class="font-semibold text-slate-800 dark:text-zinc-200 font-mono text-[11px]">\${tx.orderId}</span>
+                          <span class="text-[10px] font-mono text-slate-400 dark:text-zinc-500 mt-0.5">Inv: \${tx.id}</span>
+                          \${custName ? \`<span class="text-[10px] text-slate-600 dark:text-zinc-400 font-medium mt-0.5 truncate max-w-[180px]">👤 \${custName}</span>\` : ''}
+                          \${tx.gofoodTransactionId ? \`<span class="text-[9.5px] font-mono text-emerald-600 dark:text-emerald-400 mt-0.5 truncate max-w-[150px]">GF: \${tx.gofoodTransactionId.length > 16 ? tx.gofoodTransactionId.slice(0, 8) + '...' + tx.gofoodTransactionId.slice(-4) : tx.gofoodTransactionId}</span>\` : ''}
+                        </div>
+                      </td>
                       <td class="px-4 py-3.5 text-sm text-right text-slate-800 dark:text-zinc-200 font-mono">
                         Rp \${thousandsVal}<span class="text-sky-600 dark:text-sky-400 font-bold">.\${unitsVal}</span>
                       </td>
@@ -980,7 +1172,7 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                          data-timestamp="\${tx.timestamp}"
                          data-order-id="\${tx.orderId}"
                          data-invoice-id="\${tx.id}"
-                         data-search-term="\${tx.id} \${tx.orderId} \${tx.totalAmount} \${tx.merchantName}">
+                         data-search-term="\${tx.id} \${tx.orderId} \${tx.totalAmount} \${tx.merchantName} \${custName} \${custPhone}">
                       <div class="flex justify-between items-start">
                         <div class="flex flex-col">
                           <span class="text-[10px] font-mono text-slate-400 dark:text-zinc-500">\${tx.timestamp}</span>
@@ -995,6 +1187,8 @@ export function TransactionsPage({ merchants, transactions, currentUser, activeM
                         <div class="flex flex-col">
                           <span class="text-[10px] text-slate-400 dark:text-zinc-500">Order & Invoice ID</span>
                           <span class="font-mono text-xs text-slate-800 dark:text-zinc-200 mt-0.5">\${tx.orderId} <span class="text-slate-400">/</span> \${tx.id}</span>
+                          \${custName ? \`<span class="text-[10.5px] text-slate-600 dark:text-zinc-400 font-medium mt-0.5">👤 \${custName}</span>\` : ''}
+                          \${tx.gofoodTransactionId ? \`<span class="text-[9.5px] font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">GF: \${tx.gofoodTransactionId}</span>\` : ''}
                         </div>
                         <div class="text-right">
                           <span class="text-[10px] text-slate-400 dark:text-zinc-500 block">Total Amount</span>

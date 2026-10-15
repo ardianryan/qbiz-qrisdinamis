@@ -17,7 +17,7 @@ import { renderToString } from 'react-dom/server';
 import { db } from './db/db.ts';
 import { merchants, invoices, mutations, users, regionalAdminMerchants, merchantNotifications, systemSettings, apiKeys, webhooks } from './db/schema.ts';
 import { eq, desc, inArray, and, or, sql } from 'drizzle-orm';
-import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener, syncMerchantMutations, dispatchWebhook, closeAllListeners } from './worker/puppeteer-listener.ts';
+import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener, syncMerchantMutations, dispatchWebhook, closeAllListeners, activeListeners } from './worker/puppeteer-listener.ts';
 import { authMiddleware, requireRole, hashPassword, verifyPassword, COOKIE_SECRET, UserSession, MerchantContext } from './src/middleware/auth.ts';
 import { securityHeadersMiddleware, createRateLimiter, bodySizeLimiter } from './src/middleware/security.ts';
 import { generateDynamicQRIS, decodeQRISFromImage } from './src/utils/qris.ts';
@@ -821,7 +821,9 @@ app.get('/transactions', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 
         totalAmount: inv.totalAmount,
         status: inv.status as any,
         webhookStatus: inv.status === 'PAID' ? '200 OK' as const : 'N/A' as const,
-        timestamp: inv.createdAt.toISOString().slice(0, 19).replace('T', ' ')
+        timestamp: inv.createdAt.toISOString().slice(0, 19).replace('T', ' '),
+        customerName: inv.customerName || '',
+        customerPhone: inv.customerPhone || ''
       };
     });
   } catch (_e) {
@@ -1214,7 +1216,9 @@ app.get('/api/v1/transactions', async (c) => {
         totalAmount: inv.totalAmount,
         status: inv.status as any,
         webhookStatus: inv.status === 'PAID' ? '200 OK' as const : 'N/A' as const,
-        timestamp: inv.createdAt.toISOString().slice(0, 19).replace('T', ' ')
+        timestamp: inv.createdAt.toISOString().slice(0, 19).replace('T', ' '),
+        customerName: inv.customerName || '',
+        customerPhone: inv.customerPhone || ''
       };
     });
   } catch (_e) {
@@ -2590,6 +2594,67 @@ app.get('/api/v1/transactions/sse', async (c) => {
       unsubscribe();
     });
   });
+});
+
+// Server Uptime Tracker
+const SERVER_START_TIME = Date.now();
+
+// API: System Health & Diagnostics (Observability for Proxmox, Docker, Uptime Kuma)
+app.get('/api/v1/health', async (c) => {
+  const uptimeSeconds = Math.floor((Date.now() - SERVER_START_TIME) / 1000);
+  
+  // Test Database connectivity & measure latency
+  let dbStatus = 'disconnected';
+  let dbLatencyMs = -1;
+  try {
+    const dbStart = Date.now();
+    await db.execute(sql`SELECT 1`);
+    dbLatencyMs = Date.now() - dbStart;
+    dbStatus = 'connected';
+  } catch (err: any) {
+    dbStatus = 'error: ' + (err.message || 'connection failed');
+  }
+
+  // Active listener workers status
+  const activeWorkerIds: string[] = [];
+  try {
+    for (const [key, val] of activeListeners.entries()) {
+      if (!key.startsWith('auth_') && (val?.status === 'ACTIVE' || val?.browser)) {
+        activeWorkerIds.push(key);
+      }
+    }
+  } catch (_) {}
+
+  // Memory usage metrics
+  let memoryStats: Record<string, any> = {};
+  try {
+    if (typeof Deno !== 'undefined' && Deno.memoryUsage) {
+      const mem = Deno.memoryUsage();
+      memoryStats = {
+        rss_mb: Math.round(mem.rss / (1024 * 1024)),
+        heap_total_mb: Math.round(mem.heapTotal / (1024 * 1024)),
+        heap_used_mb: Math.round(mem.heapUsed / (1024 * 1024)),
+      };
+    }
+  } catch (_) {}
+
+  const isHealthy = dbStatus === 'connected';
+
+  return c.json({
+    status: isHealthy ? 'healthy' : 'degraded',
+    version: 'v1.3.0',
+    timestamp: new Date().toISOString(),
+    uptime_seconds: uptimeSeconds,
+    database: {
+      status: dbStatus,
+      latency_ms: dbLatencyMs
+    },
+    listeners: {
+      active_count: activeWorkerIds.length,
+      merchants: activeWorkerIds
+    },
+    memory: memoryStats
+  }, isHealthy ? 200 : 503);
 });
 
 // Start Deno Serve (Only when run directly as main script)
