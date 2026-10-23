@@ -5,7 +5,7 @@
   &nbsp;
   <a href="https://render.com/deploy?repo=https://github.com/ardianryan/qbiz-qrisdinamis"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" height="32" /></a>
   &nbsp;
-  <a href="https://hub.docker.com/r/ardianryan/qbiz-qrisdinamis"><img src="https://img.shields.io/badge/Docker_Hub-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Hub Image" height="32" /></a>
+  <a href="https://github.com/ardianryan/qbiz-qrisdinamis/pkgs/container/qbiz-qrisdinamis"><img src="https://img.shields.io/badge/GHCR.io-2496ED?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Container Registry" height="32" /></a>
 </p>
 
 This guide covers step-by-step instructions for deploying QBiz Gateway Hub across all popular infrastructure environments:
@@ -31,13 +31,13 @@ curl -fsSL https://raw.githubusercontent.com/ardianryan/qbiz-qrisdinamis/main/in
 1. Installs Docker & Docker Compose plugin if not already installed.
 2. Creates persistent directories (`sessions/` and `static/uploads/`).
 3. Generates a secure `.env` file with cryptographically random secrets and passwords.
-4. Pulls the latest prebuilt Docker image (`ardianryan/qbiz-qrisdinamis:latest`) and spins up the web gateway and PostgreSQL database.
+4. Pulls the latest prebuilt container image (`ghcr.io/ardianryan/qbiz-qrisdinamis:latest`) and spins up the web gateway and PostgreSQL database.
 
 ---
 
 ## 2. Docker & Docker Compose
 
-### Option A: Using Prebuilt Docker Hub Image (Fastest, Low Memory Usage)
+### Option A: Using Prebuilt GHCR Image (Fastest, Low Memory Usage)
 1. Clone the repository or download `docker-compose.yml`:
    ```bash
    git clone https://github.com/ardianryan/qbiz-qrisdinamis.git
@@ -75,7 +75,7 @@ version: '3.8'
 
 services:
   web:
-    image: ardianryan/qbiz-qrisdinamis:latest
+    image: ghcr.io/ardianryan/qbiz-qrisdinamis:latest
     container_name: qbiz-qris-app
     restart: always
     ports:

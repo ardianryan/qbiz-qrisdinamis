@@ -17,7 +17,7 @@ version: '3.8'
 
 services:
   web:
-    image: ardianryan/qbiz-qrisdinamis:latest
+    image: ghcr.io/ardianryan/qbiz-qrisdinamis:latest
     container_name: qbiz-qris-app
     restart: always
     ports:

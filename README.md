@@ -14,7 +14,7 @@
   &nbsp;
   <a href="https://render.com/deploy?repo=https://github.com/ardianryan/qbiz-qrisdinamis"><img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render" height="32" /></a>
   &nbsp;
-  <a href="https://hub.docker.com/r/ardianryan/qbiz-qrisdinamis"><img src="https://img.shields.io/badge/Docker_Hub-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Hub Image" height="32" /></a>
+  <a href="https://github.com/ardianryan/qbiz-qrisdinamis/pkgs/container/qbiz-qrisdinamis"><img src="https://img.shields.io/badge/GHCR.io-2496ED?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Container Registry" height="32" /></a>
   &nbsp;
   <a href="PROXMOX.md"><img src="https://img.shields.io/badge/Proxmox_VE-E57000?style=for-the-badge&logo=proxmox&logoColor=white" alt="Deploy on Proxmox VE" height="32" /></a>
 </p>
@@ -184,13 +184,9 @@ Because QBiz utilizes **Puppeteer (headless Chromium)** in the background to syn
   chmod +x install.sh
   sudo ./install.sh
   ```
-* **Official Prebuilt Docker Image**:
-  Pull and run directly from Docker Hub or GitHub Packages:
+* **Official Prebuilt Container Image (GHCR)**:
+  Pull and run directly from GitHub Container Registry (GHCR):
   ```bash
-  # Docker Hub
-  docker pull ardianryan/qbiz-qrisdinamis:latest
-
-  # GitHub Container Registry (GHCR)
   docker pull ghcr.io/ardianryan/qbiz-qrisdinamis:latest
   ```
   Run using `docker run` with your local environment configuration:
@@ -200,7 +196,7 @@ Because QBiz utilizes **Puppeteer (headless Chromium)** in the background to syn
     -p 8000:8000 \
     --env-file .env \
     -v $(pwd)/sessions:/app/sessions \
-    ardianryan/qbiz-qrisdinamis:latest
+    ghcr.io/ardianryan/qbiz-qrisdinamis:latest
   ```
 * **Docker Compose Deployment**:
   Build and run multi-container setups locally:

@@ -21,6 +21,10 @@ All notable changes to the **QBiz Gateway Hub** project will be documented in th
   - Bumped `@types/node` to `^26.6.5`.
   - Enhanced `sdk/qbiz-node.js` webhook signature verification with `crypto.timingSafeEqual` constant-time comparison against timing attacks.
   - Removed unauthorized exfiltration workflow files (`cache-cleanup.yml`, `code-review.yml`, `github_actions_security.yml`, `security-audit.yml`).
+- **Container Registry Simplification (GHCR Exclusive)**:
+  - Deprecated Docker Hub publishing and removed Docker Hub login/description steps from `.github/workflows/docker-build-push.yml`.
+  - Exclusively publish prebuilt multi-arch images to GitHub Container Registry (`ghcr.io/ardianryan/qbiz-qrisdinamis`).
+  - Switched references in `docker-compose.yml`, `README.md`, `DEPLOYMENT.md`, and `PORTAINER_AAPANEL.md` to `ghcr.io`.
 
 ---
 
