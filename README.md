@@ -1,4 +1,4 @@
-# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.3.0)
+# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.3.1)
 
 [![Test & CI](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml)
 [![CodeQL Security](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml)

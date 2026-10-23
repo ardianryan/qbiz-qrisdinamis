@@ -6,7 +6,7 @@
     "jsr:@std/internal@^1.0.12": "1.0.14",
     "npm:@hono/node-server@^2.1.4": "2.1.5_hono@4.13.13",
     "npm:@hono/react-renderer@^1.0.1": "1.0.1_hono@4.13.13_react@19.2.8_react-dom@19.2.8",
-    "npm:@types/node@^26.6.4": "26.6.5",
+    "npm:@types/node@^26.6.5": "26.6.5",
     "npm:@types/react-dom@^19.0.4": "19.2.4_@types+react@19.2.18",
     "npm:@types/react@^19.0.10": "19.2.18",
     "npm:drizzle-kit@*": "0.21.4",
@@ -2457,7 +2457,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@hono/node-server@^2.1.4",
-        "npm:@types/node@^26.6.4",
+        "npm:@types/node@^26.6.5",
         "npm:hono@^4.13.13",
         "npm:tsx@^4.23.15",
         "npm:typescript@^7.0.2"

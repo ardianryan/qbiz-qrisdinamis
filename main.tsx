@@ -2642,7 +2642,7 @@ app.get('/api/v1/health', async (c) => {
 
   return c.json({
     status: isHealthy ? 'healthy' : 'degraded',
-    version: 'v1.3.0',
+    version: 'v1.3.1',
     timestamp: new Date().toISOString(),
     uptime_seconds: uptimeSeconds,
     database: {

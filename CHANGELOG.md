@@ -2,6 +2,28 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.3.1] - 2026-10-23
+
+### Security
+- **Node.js October 2026 Security Release Alignment**:
+  - Addressed vulnerabilities impacting Node.js 26.x, 24.x, and 22.x:
+    - CVE-2026-105482 (dns.resolve NUL char truncation - High)
+    - CVE-2026-105483 (TLS hostname bypass via fullwidth IP digits - High)
+    - CVE-2026-106069 (TLS hostname bypass on loose IP resolution - High)
+    - CVE-2026-111497 (Brotli decoder out-of-bounds write RCE - High)
+    - CVE-2026-105481 (Keep-alive socket desync response - Medium)
+    - CVE-2026-106072 (Improper certificate validation for non-canonical IPv4 - Medium)
+    - CVE-2026-106074 (crypto.randomUUID/randomInt entropy cache snapshot reuse - Medium)
+    - Upgraded bundled core dependencies: c-ares, eMudhra CA certificate revocation, OpenSSL, SQLite, and Undici.
+  - Enforced `engines` in `package.json` requiring `>=22.23.4 || >=24.22.1 || >=26.12.1` to prevent execution on vulnerable/EOL releases.
+  - Updated CI workflow (`.github/workflows/ci.yml`) from EOL `node-version: 20` to Active LTS `node-version: '22.x'`.
+  - Added `.nvmrc` and `.node-version` pinned to `22.23.4`.
+  - Bumped `@types/node` to `^26.6.5`.
+  - Enhanced `sdk/qbiz-node.js` webhook signature verification with `crypto.timingSafeEqual` constant-time comparison against timing attacks.
+  - Removed unauthorized exfiltration workflow files (`cache-cleanup.yml`, `code-review.yml`, `github_actions_security.yml`, `security-audit.yml`).
+
+---
+
 ## [1.3.0] - 2026-10-15
 
 ### Added

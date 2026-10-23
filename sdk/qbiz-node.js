@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+import crypto from 'node:crypto';
 
 class QBizClient {
   /**
@@ -72,7 +72,7 @@ class QBizClient {
   }
 
   /**
-   * Verify HMAC signature received in webhook headers
+   * Verify HMAC signature received in webhook headers (constant-time comparison)
    * @param {Object|string} payload - JSON string or object body received in POST
    * @param {string} signatureHeader - Value of X-QBiz-Signature header
    * @param {string} webhookSecret - Your webhook verification secret key
@@ -80,16 +80,25 @@ class QBizClient {
    */
   verifyWebhook(payload, signatureHeader, webhookSecret) {
     try {
+      if (!payload || !signatureHeader || !webhookSecret) return false;
       const dataStr = typeof payload === 'string' ? payload : JSON.stringify(payload);
       const computedHash = crypto
         .createHmac('sha256', webhookSecret)
         .update(dataStr)
         .digest('hex');
-      return computedHash === signatureHeader;
+
+      const computedBuf = Buffer.from(computedHash, 'hex');
+      const sigBuf = Buffer.from(signatureHeader, 'hex');
+
+      if (computedBuf.length !== sigBuf.length) {
+        return false;
+      }
+      return crypto.timingSafeEqual(computedBuf, sigBuf);
     } catch (_err) {
       return false;
     }
   }
 }
 
-module.exports = QBizClient;
+export { QBizClient };
+export default QBizClient;
