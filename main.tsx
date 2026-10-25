@@ -2251,6 +2251,7 @@ app.get('/pay/:id', async (c) => {
       )
     );
   } catch (err: any) {
+    console.error('[PAY_ROUTE_ERROR]', err);
     return c.text('Internal Server Error: ' + err.message, 500);
   }
 });
