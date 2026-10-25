@@ -2,6 +2,31 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.3.2] - 2026-10-25
+
+### Security & Audit
+- **Full Security Audit & Hardening**:
+  - Validated 0 vulnerabilities via `npm audit` across all dependencies and transitive packages.
+  - Verified constant-time signature verification (`crypto.timingSafeEqual`) in `sdk/qbiz-node.js`.
+  - Confirmed robust HTTP security headers (Helmet-like `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy`, and HSTS).
+  - Validated in-memory rate limiting and request body payload size limiting (1MB max).
+  - Verified secret hardening: rejection of placeholder secrets (`change_this_secret`, etc.) in production.
+  - Confirmed all GitHub Actions workflows are verified and secure (`ci.yml`, `codeql.yml`, `docker-build-push.yml`), with multi-arch GHCR publishing.
+
+### Dependencies
+- **Upgraded Runtime & Framework Dependencies**:
+  - `puppeteer`: `^24.2.1` -> `^24.43.1` (Chrome Headless & DevTools protocol stability)
+  - `postgres`: `^3.4.5` -> `^3.4.9` (PostgreSQL client stability & connection pooling)
+  - `react`: `^19.0.0` -> `^19.3.1`
+  - `react-dom`: `^19.0.0` -> `^19.3.1`
+  - `@types/react`: `^19.0.10` -> `^19.3.0`
+  - `@types/react-dom`: `^19.0.4` -> `^19.3.0`
+  - `@hono/node-server`: `^2.1.4` -> `^2.1.5`
+  - `@std/assert`: `^1.0.0` -> `^1.0.19`
+- Regenerated and locked `deno.lock` and `package-lock.json`.
+
+---
+
 ## [1.3.1] - 2026-10-23
 
 ### Security
