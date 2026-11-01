@@ -4,9 +4,8 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "07:00"
+      interval: "cron"
+      cron: "0 7 28 * *"
       timezone: "Asia/Jakarta"
     open-pull-requests-limit: 10
     target-branch: "main"
@@ -23,9 +22,8 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
-      day: "monday"
-      time: "07:00"
+      interval: "cron"
+      cron: "0 7 28 * *"
       timezone: "Asia/Jakarta"
     open-pull-requests-limit: 5
     target-branch: "main"
@@ -41,9 +39,8 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "07:00"
+      interval: "cron"
+      cron: "0 7 28 * *"
       timezone: "Asia/Jakarta"
     open-pull-requests-limit: 5
     target-branch: "main"
