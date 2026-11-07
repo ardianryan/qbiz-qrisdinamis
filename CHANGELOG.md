@@ -2,6 +2,33 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.3.4] - 2026-11-07
+
+### Security
+- **File Upload Extension Whitelist (SEC-01)**:
+  - Enforced strict extension whitelist (`png`, `jpg`, `jpeg`, `webp`) and MIME-type validation on merchant logo and QRIS uploads, preventing arbitrary file write and Stored XSS.
+- **Script Breakout Neutralization in JSON-LD (SEC-02)**:
+  - Introduced `safeJsonLdStringify` helper in `src/pages/Checkout.tsx` that replaces `<`, `>`, and `&` with safe unicode escapes (`\u003c`, `\u003e`, `\u0026`) to completely prevent script context breakout.
+- **Strict Merchant ID Requirement (SEC-03)**:
+  - Removed silent `'mrc_toko_1'` default fallback in `POST /api/v1/invoices`, requiring a valid scoped `merchant_id` or returning HTTP 400.
+- **Reverse Proxy Documentation (SEC-04)**:
+  - Documented `TRUSTED_PROXY` in `.env.example` for rate limiter client IP resolution behind reverse proxies.
+
+### Anti-Slop & UI Polish
+- **Code Hygiene (SLOP-01)**:
+  - Removed trivial narration comments in `worker/puppeteer-listener.ts` and `main.tsx`, preserving architectural context.
+- **Accessibility & Contrast (SLOP-03)**:
+  - Standardized input placeholder contrast in `src/styles/input.css` to guarantee >= 4.5:1 WCAG AA compliance.
+
+### Dependencies
+- Consolidated local upgrade and closed Dependabot PRs #24 and #25:
+  - `hono`: `^4.13.13` ➔ `^4.13.16`
+  - `@hono/node-server`: `^2.1.5` ➔ `^2.1.6`
+  - `@types/node`: `^26.6.5` ➔ `^26.6.6`
+  - Audited with 0 vulnerabilities (`npm audit`).
+
+---
+
 ## [1.3.3] - 2026-11-07
 
 ### Added

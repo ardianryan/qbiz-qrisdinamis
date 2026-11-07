@@ -2,8 +2,8 @@
   "nodeModulesDir": "auto",
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.19",
-    "hono": "npm:hono@^4.13.13",
-    "hono/": "npm:/hono@^4.13.13/",
+    "hono": "npm:hono@^4.13.16",
+    "hono/": "npm:/hono@^4.13.16/",
     "@hono/react-renderer": "npm:@hono/react-renderer@^1.0.1",
     "react": "npm:react@^19.3.1",
     "react/jsx-runtime": "npm:react@^19.3.1/jsx-runtime",

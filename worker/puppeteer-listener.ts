@@ -114,7 +114,7 @@ export async function startMerchantListener(merchantId: string) {
       console.log(`[Worker ${merchantId}] Authenticated proxy connection.`);
     }
 
-    // 1. Enable request interception to block heavy assets (RAM & CPU reduction)
+    // Block heavy static assets to minimize worker memory footprint
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const type = req.resourceType();
@@ -125,7 +125,7 @@ export async function startMerchantListener(merchantId: string) {
       }
     });
 
-    // 2. Intercept internal GoBiz API transactions data
+    // Intercept GoBiz transaction API responses
     page.on('response', async (response) => {
       const url = response.url();
       const isTransactions = 
@@ -440,16 +440,14 @@ export async function triggerGoBizOTP(merchantId: string) {
       phone = '0' + phone.slice(2);
     }
 
-    // Fill phone number input
     await page.waitForSelector('#auth-phone-input, input[type="tel"], input[name="phone"]', { timeout: 15000 });
     await page.type('#auth-phone-input, input[type="tel"]', phone);
     await new Promise(r => setTimeout(r, 600));
 
-    // Click request OTP button ("Lanjut")
     await page.waitForSelector('#phone-next-button, button[type="submit"]', { timeout: 10000 });
     await page.click('#phone-next-button, button[type="submit"]');
 
-    // Wait for OTP input field to confirm OTP has been dispatched
+    // Wait for OTP field appearance confirming SMS dispatch
     await page.waitForSelector('#auth-otp-input, input[name="otp"]', { timeout: 15000 });
     console.log(`[Worker ${merchantId}] GoBiz OTP successfully sent to ${phone}.`);
 
@@ -483,12 +481,10 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
     // Auto-dismiss OneTrust Cookie banner if displayed
     await dismissOneTrustBanner(page);
 
-    // Fill OTP digits (4 digits for GoBiz)
     await page.waitForSelector('#auth-otp-input, input[name="otp"]', { timeout: 15000 });
     await page.type('#auth-otp-input, input[name="otp"]', otpCode);
     await new Promise(r => setTimeout(r, 500));
 
-    // Click submit/login button
     console.log(`[Worker ${merchantId}] Clicking OTP verify submit button...`);
     await page.waitForSelector('#verify-otp-button, button[type="submit"]', { timeout: 10000 });
     await page.click('#verify-otp-button, button[type="submit"]');
@@ -497,7 +493,7 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {});
 
     if (page.url().includes('/dashboard') || !page.url().includes('/login')) {
-      // 1. Save cookies to session JSON file securely (encrypted at rest)
+      // Persist session cookies encrypted with AES-256-GCM
       const cookies = await page.cookies();
       const mrcList = await db.select().from(merchants).where(eq(merchants.id, merchantId));
       if (mrcList.length > 0) {
@@ -508,7 +504,7 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
         console.log(`[Worker ${merchantId}] Session cookies saved securely (AES-256-GCM encrypted).`);
       }
 
-      // 2. Extract Bearer access token from localStorage or cookies
+      // Extract Bearer access token from browser storage or session cookies
       let accessToken = '';
       try {
         const localStorageToken = await page.evaluate(() => {

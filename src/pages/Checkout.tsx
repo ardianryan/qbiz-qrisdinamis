@@ -1,5 +1,16 @@
 import React from 'react';
 
+/**
+ * Safely stringify JSON for embedding inside <script> tags,
+ * escaping angle brackets and ampersands to prevent script tag injection breakout.
+ */
+function safeJsonLdStringify(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
+}
+
 interface CheckoutPageProps {
   invoice: {
     id: string;
@@ -94,7 +105,7 @@ export function CheckoutPage({ invoice, merchant, qrSvgHtml }: CheckoutPageProps
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: safeJsonLdStringify({
               "@context": "https://schema.org",
               "@type": "Order",
               "merchant": {

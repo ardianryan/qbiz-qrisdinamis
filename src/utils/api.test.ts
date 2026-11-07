@@ -236,4 +236,33 @@ Deno.test("Merchant Management - should reject unauthenticated merchant creation
   assertEquals(res.status === 401 || res.status === 403, true);
 });
 
+Deno.test("Security SEC-03 - POST /api/v1/invoices should reject requests without merchant_id", async () => {
+  const res = await app.request("/api/v1/invoices", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer test-api-key",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      order_id: `ORD-MISSING-${Date.now()}`,
+      amount: 10000
+      // merchant_id omitted
+    })
+  });
+  // Since test-api-key is not bound to a merchant, and merchant_id is omitted, it must return 400 or 401
+  const data = await res.json();
+  assertEquals(res.status === 400 || res.status === 401, true);
+  if (res.status === 400) {
+    assertEquals(data.error, "merchant_id is required");
+  }
+});
+
+Deno.test("Health Check - should report version v1.3.4", async () => {
+  const res = await app.request("/health");
+  assertEquals(res.status, 200);
+  const data = await res.json();
+  assertEquals(data.version, "v1.3.4");
+});
+
+
 

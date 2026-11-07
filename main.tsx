@@ -1530,6 +1530,21 @@ app.delete('/api/v1/merchants/:id', requireRole(['SUPER_ADMIN', 'ADMIN']), async
   }
 });
 
+// Allowed image file extensions for uploads
+const ALLOWED_IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp']);
+
+function validateAndGetImageExt(file?: File): string | null {
+  if (!file || typeof file !== 'object' || typeof file.name !== 'string' || file.size <= 0) {
+    return null;
+  }
+  const parts = file.name.split('.');
+  if (parts.length < 2) return null;
+  const ext = parts.pop()?.toLowerCase() || '';
+  if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) return null;
+  if (file.type && !file.type.startsWith('image/')) return null;
+  return ext;
+}
+
 // API: Edit Merchant
 app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
   const id = c.req.param('id');
@@ -1540,8 +1555,19 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
   const qrisPayload = ((body.qrisPayload || body.qris_payload) ? String(body.qrisPayload || body.qris_payload).trim() : '');
   const logoImage = (body.logoImage || body.logo_image) as File | undefined;
 
+  // Validate uploaded files against allowed image extensions & MIME types
+  if (logoImage && typeof logoImage === 'object' && typeof logoImage.name === 'string' && logoImage.size > 0) {
+    if (!validateAndGetImageExt(logoImage)) {
+      return c.text('Invalid logo image format. Allowed formats: PNG, JPG, JPEG, WEBP', 400);
+    }
+  }
+  if (qrisImage && typeof qrisImage === 'object' && typeof qrisImage.name === 'string' && qrisImage.size > 0) {
+    if (!validateAndGetImageExt(qrisImage)) {
+      return c.text('Invalid QRIS image format. Allowed formats: PNG, JPG, JPEG, WEBP', 400);
+    }
+  }
+
   try {
-    // 1. Fetch current merchant data
     const mList = await db.select().from(merchants).where(eq(merchants.id, id));
     if (mList.length === 0) {
       return c.text('Merchant not found', 404);
@@ -1552,11 +1578,10 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
     let finalQrisPayload = qrisPayload || currentMerchant.qrisPayload;
     let finalLogoUrl = currentMerchant.logoUrl;
 
-    // 2. Handle new logo upload if provided
     if (logoImage && typeof logoImage === 'object' && typeof logoImage.name === 'string' && logoImage.size > 0) {
       const tempDir = './static/uploads';
       await Deno.mkdir(tempDir, { recursive: true });
-      const logoExt = logoImage.name.split('.').pop() || 'png';
+      const logoExt = validateAndGetImageExt(logoImage)!;
       const logoFilePath = `${tempDir}/logo_${id}.${logoExt}`;
       finalLogoUrl = `/static/uploads/logo_${id}.${logoExt}`;
       const logoBuffer = await logoImage.arrayBuffer();
@@ -1564,18 +1589,17 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
       console.log(`[Logo Edit] Successfully updated logo to ${logoFilePath}`);
     }
 
-    // 3. Handle new QRIS image upload if file is provided
     if (qrisImage && typeof qrisImage === 'object' && typeof qrisImage.name === 'string' && qrisImage.size > 0) {
       const tempDir = './static/uploads';
       await Deno.mkdir(tempDir, { recursive: true });
-      const ext = qrisImage.name.split('.').pop() || 'png';
+      const ext = validateAndGetImageExt(qrisImage)!;
       const filePath = `${tempDir}/${id}.${ext}`;
       fileUrl = `/static/uploads/${id}.${ext}`;
 
       const arrayBuffer = await qrisImage.arrayBuffer();
       await Deno.writeFile(filePath, new Uint8Array(arrayBuffer));
 
-      // Decode QRIS payload from the new image automatically if qrisPayload wasn't typed manually
+      // Decode QRIS payload automatically if payload wasn't manually typed
       if (!qrisPayload) {
         try {
           const decoded = await decodeQRISFromImage(filePath);
@@ -1588,11 +1612,9 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
         }
       }
     } else if (qrisPayload && qrisPayload !== currentMerchant.qrisPayload) {
-      // If no new image was uploaded but the text payload textarea was changed
       finalQrisPayload = qrisPayload;
     }
 
-    // 4. Update merchant row
     await db.update(merchants).set({
       name: name || currentMerchant.name,
       phoneNumber: phoneNumber || currentMerchant.phoneNumber,
@@ -1622,6 +1644,18 @@ app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADM
     return c.text('Merchant name is required', 400);
   }
 
+  // Validate uploaded files against allowed image extensions & MIME types
+  if (logoImage && typeof logoImage === 'object' && typeof logoImage.name === 'string' && logoImage.size > 0) {
+    if (!validateAndGetImageExt(logoImage)) {
+      return c.text('Invalid logo image format. Allowed formats: PNG, JPG, JPEG, WEBP', 400);
+    }
+  }
+  if (qrisImage && typeof qrisImage === 'object' && typeof qrisImage.name === 'string' && qrisImage.size > 0) {
+    if (!validateAndGetImageExt(qrisImage)) {
+      return c.text('Invalid QRIS image format. Allowed formats: PNG, JPG, JPEG, WEBP', 400);
+    }
+  }
+
   const newId = `mrc_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString().slice(-4)}`;
   
   const tempDir = './static/uploads';
@@ -1630,9 +1664,8 @@ app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADM
   let fileUrl: string = DEFAULT_MOCK_STATIC_QRIS;
   let finalQrisPayload = qrisPayload;
 
-  // Process QRIS Image Upload if provided
   if (qrisImage && typeof qrisImage === 'object' && typeof qrisImage.name === 'string' && qrisImage.size > 0) {
-    const ext = qrisImage.name.split('.').pop() || 'png';
+    const ext = validateAndGetImageExt(qrisImage)!;
     const filePath = `${tempDir}/${newId}.${ext}`;
     fileUrl = `/static/uploads/${newId}.${ext}`;
 
@@ -1657,10 +1690,9 @@ app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADM
     finalQrisPayload = DEFAULT_MOCK_STATIC_QRIS;
   }
 
-  // Process Merchant Logo Upload if provided
   let logoUrl: string | null = null;
   if (logoImage && typeof logoImage === 'object' && typeof logoImage.name === 'string' && logoImage.size > 0) {
-    const logoExt = logoImage.name.split('.').pop() || 'png';
+    const logoExt = validateAndGetImageExt(logoImage)!;
     const logoFilePath = `${tempDir}/logo_${newId}.${logoExt}`;
     logoUrl = `/static/uploads/logo_${newId}.${logoExt}`;
     const logoBuffer = await logoImage.arrayBuffer();
@@ -2000,7 +2032,10 @@ app.post('/api/v1/invoices', invoiceApiRateLimiter, async (c) => {
   
   // Scoped Merchant Resolution: If key is strictly bound to a merchant, auto-assign it!
   const rawMerchantId = body.merchant_id;
-  const merchantId = boundApiKeyMerchantId || rawMerchantId || 'mrc_toko_1';
+  const merchantId = boundApiKeyMerchantId || rawMerchantId;
+  if (!merchantId) {
+    return c.json({ error: 'merchant_id is required' }, 400);
+  }
 
   // If the API Key was bound to a specific merchant, verify that the caller didn't pass a conflicting merchant_id
   if (boundApiKeyMerchantId && rawMerchantId && rawMerchantId !== boundApiKeyMerchantId) {
@@ -2601,7 +2636,7 @@ app.get('/api/v1/transactions/sse', async (c) => {
 const SERVER_START_TIME = Date.now();
 
 // API: System Health & Diagnostics (Observability for Proxmox, Docker, Uptime Kuma)
-app.get('/api/v1/health', async (c) => {
+const handleHealthCheck = async (c: any) => {
   const uptimeSeconds = Math.floor((Date.now() - SERVER_START_TIME) / 1000);
   
   // Test Database connectivity & measure latency
@@ -2643,7 +2678,7 @@ app.get('/api/v1/health', async (c) => {
 
   return c.json({
     status: isHealthy ? 'healthy' : 'degraded',
-    version: 'v1.3.3',
+    version: 'v1.3.4',
     timestamp: new Date().toISOString(),
     uptime_seconds: uptimeSeconds,
     database: {
@@ -2656,7 +2691,10 @@ app.get('/api/v1/health', async (c) => {
     },
     memory: memoryStats
   }, isHealthy ? 200 : 503);
-});
+};
+
+app.get('/api/v1/health', handleHealthCheck);
+app.get('/health', handleHealthCheck);
 
 // Start Deno Serve (Only when run directly as main script)
 if (import.meta.main) {

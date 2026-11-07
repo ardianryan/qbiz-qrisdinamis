@@ -4,16 +4,16 @@
     "jsr:@std/assert@*": "1.0.19",
     "jsr:@std/assert@^1.0.19": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.14",
-    "npm:@hono/node-server@^2.1.5": "2.1.5_hono@4.13.13",
-    "npm:@hono/react-renderer@^1.0.1": "1.0.1_hono@4.13.13_react@19.3.1_react-dom@19.3.1",
-    "npm:@types/node@^26.6.5": "26.6.5",
+    "npm:@hono/node-server@^2.1.6": "2.1.6_hono@4.13.16",
+    "npm:@hono/react-renderer@^1.0.1": "1.0.1_hono@4.13.16_react@19.3.1_react-dom@19.3.1",
+    "npm:@types/node@^26.6.6": "26.6.6",
     "npm:@types/react-dom@^19.3.0": "19.3.0_@types+react@19.3.0",
     "npm:@types/react@^19.3.0": "19.3.0",
     "npm:drizzle-kit@*": "0.21.4",
     "npm:drizzle-kit@~0.21.4": "0.21.4",
     "npm:drizzle-orm@*": "0.30.10_@types+react@19.3.0_postgres@3.4.9_react@19.3.1",
     "npm:drizzle-orm@~0.30.10": "0.30.10_@types+react@19.3.0_postgres@3.4.9_react@19.3.1",
-    "npm:hono@^4.13.13": "4.13.13",
+    "npm:hono@^4.13.16": "4.13.16",
     "npm:jimp@*": "1.6.1",
     "npm:jsqr@*": "1.4.0",
     "npm:lucide-react@0.475": "0.475.0_react@19.3.1",
@@ -428,13 +428,13 @@
       "os": ["win32"],
       "cpu": ["x64"]
     },
-    "@hono/node-server@2.1.5_hono@4.13.13": {
-      "integrity": "sha512-MgP/I06GdvsilDspMk/qmRzpk8LOUStP6jFAbSRi40W09DhoyUn+Mj7eyKICPqeYKybOjVFLVIAQzvu1bfIa7Q==",
+    "@hono/node-server@2.1.6_hono@4.13.16": {
+      "integrity": "sha512-p/KH9MnfNcsm3sR6x4lNgm5j+QN4Et8srKredl9DZfXiyZ1UQ3aQ2YVpFLbqktYN5JI+DB+VZFKM2PqE5hLKjQ==",
       "dependencies": [
         "hono"
       ]
     },
-    "@hono/react-renderer@1.0.1_hono@4.13.13_react@19.3.1_react-dom@19.3.1": {
+    "@hono/react-renderer@1.0.1_hono@4.13.16_react@19.3.1_react-dom@19.3.1": {
       "integrity": "sha512-vjQ/70hVrbgsi2O44N7w5sO0v51lRcuXau/4caVzw0A1hje+U2zAnuhiBC3JhX56gGfhGT4kO5B0di4SROx0Lg==",
       "dependencies": [
         "hono",
@@ -752,8 +752,8 @@
     "@types/node@16.9.1": {
       "integrity": "sha512-QpLcX9ZSsq3YYUUnD3nFDY8H7wctAhQj/TFKL8Ya8v5fMm3CFXxo8zStsLAl780ltoYoo1WvKUVGBQK+1ifr7g=="
     },
-    "@types/node@26.6.5": {
-      "integrity": "sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg==",
+    "@types/node@26.6.6": {
+      "integrity": "sha512-MzQj+8Kx3XI40OmUAE6Qoh58ZMNstNNMwn2nfd3qWsfe7nDNSqJNzes4njhz6AHwrSHOffSLwXU6yb474Q4aog==",
       "dependencies": [
         "undici-types"
       ]
@@ -773,7 +773,7 @@
     "@types/yauzl@2.10.3": {
       "integrity": "sha512-oJoftv0LSuaDZE3Le4DbKX+KS9G36NzOeSap90UIK0yMA/NhKJhqlSGtNDORNRaIbQfzjXDrQa0ytJ6mNRGz/Q==",
       "dependencies": [
-        "@types/node@26.6.5"
+        "@types/node@26.6.6"
       ]
     },
     "@typescript/typescript-aix-ppc64@7.0.2": {
@@ -1516,8 +1516,8 @@
     "heap@0.2.7": {
       "integrity": "sha512-2bsegYkkHO+h/9MGbn6KWcE45cHZgPANo5LXF7EvWdT0yT2EguSVO1nDgU5c8+ZOPwp2vMNa7YFsJhVcDR9Sdg=="
     },
-    "hono@4.13.13": {
-      "integrity": "sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA=="
+    "hono@4.13.16": {
+      "integrity": "sha512-AOLOEhvrV+iH92xXCnFr/5+3KjPKcI3xP63XJtX5spAnkznPdHijlIsUTpi7/9EhWqrTCekw5c5zh1K+YsVw7A=="
     },
     "http-proxy-agent@7.0.2": {
       "integrity": "sha512-T1gkAiYYDWYx3V5Bmyu7HcfcvL7mUrTWiM6yOfa3PIphViJ/gFPbvidQ+veqSOHci/PxBcDabeUNCzpOODJZig==",
@@ -2447,7 +2447,7 @@
       "npm:@types/react@^19.3.0",
       "npm:drizzle-kit@~0.21.4",
       "npm:drizzle-orm@~0.30.10",
-      "npm:hono@^4.13.13",
+      "npm:hono@^4.13.16",
       "npm:lucide-react@0.475",
       "npm:postgres@^3.4.9",
       "npm:puppeteer@^24.43.1",
@@ -2456,9 +2456,9 @@
     ],
     "packageJson": {
       "dependencies": [
-        "npm:@hono/node-server@^2.1.5",
-        "npm:@types/node@^26.6.5",
-        "npm:hono@^4.13.13",
+        "npm:@hono/node-server@^2.1.6",
+        "npm:@types/node@^26.6.6",
+        "npm:hono@^4.13.16",
         "npm:tsx@^4.23.15",
         "npm:typescript@^7.0.2"
       ]
