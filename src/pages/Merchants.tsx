@@ -138,9 +138,9 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                         Active Listener
                       </span>
                     ) : isSyncing ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-400 border border-amber-200 dark:border-amber-900">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-400 border border-amber-200 dark:border-amber-900" title="Sesi login GoBiz expired, klik Re-Auth OTP untuk memperbarui">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                        OTP Syncing
+                        Re-Auth Required
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-950/80 dark:text-red-400 border border-red-200 dark:border-red-900">
@@ -193,11 +193,15 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                 {/* Action Group */}
                 <div className="flex gap-2">
                   <button 
-                    className="flex-grow h-9 btn-auth-otp inline-flex items-center justify-center gap-1.5 bg-slate-900 text-white dark:bg-zinc-800 dark:hover:bg-zinc-700 hover:bg-slate-800 text-xs font-semibold px-3 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className={`flex-grow h-9 btn-auth-otp inline-flex items-center justify-center gap-1.5 text-xs font-semibold px-3 rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 ${
+                      isSyncing
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm ring-1 ring-amber-500/30'
+                        : 'bg-slate-900 text-white dark:bg-zinc-800 dark:hover:bg-zinc-700 hover:bg-slate-800'
+                    }`}
                     data-id={merchant.id}
                     data-phone={merchant.phoneNumber}
                   >
-                    Auth OTP
+                    {isSyncing ? '⚡ Re-Auth OTP' : 'Auth OTP'}
                   </button>
 
                   {/* Notification Channels Button (v1.1.0) */}

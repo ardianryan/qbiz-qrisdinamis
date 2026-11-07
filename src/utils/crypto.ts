@@ -5,11 +5,11 @@ const ENCRYPTION_KEY_RAW = COOKIE_SECRET;
 /**
  * Derive 256-bit AES key using Web Crypto PBKDF2 for encryption at rest
  */
-async function getCryptoKey(): Promise<CryptoKey> {
+async function getCryptoKey(secret: string = ENCRYPTION_KEY_RAW): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const baseKey = await crypto.subtle.importKey(
     "raw",
-    encoder.encode(ENCRYPTION_KEY_RAW),
+    encoder.encode(secret),
     "PBKDF2",
     false,
     ["deriveKey"]
@@ -37,7 +37,7 @@ async function getCryptoKey(): Promise<CryptoKey> {
  */
 export async function encryptSession(text: string): Promise<string> {
   const encoder = new TextEncoder();
-  const key = await getCryptoKey();
+  const key = await getCryptoKey(ENCRYPTION_KEY_RAW);
   
   // Generate random 12-byte initialization vector (IV)
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -58,11 +58,8 @@ export async function encryptSession(text: string): Promise<string> {
   return btoa(binaryString);
 }
 
-/**
- * Decrypt AES-256-GCM Base64 string back to original plain text
- */
-export async function decryptSession(encryptedBase64: string): Promise<string> {
-  const key = await getCryptoKey();
+async function decryptWithSecret(encryptedBase64: string, secret: string): Promise<string> {
+  const key = await getCryptoKey(secret);
   const decoder = new TextDecoder();
   
   // Decode from Base64
@@ -83,4 +80,24 @@ export async function decryptSession(encryptedBase64: string): Promise<string> {
   );
   
   return decoder.decode(decrypted);
+}
+
+/**
+ * Decrypt AES-256-GCM Base64 string back to original plain text
+ * Supports fallback to legacy secret for backward compatibility across upgrades.
+ */
+export async function decryptSession(encryptedBase64: string): Promise<string> {
+  try {
+    return await decryptWithSecret(encryptedBase64, ENCRYPTION_KEY_RAW);
+  } catch (primaryErr) {
+    const LEGACY_DEFAULT_SECRET = "qbiz_cookie_signing_secret_key_2026";
+    if (ENCRYPTION_KEY_RAW !== LEGACY_DEFAULT_SECRET) {
+      try {
+        return await decryptWithSecret(encryptedBase64, LEGACY_DEFAULT_SECRET);
+      } catch (_) {
+        // Fall through to throw primary error
+      }
+    }
+    throw primaryErr;
+  }
 }

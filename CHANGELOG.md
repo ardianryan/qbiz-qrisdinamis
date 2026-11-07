@@ -2,6 +2,21 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.3.3] - 2026-11-07
+
+### Added
+- **Proactive Session Expiry Alerts (`notifySessionExpired`)**:
+  - Automatically dispatches alert notifications via Telegram, Discord, and WhatsApp (GOWA) when a merchant's GoBiz cookie session expires or requires re-authentication (`NEEDS_OTP`).
+  - Implemented 30-minute debouncer to prevent alert spamming during background polling loops.
+- **Auto-Dismiss OneTrust Cookie Consent Modal**:
+  - Automatically dismisses OneTrust CMP cookie banners (`#onetrust-accept-btn-handler`) inside Puppeteer flows (login, OTP dispatch, OTP verification, and background transaction listener).
+- **Session Decryption Fallback**:
+  - Backwards-compatible decryption in `src/utils/crypto.ts` supporting both primary and legacy secret keys across system reboots.
+- **Merchant UI Telemetry & Action Highlight**:
+  - Added visual highlight for `Re-Auth Required` status pill and accentuated `⚡ Re-Auth OTP` button in `src/pages/Merchants.tsx`.
+
+---
+
 ## [1.3.2] - 2026-10-25
 
 ### Security & Audit

@@ -469,3 +469,103 @@ export async function testChannelNotification(
 
   return { success: false, message: 'Invalid notification channel.' };
 }
+
+/**
+ * 6. Send Proactive Session Expiry Alert for a Merchant (Triggered when GoBiz needs OTP)
+ */
+export async function notifySessionExpired(merchantId: string) {
+  if (!merchantId) return;
+
+  try {
+    const mrcList = await db.select().from(merchants).where(eq(merchants.id, merchantId));
+    if (mrcList.length === 0) return;
+    const merchant = mrcList[0];
+
+    const notifList = await db.select().from(merchantNotifications).where(eq(merchantNotifications.merchantId, merchantId));
+    if (notifList.length === 0) return;
+    const config = notifList[0];
+
+    const warningTextHtml = `⚠️ <b>PERINGATAN KONEKSI GOBIZ KEDALUWARSA</b>\n\n` +
+      `Sesi login GoBiz untuk merchant <b>${merchant.name}</b> (${merchant.phoneNumber}) telah kedaluwarsa.\n\n` +
+      `📌 <i>Pencatatan mutasi transaksi otomatis sementara terhenti.</i>\n` +
+      `👉 Silakan buka dashboard QBiz dan klik tombol <b>Re-Auth OTP</b> untuk menghubungkan kembali toko Anda.`;
+
+    const warningTextPlain = `⚠️ *PERINGATAN KONEKSI GOBIZ KEDALUWARSA*\n\n` +
+      `Sesi login GoBiz untuk merchant *${merchant.name}* (${merchant.phoneNumber}) telah kedaluwarsa.\n\n` +
+      `📌 Pencatatan mutasi transaksi otomatis sementara terhenti.\n` +
+      `👉 Silakan buka dashboard QBiz dan klik tombol *Re-Auth OTP* untuk menghubungkan kembali toko Anda.`;
+
+    const tasks: Promise<any>[] = [];
+
+    // Telegram
+    if (config.telegramEnabled && config.telegramBotToken && config.telegramChatId) {
+      tasks.push(
+        fetch(`https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: config.telegramChatId,
+            text: warningTextHtml,
+            parse_mode: 'HTML'
+          }),
+          signal: AbortSignal.timeout(10000)
+        }).then(res => {
+          if (!res.ok) console.warn(`[Notification] Telegram session alert HTTP ${res.status} for ${merchantId}`);
+          else console.log(`[Notification] Telegram session alert delivered for ${merchantId}`);
+        }).catch(err => console.warn(`[Notification] Telegram session alert error for ${merchantId}:`, err.message))
+      );
+    }
+
+    // Discord
+    if (config.discordEnabled && config.discordWebhookUrl) {
+      tasks.push(
+        fetch(config.discordWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: warningTextPlain.replace(/\*/g, '**')
+          }),
+          signal: AbortSignal.timeout(10000)
+        }).then(res => {
+          if (!res.ok) console.warn(`[Notification] Discord session alert HTTP ${res.status} for ${merchantId}`);
+          else console.log(`[Notification] Discord session alert delivered for ${merchantId}`);
+        }).catch(err => console.warn(`[Notification] Discord session alert error for ${merchantId}:`, err.message))
+      );
+    }
+
+    // WhatsApp (GOWA)
+    if (config.whatsappEnabled && config.whatsappApiUrl && config.whatsappRecipient) {
+      tasks.push(
+        sendWhatsAppGowaNotification({
+          apiUrl: config.whatsappApiUrl,
+          authType: config.whatsappAuthType,
+          authKey: config.whatsappAuthKey,
+          recipient: config.whatsappRecipient,
+          template: warningTextPlain
+        }, {
+          merchantName: merchant.name,
+          orderId: '-',
+          invoiceId: '-',
+          baseAmount: 0,
+          uniqueCode: 0,
+          totalAmount: 0,
+          amountFormatted: 'Rp 0',
+          customerName: '-',
+          customerPhone: '-',
+          customerEmail: '-',
+          paidAt: new Date().toLocaleString('id-ID'),
+          status: 'PAID'
+        }).then(res => {
+          if (!res.success) console.warn(`[Notification] WhatsApp GOWA session alert failed for ${merchantId}:`, res.error);
+          else console.log(`[Notification] WhatsApp GOWA session alert delivered for ${merchantId}`);
+        })
+      );
+    }
+
+    if (tasks.length > 0) {
+      await Promise.allSettled(tasks);
+    }
+  } catch (err: any) {
+    console.error(`[Notification] Error sending session expired alert for ${merchantId}:`, err.message);
+  }
+}

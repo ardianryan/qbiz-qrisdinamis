@@ -3,13 +3,40 @@ import { db } from '../db/db.ts';
 import { merchants, invoices, mutations, users } from '../db/schema.ts';
 import { eq, and, or, sql } from 'drizzle-orm';
 import { encryptSession, decryptSession } from '../src/utils/crypto.ts';
-import { dispatchMerchantNotifications, isValidOutboundUrl } from '../src/services/notification.ts';
+import { dispatchMerchantNotifications, isValidOutboundUrl, notifySessionExpired } from '../src/services/notification.ts';
 import { dispatchWebhooksForInvoice } from '../src/services/webhooks.ts';
 import { sseBroker } from '../src/services/sse.ts';
 
 // Mutex or tracker for running listeners
 // Each entry stores { intervalId, browser, page, status }
 export const activeListeners = new Map<string, any>();
+
+// Debouncer for proactive session expired notifications (max 1 alert per 30 minutes)
+const lastSessionAlert = new Map<string, number>();
+
+async function triggerSessionExpiredAlert(merchantId: string) {
+  const now = Date.now();
+  const last = lastSessionAlert.get(merchantId) || 0;
+  if (now - last > 30 * 60 * 1000) {
+    lastSessionAlert.set(merchantId, now);
+    notifySessionExpired(merchantId).catch(err => {
+      console.warn(`[Worker ${merchantId}] Failed to dispatch session expiry alert:`, err.message);
+    });
+  }
+}
+
+/**
+ * Auto-dismiss OneTrust Cookie Consent banner if rendered on GoFood portal
+ */
+async function dismissOneTrustBanner(page: any) {
+  try {
+    const banner = await page.$('#onetrust-accept-btn-handler');
+    if (banner) {
+      await banner.click();
+      await new Promise(r => setTimeout(r, 400));
+    }
+  } catch (_) {}
+}
 
 /**
  * Parses and returns the proxy configuration from PROXY_SERVER env variable.
@@ -162,10 +189,14 @@ export async function startMerchantListener(merchantId: string) {
       timeout: 30000
     });
 
+    // Auto-dismiss OneTrust Cookie banner if displayed
+    await dismissOneTrustBanner(page);
+
     // If redirected to login page, session is dead
     if (page.url().includes('/login')) {
       console.warn(`[Worker ${merchantId}] Session expired on navigation. Setting NEEDS_OTP.`);
       await db.update(merchants).set({ status: 'NEEDS_OTP' }).where(eq(merchants.id, merchantId));
+      await triggerSessionExpiredAlert(merchantId);
       await browser.close();
       activeListeners.delete(merchantId);
       return;
@@ -196,9 +227,13 @@ export async function startMerchantListener(merchantId: string) {
         await page.reload({ waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
         await new Promise(r => setTimeout(r, 2000));
 
+        // Auto-dismiss OneTrust banner on reload if it re-appears
+        await dismissOneTrustBanner(page);
+
         if (page.url().includes('/login')) {
           console.warn(`[Worker ${merchantId}] Session expired. Setting NEEDS_OTP.`);
           await db.update(merchants).set({ status: 'NEEDS_OTP' }).where(eq(merchants.id, merchantId));
+          await triggerSessionExpiredAlert(merchantId);
           clearInterval(intervalId);
           await browser.close();
           activeListeners.delete(merchantId);
@@ -394,6 +429,9 @@ export async function triggerGoBizOTP(merchantId: string) {
     // GoFood Merchant Portal login page URL
     await page.goto('https://portal.gofoodmerchant.co.id/auth/login', { waitUntil: 'networkidle2', timeout: 30000 });
 
+    // Auto-dismiss OneTrust Cookie banner if displayed
+    await dismissOneTrustBanner(page);
+
     // Format phone number to standard local format (08...)
     let phone = merchant.phoneNumber.trim();
     if (phone.startsWith('+62')) {
@@ -442,6 +480,9 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
   const { browser, page } = flow;
 
   try {
+    // Auto-dismiss OneTrust Cookie banner if displayed
+    await dismissOneTrustBanner(page);
+
     // Fill OTP digits (4 digits for GoBiz)
     await page.waitForSelector('#auth-otp-input, input[name="otp"]', { timeout: 15000 });
     await page.type('#auth-otp-input, input[name="otp"]', otpCode);
