@@ -257,11 +257,11 @@ Deno.test("Security SEC-03 - POST /api/v1/invoices should reject requests withou
   }
 });
 
-Deno.test("Health Check - should report version v1.3.4", async () => {
+Deno.test("Health Check - should report version v1.4.0", async () => {
   const res = await app.request("/health");
   assertEquals(res.status, 200);
   const data = await res.json();
-  assertEquals(data.version, "v1.3.4");
+  assertEquals(data.version, "v1.4.0");
 });
 
 

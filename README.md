@@ -1,4 +1,4 @@
-# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.3.4)
+# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.4.0)
 
 [![Test & CI](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml)
 [![CodeQL Security](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml)
@@ -33,6 +33,12 @@
 ---
 
 ## 🚀 Key Features
+
+0. 🌐 **Universal Gateway Multi-Compatibility (v1.4.0)**
+   * **doit.id Compatibility**: Native drop-in for `POST /v1/payments`, `GET /v1/payments/:id`, and `GET /v1/methods`. Compatible with official doit plugins (WooCommerce, Odoo, ERPNext) and Claude AI Model Context Protocol (`doit-mcp.mjs`).
+   * **Xendit Compatibility**: Drop-in replacement for Xendit Legacy Invoice API v2 (`POST /v2/invoices`, `GET /v2/invoices/:id`). Zero code changes needed for existing WooCommerce, WHMCS, and custom Xendit integrations.
+   * **Duitku Compatibility**: Drop-in replacement for Duitku v2 (`POST /webapi/api/merchant/v2/inquiry` & `/transactionStatus`) supporting MD5 signature verification and form-urlencoded callbacks.
+   * **Smart Callback Router**: Automatically dispatches webhooks in the exact signature format expected by the originating client (`PayBridge-Signature` for doit, `x-callback-token` for Xendit, MD5 for Duitku, and HMAC-SHA256 for native QBiz).
 
 1. 💸 **Dynamic QRIS & Suffix Generation**
    * **EMVCo Parsing**: Parses static QRIS EMVCo payloads and serializes them with dynamic transaction indicators.

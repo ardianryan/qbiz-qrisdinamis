@@ -197,4 +197,52 @@ export class QBizClient {
       return false;
     }
   }
+
+  /**
+   * Verify doit.id webhook signature (PayBridge-Signature: t=...,v1=...)
+   */
+  static async verifyDoitSignature(
+    rawBody: string,
+    signatureHeader: string,
+    secretKey: string
+  ): Promise<boolean> {
+    if (!rawBody || !signatureHeader || !secretKey) return false;
+    const parts = Object.fromEntries(signatureHeader.split(',').map(s => s.split('=')));
+    const t = parts['t'];
+    const v1 = parts['v1'];
+    if (!t || !v1) return false;
+
+    const dataToSign = `${t}.${rawBody}`;
+    const encoder = new TextEncoder();
+    const keyBuf = encoder.encode(secretKey);
+    const dataBuf = encoder.encode(dataToSign);
+
+    try {
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyBuf,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const sigBuf = await crypto.subtle.sign('HMAC', cryptoKey, dataBuf);
+      const expectedSig = Array.from(new Uint8Array(sigBuf))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+      return v1.toLowerCase() === expectedSig.toLowerCase();
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Verify Xendit webhook callback token header (x-callback-token)
+   */
+  static verifyXenditCallbackToken(
+    incomingToken: string,
+    expectedToken: string
+  ): boolean {
+    if (!incomingToken || !expectedToken) return false;
+    return incomingToken.trim() === expectedToken.trim();
+  }
 }

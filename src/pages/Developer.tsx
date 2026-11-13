@@ -152,7 +152,45 @@ let response = client.post("${baseUrl}/api/v1/invoices")
     .await?;
 
 let data: serde_json::Value = response.json().await?;
-println!("{:#?}", data);`
+println!("{:#?}", data);`,
+    doit: `// doit.id Compatibility Endpoint (POST /v1/payments)
+// Drop-in compatible with WooCommerce doit, Odoo, ERPNext, and Claude MCP!
+curl -X POST ${baseUrl}/v1/payments \\
+  -H "Authorization: Bearer ${apiKeys.length > 0 ? (apiKeys[0].keyPrefix.replace('...', 'example_token_')) : (apiKey || 'pb_live_demo_2026')}" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: ORD-100239" \\
+  -d '{
+    "amount": 50000,
+    "rail": "qris",
+    "reference": "ORDER-100239",
+    "customer": { "name": "Pelanggan Demo", "phone": "081234567890" },
+    "return_url": "${webhookUrl || 'https://yourserver.com/checkout/finish'}"
+  }'`,
+    xendit: `// Xendit Invoice v2 Compatibility Endpoint (POST /v2/invoices)
+// Drop-in compatible with Xendit PHP, Node.js, and WooCommerce plugins!
+curl -X POST ${baseUrl}/v2/invoices \\
+  -u "${apiKeys.length > 0 ? (apiKeys[0].keyPrefix.replace('...', 'example_token_')) : (apiKey || 'xnd_live_demo_2026')}:" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "external_id": "ORDER-100239",
+    "amount": 50000,
+    "description": "Invoice Belanja #${currentMerchantId}",
+    "payer_email": "customer@example.com",
+    "success_redirect_url": "${webhookUrl || 'https://yourserver.com/checkout/finish'}"
+  }'`,
+    duitku: `// Duitku v2 Inquiry Compatibility Endpoint (POST /webapi/api/merchant/v2/inquiry)
+// Signature = MD5(merchantCode + merchantOrderId + paymentAmount + apiKey)
+curl -X POST ${baseUrl}/webapi/api/merchant/v2/inquiry \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "merchantCode": "${currentMerchantId}",
+    "paymentAmount": 50000,
+    "merchantOrderId": "ORDER-100239",
+    "productDetails": "Pembelian Paket",
+    "email": "customer@example.com",
+    "callbackUrl": "${webhookUrl || 'https://yourserver.com/webhooks/duitku'}",
+    "signature": "md5_hash_of_merchantCode_orderId_amount_apiKey"
+  }'`
   };
 
   return (
@@ -661,6 +699,24 @@ println!("{:#?}", data);`
             >
               Rust
             </button>
+            <button 
+              className="px-3.5 py-2 text-xs font-semibold border-b-2 border-transparent text-amber-600 hover:text-amber-700 dark:text-amber-400 tab-btn outline-none"
+              data-tab="doit"
+            >
+              ⚡ doit.id Mode
+            </button>
+            <button 
+              className="px-3.5 py-2 text-xs font-semibold border-b-2 border-transparent text-blue-600 hover:text-blue-700 dark:text-blue-400 tab-btn outline-none"
+              data-tab="xendit"
+            >
+              ⚡ Xendit Mode
+            </button>
+            <button 
+              className="px-3.5 py-2 text-xs font-semibold border-b-2 border-transparent text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 tab-btn outline-none"
+              data-tab="duitku"
+            >
+              ⚡ Duitku Mode
+            </button>
           </div>
 
           {/* Code Panels */}
@@ -696,6 +752,15 @@ println!("{:#?}", data);`
               </pre>
               <pre id="panel-rust" className="text-xs text-zinc-300 font-mono overflow-auto max-h-[320px] whitespace-pre-wrap hidden">
                 <code>{codeSnippets.rust}</code>
+              </pre>
+              <pre id="panel-doit" className="text-xs text-amber-300 font-mono overflow-auto max-h-[320px] whitespace-pre-wrap hidden">
+                <code>{codeSnippets.doit}</code>
+              </pre>
+              <pre id="panel-xendit" className="text-xs text-sky-300 font-mono overflow-auto max-h-[320px] whitespace-pre-wrap hidden">
+                <code>{codeSnippets.xendit}</code>
+              </pre>
+              <pre id="panel-duitku" className="text-xs text-emerald-300 font-mono overflow-auto max-h-[320px] whitespace-pre-wrap hidden">
+                <code>{codeSnippets.duitku}</code>
               </pre>
             </div>
             

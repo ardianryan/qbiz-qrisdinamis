@@ -57,6 +57,8 @@ export const invoices = pgTable('invoices', {
   paidAt: timestamp('paid_at', { withTimezone: true }),
   gofoodTransactionId: text('gofood_transaction_id'), // GoFood / GoBiz Transaction ID for reconciliation
   isSandbox: boolean('is_sandbox').default(false).notNull(),
+  clientDialect: text('client_dialect').$type<'QBIZ' | 'DOIT' | 'XENDIT' | 'DUITKU'>().default('QBIZ').notNull(),
+  clientMetadata: text('client_metadata'), // JSON string storing dialect-specific metadata (e.g. Duitku additionalParam, Xendit external_id)
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 

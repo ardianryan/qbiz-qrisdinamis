@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import nodeCrypto from 'node:crypto';
 import { db } from '../db/db.ts';
 import { merchants, invoices, mutations, users } from '../db/schema.ts';
 import { eq, and, or, sql } from 'drizzle-orm';
@@ -734,51 +735,114 @@ export async function dispatchWebhook(invoice: any, txTime: string, retryCount =
     return;
   }
 
-  const payload = {
-    event: 'payment.success',
-    invoice_id: invoice.id,
-    order_id: invoice.orderId,
-    gofood_transaction_id: invoice.gofoodTransactionId || undefined,
-    amount_paid: invoice.totalAmount,
-    paid_at: txTime || new Date().toISOString(),
-  };
-
-  // Build HMAC SHA256 Signature
-  const encoder = new TextEncoder();
-  const keyBuf = encoder.encode(secretKey);
-  const dataBuf = encoder.encode(JSON.stringify(payload));
-  
-  let signature = "";
-  try {
-    const cryptoKey = await crypto.subtle.importKey(
-      "raw", 
-      keyBuf, 
-      { name: "HMAC", hash: "SHA-256" }, 
-      false, 
-      ["sign"]
-    );
-    const sigBuf = await crypto.subtle.sign("HMAC", cryptoKey, dataBuf);
-    signature = Array.from(new Uint8Array(sigBuf))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  } catch (e) {
-    console.error("[Webhook] Signature generation failed:", e);
+  const dialect = invoice.clientDialect || 'QBIZ';
+  let metadata: any = {};
+  if (invoice.clientMetadata) {
+    try {
+      metadata = typeof invoice.clientMetadata === 'string' ? JSON.parse(invoice.clientMetadata) : invoice.clientMetadata;
+    } catch (_) {
+      metadata = {};
+    }
   }
 
   const baseUrl = Deno.env.get("BASE_URL") || "http://localhost:8000";
   const timestamp = Math.floor(Date.now() / 1000).toString();
 
+  const outgoingHeaders: Record<string, string> = {
+    'Referer': baseUrl,
+    'Origin': baseUrl
+  };
+  let outgoingBody: string = '';
+
+  if (dialect === 'DOIT') {
+    // doit.id webhook signature: PayBridge-Signature: t=...,v1=...
+    // v1 = HMAC-SHA256(secretKey, t + "." + body)
+    const doitPayload = {
+      id: `evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      type: 'payment.paid',
+      created_at: txTime || new Date().toISOString(),
+      data: {
+        id: invoice.id.startsWith('inv_') ? 'pay_' + invoice.id.slice(4) : invoice.id,
+        status: 'paid',
+        amount: invoice.baseAmount,
+        rail: 'qris',
+        reference: invoice.orderId,
+        total_amount: invoice.totalAmount,
+        paid_at: txTime || new Date().toISOString(),
+        metadata: metadata || null
+      }
+    };
+    outgoingBody = JSON.stringify(doitPayload);
+    const hmacSig = nodeCrypto.createHmac('sha256', secretKey).update(`${timestamp}.${outgoingBody}`).digest('hex');
+    outgoingHeaders['Content-Type'] = 'application/json';
+    outgoingHeaders['PayBridge-Signature'] = `t=${timestamp},v1=${hmacSig}`;
+  } else if (dialect === 'XENDIT') {
+    // Xendit callback: JSON with header x-callback-token
+    const xenditPayload = {
+      id: invoice.id,
+      external_id: invoice.orderId,
+      user_id: invoice.userId || 'qbiz_user',
+      is_high: false,
+      status: 'PAID',
+      merchant_name: invoice.merchantId || 'QBiz Merchant',
+      amount: invoice.baseAmount,
+      paid_amount: invoice.totalAmount,
+      payment_method: 'QR_CODE',
+      payment_channel: 'QRIS',
+      paid_at: txTime || new Date().toISOString(),
+      created: invoice.createdAt ? new Date(invoice.createdAt).toISOString() : new Date().toISOString(),
+      updated: txTime || new Date().toISOString(),
+      description: metadata?.description || `Invoice ${invoice.orderId}`
+    };
+    outgoingBody = JSON.stringify(xenditPayload);
+    outgoingHeaders['Content-Type'] = 'application/json';
+    outgoingHeaders['x-callback-token'] = secretKey;
+  } else if (dialect === 'DUITKU') {
+    // Duitku callback: application/x-www-form-urlencoded
+    // signature = MD5(merchantCode + amount + merchantOrderId + apiKey)
+    const merchantCode = metadata?.merchantCode || 'QBIZ';
+    const amountStr = invoice.baseAmount.toString();
+    const apiKeyForSig = metadata?.apiKey || secretKey;
+    const duitkuSignature = nodeCrypto.createHash('md5')
+      .update(`${merchantCode}${amountStr}${invoice.orderId}${apiKeyForSig}`)
+      .digest('hex');
+
+    const formParams = new URLSearchParams({
+      merchantCode: merchantCode,
+      amount: amountStr,
+      merchantOrderId: invoice.orderId,
+      productDetail: metadata?.productDetails || '',
+      additionalParam: metadata?.additionalParam || '',
+      paymentCode: metadata?.paymentMethod || 'QRIS',
+      resultCode: '00',
+      merchantUserId: metadata?.merchantUserId || '',
+      reference: invoice.id,
+      signature: duitkuSignature
+    });
+    outgoingBody = formParams.toString();
+    outgoingHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
+  } else {
+    // Default QBiz Native format
+    const payload = {
+      event: 'payment.success',
+      invoice_id: invoice.id,
+      order_id: invoice.orderId,
+      gofood_transaction_id: invoice.gofoodTransactionId || undefined,
+      amount_paid: invoice.totalAmount,
+      paid_at: txTime || new Date().toISOString(),
+    };
+    outgoingBody = JSON.stringify(payload);
+    const signature = nodeCrypto.createHmac('sha256', secretKey).update(outgoingBody).digest('hex');
+    outgoingHeaders['Content-Type'] = 'application/json';
+    outgoingHeaders['X-QBiz-Signature'] = signature;
+    outgoingHeaders['X-QBiz-Timestamp'] = timestamp;
+  }
+
   try {
     const response = await fetch(targetUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-QBiz-Signature': signature,
-        'X-QBiz-Timestamp': timestamp,
-        'Referer': baseUrl,
-        'Origin': baseUrl
-      },
-      body: JSON.stringify(payload),
+      headers: outgoingHeaders,
+      body: outgoingBody,
       signal: AbortSignal.timeout(10000) // 10s timeout
     });
 

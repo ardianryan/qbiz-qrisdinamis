@@ -2,6 +2,8 @@ import jsQR from "npm:jsqr";
 import { Jimp } from "npm:jimp";
 
 
+export const DEFAULT_MOCK_STATIC_QRIS = "00020101021138590014ID.CO.QRIS.WWW0215ID10200845344330303UMI51440014ID.CO.QRIS.WWW0215ID10200845344330303UMI5204581253033605802ID5920Resto Ayam Bakar Cbk6009Mojokerto6105613006304D116";
+
 export function parseEMVCo(qrString: string): Map<string, string> {
   const tags = new Map<string, string>();
   let index = 0;

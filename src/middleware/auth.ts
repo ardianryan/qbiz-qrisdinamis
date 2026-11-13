@@ -275,7 +275,11 @@ export async function authMiddleware(c: any, next: any) {
     url.pathname.startsWith('/static/') || 
     url.pathname.startsWith('/pay/') || // Public secure pay page
     url.pathname.startsWith('/api/v1/invoices') || // API invoices are auth'd via Bearer key or public status check
-    url.pathname.startsWith('/api/v1/developer/test-webhook') // Test webhook handles own auth
+    url.pathname.startsWith('/api/v1/developer/test-webhook') || // Test webhook handles own auth
+    url.pathname.startsWith('/v1/') || // doit.id compatibility adapter
+    url.pathname.startsWith('/v2/invoices') || // Xendit compatibility adapter
+    url.pathname.startsWith('/invoices/') || // Xendit invoice actions
+    url.pathname.startsWith('/webapi/api/merchant/') // Duitku compatibility adapter
   ) {
     return await next();
   }

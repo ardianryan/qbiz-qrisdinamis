@@ -2,6 +2,33 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.4.0] - 2026-11-13
+
+### Added
+- **Universal Multi-Gateway Compatibility**:
+  - **doit.id Compatibility Adapter (`/v1/payments`, `/v1/methods`)**:
+    - Full drop-in replacement for doit.id API supporting `POST /v1/payments`, `GET /v1/payments/:id`, `GET /v1/payments?reference=...`, and `GET /v1/methods`.
+    - Native compatibility with official doit.id plugins (WooCommerce, Odoo, ERPNext) and Claude AI Model Context Protocol (`doit-mcp.mjs`).
+    - Webhook callback dispatching signed with `PayBridge-Signature: t=...,v1=...` (HMAC-SHA256).
+  - **Xendit Invoice v2 Compatibility Adapter (`/v2/invoices`)**:
+    - Full drop-in replacement for Xendit Legacy Invoice API supporting `POST /v2/invoices`, `GET /v2/invoices/:id`, `GET /v2/invoices?external_id=...`, and `POST /v2/invoices/:id/expire`.
+    - Supports Basic Auth (`Authorization: Basic base64(apiKey + :)`) and Bearer authentication.
+    - Webhook callback dispatching matching Xendit schema with `x-callback-token` header.
+  - **Duitku v2 Compatibility Adapter (`/webapi/api/merchant/v2/inquiry`)**:
+    - Full drop-in replacement for Duitku v2 Inquiry and Transaction Status checks (`/transactionStatus`).
+    - Validates MD5 signatures `MD5(merchantCode + merchantOrderId + paymentAmount + apiKey)`.
+    - Webhook callback dispatching in standard Duitku `application/x-www-form-urlencoded` format with MD5 signature.
+- **Smart Dialect Webhook Callback Dispatcher**:
+  - Dispatches callbacks formatted dynamically based on `invoice.clientDialect` (`DOIT`, `XENDIT`, `DUITKU`, or `QBIZ`).
+- **Database Schema & Migrations**:
+  - Added `client_dialect` and `client_metadata` columns to `invoices` table.
+- **Developer Hub Interactive Snippets**:
+  - Added interactive tabs in `/developer` for `doit.id Mode`, `Xendit Mode`, and `Duitku Mode`.
+- **SDK Enhancements**:
+  - Added verification helpers for doit.id (`verifyDoitSignature` / `verifyDoitWebhook`), Xendit (`verifyXenditCallbackToken` / `verifyXenditCallback`), and Duitku (`verifyDuitkuSignature` / `verifyDuitkuCallback`) in `sdk/qbiz.ts` and `sdk/qbiz-node.js`.
+
+---
+
 ## [1.3.4] - 2026-11-07
 
 ### Security

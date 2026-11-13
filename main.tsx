@@ -26,10 +26,18 @@ import { getSystemSettings, updateSystemSettings, invalidateSettingsCache, Syste
 import { createApiKey, listApiKeys, revokeApiKey, deleteApiKey, verifyApiKeyAndScope, AVAILABLE_SCOPES, ApiKeyRecord } from './src/services/api-keys.ts';
 import { createWebhookEndpoint, listWebhookEndpoints, deleteWebhookEndpoint, toggleWebhookStatus, testWebhookEndpoint, AVAILABLE_WEBHOOK_EVENTS, WebhookEndpoint, dispatchWebhooksForInvoice } from './src/services/webhooks.ts';
 import { migrate } from 'npm:drizzle-orm/postgres-js/migrator';
+import { doitAdapter } from './src/adapters/doit.ts';
+import { xenditAdapter } from './src/adapters/xendit.ts';
+import { duitkuAdapter } from './src/adapters/duitku.ts';
 
 const DEFAULT_MOCK_STATIC_QRIS = "00020101021138590014ID.CO.QRIS.WWW0215ID10200845344330303UMI51440014ID.CO.QRIS.WWW0215ID10200845344330303UMI5204581253033605802ID5920Resto Ayam Bakar Cbk6009Mojokerto6105613006304D116";
 
 export const app = new Hono();
+
+// Universal Multi-Gateway Compatibility Adapters (doit.id, Xendit, Duitku)
+app.route('/', doitAdapter);
+app.route('/', xenditAdapter);
+app.route('/', duitkuAdapter);
 
 /**
  * Resolves the public Base URL.
@@ -2117,7 +2125,8 @@ app.post('/api/v1/invoices', invoiceApiRateLimiter, async (c) => {
       customerPhone: body.customer_phone || body.customerPhone || null,
       items: body.items ? JSON.stringify(body.items) : null,
       expiredAt,
-      isSandbox
+      isSandbox,
+      clientDialect: 'QBIZ'
     });
 
     // Fetch the merchant to get their static QRIS payload
@@ -2678,7 +2687,7 @@ const handleHealthCheck = async (c: any) => {
 
   return c.json({
     status: isHealthy ? 'healthy' : 'degraded',
-    version: 'v1.3.4',
+    version: 'v1.4.0',
     timestamp: new Date().toISOString(),
     uptime_seconds: uptimeSeconds,
     database: {

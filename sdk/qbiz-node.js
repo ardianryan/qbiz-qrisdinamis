@@ -98,6 +98,45 @@ class QBizClient {
       return false;
     }
   }
+
+  /**
+   * Verify doit.id webhook signature (PayBridge-Signature: t=...,v1=...)
+   */
+  verifyDoitWebhook(rawBody, signatureHeader, secretKey) {
+    try {
+      if (!rawBody || !signatureHeader || !secretKey) return false;
+      const parts = Object.fromEntries(signatureHeader.split(',').map(s => s.split('=')));
+      const t = parts.t;
+      const v1 = parts.v1;
+      if (!t || !v1) return false;
+
+      const calc = crypto.createHmac('sha256', secretKey).update(`${t}.${rawBody}`).digest('hex');
+      return crypto.timingSafeEqual(Buffer.from(v1, 'hex'), Buffer.from(calc, 'hex'));
+    } catch (_err) {
+      return false;
+    }
+  }
+
+  /**
+   * Verify Xendit callback token (x-callback-token header)
+   */
+  verifyXenditCallback(incomingToken, expectedToken) {
+    if (!incomingToken || !expectedToken) return false;
+    return incomingToken.trim() === expectedToken.trim();
+  }
+
+  /**
+   * Verify Duitku callback signature: MD5(merchantCode + amount + merchantOrderId + apiKey)
+   */
+  verifyDuitkuCallback(merchantCode, amount, merchantOrderId, apiKey, incomingSignature) {
+    try {
+      if (!incomingSignature || !apiKey) return false;
+      const calc = crypto.createHash('md5').update(`${merchantCode}${amount}${merchantOrderId}${apiKey}`).digest('hex');
+      return incomingSignature.toLowerCase() === calc.toLowerCase();
+    } catch (_err) {
+      return false;
+    }
+  }
 }
 
 export { QBizClient };
