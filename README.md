@@ -268,6 +268,41 @@ QBiz integrates natively with **GOWA**, an open-source WhatsApp Multi-Device HTT
 
 ---
 
+## 🔌 Cara Koneksi Pembayaran QRIS (QBiz Native & doit.id)
+
+Untuk menghubungkan aplikasi/POS Anda ke pembayaran QRIS dinamis QBiz, tersedia dua cara paling populer (**[lihat Panduan Lengkap Integrasi](docs/INTEGRATION_GUIDE.md)**):
+
+### 1. Persiapan (Sekali Saja)
+1. Login ke Dashboard QBiz, pastikan merchant & **QRIS Static String** sudah aktif di menu **Merchants**.
+2. Buka menu **Developer (`/developer`)**, lalu salin **API Key** dan **Webhook Secret** Anda.
+
+### 2. Opsi A — Pakai API Native QBiz
+Kirim request ke `POST /api/v1/invoices` dengan header `Authorization: Bearer <API_KEY_QBIZ>`:
+```bash
+curl -X POST https://qbiz-server-anda.com/api/v1/invoices \
+  -H "Authorization: Bearer API_KEY_QBIZ_ANDA" \
+  -H "Content-Type: application/json" \
+  -d '{"merchant_id":"mrc_xxx","order_id":"INV-001","amount":50000,"callback_url":"https://tokoanda.com/webhook"}'
+```
+* Tampilkan `qr_string` sebagai QR code atau arahkan pembeli ke `payment_url` (`/pay/inv_xxx`).
+* Saat lunas, QBiz mengirim webhook JSON dengan header `X-QBiz-Signature` (HMAC-SHA256).
+
+### 3. Opsi B — Pakai Mode Kompatibilitas `doit.id` (Drop-in Replacement)
+Jika aplikasi/plugin Anda sudah memakai API `doit.id`, **cukup ganti base URL `https://pay.doit.id` menjadi URL server QBiz Anda** dan gunakan API Key QBiz:
+```bash
+curl -X POST https://qbiz-server-anda.com/v1/payments \
+  -H "Authorization: Bearer API_KEY_QBIZ_ANDA" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: inv-001" \
+  -d '{"amount":150000,"rail":"qris","reference":"INV/001"}'
+```
+* Respons tetap memakai format `doit.id` (`id: "pay_..."`, `qr_content`, `hosted_url`, `total_amount`).
+* Saat lunas, QBiz otomatis mengirim webhook event `payment.paid` dengan header `PayBridge-Signature`.
+
+> 📖 Baca tutorial lengkap beserta contoh verifikasi webhook (QBiz, doit.id, Xendit v2, Duitku v2) dan cara uji coba Sandbox di **[docs/INTEGRATION_GUIDE.md](docs/INTEGRATION_GUIDE.md)**.
+
+---
+
 ## 📖 API Documentation (Scalar UI)
 
 Interactive Scalar API documentation is served directly at `/docs` (configured via OpenAPI 3.0 specification in `static/openapi.json`). You can use it to test endpoints, copy code playground snippets, or download configurations.
