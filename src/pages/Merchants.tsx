@@ -20,7 +20,7 @@ function SyncModeSelector({ prefix, defaultValue = 'STANDARD' }: { prefix: strin
   return (
     <div className="space-y-2">
       <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">
-        Mode Pemeriksaan Mutasi (Sync Mode)
+        Transaction Sync Mode
       </label>
       <div className="grid grid-cols-1 gap-2.5">
         <label className="relative flex items-start gap-3 p-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-950/60 cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-600 transition-colors">
@@ -34,13 +34,13 @@ function SyncModeSelector({ prefix, defaultValue = 'STANDARD' }: { prefix: strin
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-bold text-slate-900 dark:text-zinc-50">🐢 Standard Mode (Disarankan)</span>
+              <span className="text-xs font-bold text-slate-900 dark:text-zinc-50">🐢 Standard Mode (Recommended)</span>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                Low Risk · ~12 Menit
+                Low Risk · ~12 Mins
               </span>
             </div>
             <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1 leading-relaxed">
-              Menggunakan browser portal GoPay Merchant. Pemeriksaan mutasi & notifikasi terkadang lambat (bisa memakan waktu setidaknya <strong>12 menit</strong>), namun pola akses normal sehingga <strong>risiko pembatasan akun rendah</strong>.
+              Uses GoPay Merchant portal browser automation. Mutation checks & notifications may occasionally be slower (taking at least <strong>12 minutes</strong>), but mimics normal user behavior with <strong>low account restriction risk</strong>.
             </p>
           </div>
         </label>
@@ -58,11 +58,11 @@ function SyncModeSelector({ prefix, defaultValue = 'STANDARD' }: { prefix: strin
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-bold text-slate-900 dark:text-zinc-50">⚡ Express Mode (Direct API)</span>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300">
-                High Risk · 1–2 Menit
+                High Risk · 1–2 Mins
               </span>
             </div>
             <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1 leading-relaxed">
-              Menembak langsung API GoPay Merchant tanpa browser (hemat RAM). Pemeriksaan sangat cepat (<strong>1–2 menit</strong>), tetapi <strong>berisiko tinggi</strong> terkena rate-limit, sesi keluar paksa, atau pembatasan akun.
+              Polls the GoPay Merchant API directly without a browser (low RAM). Very fast detection (<strong>1–2 minutes</strong>), but carries a <strong>high risk</strong> of rate-limiting, forced session logout, or account suspension.
             </p>
           </div>
         </label>
@@ -772,7 +772,7 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
               </div>
               <SyncModeSelector prefix="edit" />
               <p className="text-[10px] text-amber-600 dark:text-amber-400">
-                Catatan: Mengubah Sync Mode akan menghentikan sesi lama dan memerlukan verifikasi OTP ulang.
+                Note: Changing Sync Mode will stop the current session and require re-verifying OTP.
               </p>
             </div>
             <div className="p-6 border-t border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/30 flex gap-3">
