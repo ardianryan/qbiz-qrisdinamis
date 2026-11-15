@@ -114,8 +114,12 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </span>
             <input 
-              type="text" 
+              type="search" 
               id="merchant-filter-search" 
+              name="merchant_filter_q"
+              autoComplete="off"
+              data-lpignore="true"
+              data-1p-ignore="true"
               placeholder="Search store name or phone..." 
               className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 outline-none"
             />

@@ -761,6 +761,7 @@ app.get('/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN']), a
     qrisImageUrl: m.qrisImageUrl,
     qrisPayload: m.qrisPayload || '',
     logoUrl: m.logoUrl,
+    syncMode: (m.syncMode || 'STANDARD') as 'STANDARD' | 'EXPRESS',
     status: m.status as any,
     todayTransactions: (m as any).todayTransactions || 0,
     lastSync: (m as any).lastSync || (m.createdAt ? m.createdAt.toISOString().slice(0, 19).replace('T', ' ') : 'N/A')
