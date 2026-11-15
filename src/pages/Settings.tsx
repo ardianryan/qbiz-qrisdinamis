@@ -146,7 +146,7 @@ export function SettingsPage({ currentUser, activeMerchant, accessibleMerchants,
                   <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 flex flex-col justify-between">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Browser Tab (32px)</span>
                     <div className="bg-slate-100 dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg flex items-center gap-2 border border-slate-200 dark:border-zinc-700">
-                      <img id="preview-favicon-img" src={settings.appFaviconUrl || settings.appLogoUrl || "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>"} alt="" className="w-4 h-4 object-contain rounded-xs shrink-0" />
+                      <img id="preview-favicon-img" src={settings.appFaviconUrl || settings.appLogoUrl || "/static/brand/qbiz-mark.svg"} alt="" className="w-4 h-4 object-contain rounded-xs shrink-0" />
                       <span id="preview-tab-title" className="text-[10px] font-medium text-slate-700 dark:text-zinc-200 truncate">{settings.appName}</span>
                     </div>
                     <span className="text-[9px] text-slate-400 mt-2 block">Favicon standard icon</span>
@@ -156,7 +156,7 @@ export function SettingsPage({ currentUser, activeMerchant, accessibleMerchants,
                   <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 flex flex-col items-center justify-between text-center">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">iOS Icon (180px)</span>
                     <div className="w-12 h-12 rounded-[14px] bg-white dark:bg-zinc-900 p-1 border border-slate-200 dark:border-zinc-700 shadow-md flex items-center justify-center my-1 overflow-hidden">
-                      <img id="preview-apple-img" src={settings.appleTouchIconUrl || settings.appLogoUrl || "/static/logo.png"} alt="" className="w-full h-full object-contain" />
+                      <img id="preview-apple-img" src={settings.appleTouchIconUrl || settings.appLogoUrl || "/static/brand/qbiz-mark.svg"} alt="" className="w-full h-full object-contain" />
                     </div>
                     <span className="text-[9px] text-slate-400 block truncate max-w-full">Apple Touch Icon</span>
                   </div>
@@ -165,7 +165,7 @@ export function SettingsPage({ currentUser, activeMerchant, accessibleMerchants,
                   <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 flex flex-col items-center justify-between text-center">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">PWA Maskable (512px)</span>
                     <div className="w-12 h-12 rounded-full bg-sky-600/10 dark:bg-sky-950 p-1.5 border border-sky-300 dark:border-sky-800 shadow-sm flex items-center justify-center my-1 overflow-hidden">
-                      <img id="preview-pwa-img" src={settings.pwaIcon512Url || settings.appLogoUrl || "/static/logo.png"} alt="" className="w-full h-full object-contain" />
+                      <img id="preview-pwa-img" src={settings.pwaIcon512Url || settings.appLogoUrl || "/static/brand/qbiz-mark.svg"} alt="" className="w-full h-full object-contain" />
                     </div>
                     <span className="text-[9px] text-slate-400 block truncate max-w-full">PWA High-Res App</span>
                   </div>

@@ -44,13 +44,13 @@ export const renderer = reactRenderer(async ({ children, title, ...props }: any)
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content={appName} />
-        <link rel="apple-touch-icon" href={appleTouchIconUrl || appFaviconUrl || "/static/logo.png"} />
+        <link rel="apple-touch-icon" href={appleTouchIconUrl || appFaviconUrl || "/static/brand/qbiz-mark.svg"} />
         
         {/* Dynamic Favicon */}
         {appFaviconUrl ? (
           <link rel="icon" href={appFaviconUrl} />
         ) : (
-          <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>" />
+          <link rel="icon" type="image/svg+xml" href="/static/brand/qbiz-mark.svg" />
         )}
 
         {/* SEO Metadata */}
@@ -63,7 +63,7 @@ export const renderer = reactRenderer(async ({ children, title, ...props }: any)
         <meta property="og:title" content={`${appName} - ${appTagline}`} />
         <meta property="og:description" content={`${appName} - Professional self-hosted dynamic QRIS payment router and GoBiz transaction interceptor gateway.`} />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="/static/logo.png" />
+        <meta property="og:image" content="/static/brand/qbiz-mark.svg" />
         
         {/* Geographic Targeting (GEO) Tags */}
         <meta name="geo.region" content="ID" />

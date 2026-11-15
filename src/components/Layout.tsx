@@ -73,9 +73,7 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
           {settings.appLogoUrl ? (
             <img src={settings.appLogoUrl} alt={settings.appName} className="w-7 h-7 rounded-lg object-contain bg-white dark:bg-zinc-900 p-0.5 border border-slate-200 dark:border-zinc-700 shadow-sm shrink-0" />
           ) : (
-            <div className="w-7 h-7 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
-              {settings.appName.slice(0, 1).toUpperCase()}
-            </div>
+            <img src="/static/brand/qbiz-mark.svg" alt={settings.appName} className="w-7 h-7 rounded-lg object-contain shrink-0 shadow-sm" />
           )}
           <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-zinc-50 truncate">{settings.appName}</span>
         </div>
@@ -282,9 +280,7 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
             {settings.appLogoUrl ? (
               <img src={settings.appLogoUrl} alt={settings.appName} className="w-8 h-8 rounded-lg object-contain bg-white dark:bg-zinc-900 p-0.5 border border-slate-200 dark:border-zinc-700 shrink-0 shadow-sm" />
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-sky-600 dark:bg-sky-500 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm">
-                {settings.appName.slice(0, 1).toUpperCase()}
-              </div>
+              <img src="/static/brand/qbiz-mark.svg" alt={settings.appName} className="w-8 h-8 rounded-lg object-contain shrink-0 shadow-sm" />
             )}
             <span className="font-bold text-lg tracking-tight sidebar-logo-text text-slate-900 dark:text-zinc-50 truncate">{settings.appName}</span>
           </div>
@@ -628,11 +624,11 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
         className="fixed bottom-20 md:bottom-6 right-4 left-4 sm:left-auto sm:max-w-md z-50 transform transition-all duration-300 translate-y-24 opacity-0 pointer-events-none"
       >
         <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-sky-200/80 dark:border-sky-900/80 rounded-2xl p-4 shadow-2xl flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-xl bg-sky-600 p-2 text-white flex items-center justify-center shrink-0 shadow-md">
+          <div className="w-11 h-11 rounded-xl bg-sky-600 p-1 text-white flex items-center justify-center shrink-0 shadow-md overflow-hidden">
             {systemSettings?.appLogoUrl ? (
               <img src={systemSettings.appLogoUrl} alt="" className="w-full h-full object-contain" />
             ) : (
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+              <img src="/static/brand/qbiz-mark.svg" alt={systemSettings?.appName || 'QBiz Gateway'} className="w-full h-full object-contain rounded-lg" />
             )}
           </div>
           <div className="flex-1 min-w-0">

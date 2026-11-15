@@ -316,8 +316,8 @@ app.use('*', async (c, next) => {
 app.get('/manifest.webmanifest', async (c) => {
   const settings = await getSystemSettings();
   const themeColor = settings.themeColor || '#0284c7';
-  const icon192 = settings.pwaIcon192Url || settings.appLogoUrl || '/static/logo.png';
-  const icon512 = settings.pwaIcon512Url || settings.appLogoUrl || '/static/logo.png';
+  const icon192 = settings.pwaIcon192Url || settings.appLogoUrl || '/static/brand/qbiz-mark.svg';
+  const icon512 = settings.pwaIcon512Url || settings.appLogoUrl || '/static/brand/qbiz-mark.svg';
 
   const manifest = {
     name: settings.appName || 'QBiz Gateway',

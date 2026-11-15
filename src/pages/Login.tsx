@@ -18,9 +18,7 @@ export function LoginPage({ error, settings = DEFAULT_SYSTEM_SETTINGS }: LoginPa
           {settings.appLogoUrl ? (
             <img src={settings.appLogoUrl} alt={settings.appName} className="w-8 h-8 rounded-lg object-contain bg-white dark:bg-zinc-900 p-0.5 border border-slate-700 shrink-0" />
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center text-white font-bold text-lg shrink-0">
-              {settings.appName.slice(0, 1).toUpperCase()}
-            </div>
+            <img src="/static/brand/qbiz-mark.svg" alt={settings.appName} className="w-8 h-8 rounded-lg object-contain shrink-0 shadow-sm" />
           )}
           <span className="font-bold text-lg tracking-tight text-white truncate">{settings.appName}</span>
         </div>
