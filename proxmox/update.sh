@@ -36,10 +36,15 @@ CURRENT_VER=$(grep '"version"' package.json 2>/dev/null | head -n1 | cut -d '"' 
 CURRENT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 echo -e "Checking for latest updates from GitHub..."
-git fetch --tags origin main >/dev/null 2>&1
+git config --global --add safe.directory "$APP_DIR" >/dev/null 2>&1 || true
+if ! FETCH_ERR=$(git fetch --tags --force origin main 2>&1); then
+    echo -e "${RD}Error: Failed to fetch updates from GitHub:${CL}"
+    echo -e "${YW}${FETCH_ERR}${CL}"
+    exit 1
+fi
 
 REMOTE_HASH=$(git rev-parse --short origin/main 2>/dev/null || echo "unknown")
-LATEST_TAG=$(git describe --tags "$(git rev-list --tags --max-count=1)" 2>/dev/null || echo "")
+LATEST_TAG=$(git describe --tags --abbrev=0 origin/main 2>/dev/null || git describe --tags "$(git rev-list --tags --max-count=1 2>/dev/null)" 2>/dev/null || echo "")
 
 echo -e "  Current Installed Version : ${YW}v${CURRENT_VER}${CL} (${CURRENT_HASH})"
 if [ -n "$LATEST_TAG" ]; then
