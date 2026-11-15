@@ -1,0 +1,1 @@
+ALTER TABLE "merchants" ADD COLUMN "sync_mode" text DEFAULT 'STANDARD' NOT NULL;

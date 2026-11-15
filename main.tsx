@@ -17,7 +17,9 @@ import { renderToString } from 'react-dom/server';
 import { db } from './db/db.ts';
 import { merchants, invoices, mutations, users, regionalAdminMerchants, merchantNotifications, systemSettings, apiKeys, webhooks } from './db/schema.ts';
 import { eq, desc, inArray, and, or, sql } from 'drizzle-orm';
-import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener, syncMerchantMutations, dispatchWebhook, closeAllListeners, activeListeners } from './worker/puppeteer-listener.ts';
+import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantListener, syncMerchantMutations, dispatchWebhook, closeAllListeners } from './worker/listener-router.ts';
+import { activeListeners } from './worker/puppeteer-listener.ts';
+import { activeDirectListeners } from './worker/direct-api-listener.ts';
 import { authMiddleware, requireRole, hashPassword, verifyPassword, COOKIE_SECRET, UserSession, MerchantContext } from './src/middleware/auth.ts';
 import { securityHeadersMiddleware, createRateLimiter, bodySizeLimiter } from './src/middleware/security.ts';
 import { generateDynamicQRIS, decodeQRISFromImage } from './src/utils/qris.ts';
@@ -1623,12 +1625,22 @@ app.post('/api/v1/merchants/:id/edit', requireRole(['SUPER_ADMIN', 'ADMIN']), as
       finalQrisPayload = qrisPayload;
     }
 
+    const rawSyncMode = String(body.syncMode || body.sync_mode || currentMerchant.syncMode || 'STANDARD').trim().toUpperCase();
+    const nextSyncMode: 'STANDARD' | 'EXPRESS' = rawSyncMode === 'EXPRESS' ? 'EXPRESS' : 'STANDARD';
+    const modeChanged = nextSyncMode !== currentMerchant.syncMode;
+
+    if (modeChanged) {
+      await stopMerchantListener(id);
+    }
+
     await db.update(merchants).set({
       name: name || currentMerchant.name,
       phoneNumber: phoneNumber || currentMerchant.phoneNumber,
       qrisImageUrl: fileUrl,
       qrisPayload: finalQrisPayload,
-      logoUrl: finalLogoUrl
+      logoUrl: finalLogoUrl,
+      syncMode: nextSyncMode,
+      ...(modeChanged ? { status: 'NEEDS_OTP' as const } : {}),
     }).where(eq(merchants.id, id));
 
   } catch (err: any) {
@@ -1708,6 +1720,9 @@ app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADM
     console.log(`[Logo Upload] Successfully saved logo to ${logoFilePath}`);
   }
 
+  const rawSyncMode = String(body.syncMode || body.sync_mode || 'STANDARD').trim().toUpperCase();
+  const syncMode: 'STANDARD' | 'EXPRESS' = rawSyncMode === 'EXPRESS' ? 'EXPRESS' : 'STANDARD';
+
   try {
     await db.insert(merchants).values({
       id: newId,
@@ -1717,6 +1732,7 @@ app.post('/api/v1/merchants', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADM
       qrisPayload: finalQrisPayload,
       logoUrl: logoUrl,
       sessionFilePath: `sessions/${newId}.json`,
+      syncMode,
       status: 'NEEDS_OTP'
     });
 
@@ -2660,12 +2676,17 @@ const handleHealthCheck = async (c: any) => {
     dbStatus = 'error: ' + (err.message || 'connection failed');
   }
 
-  // Active listener workers status
+  // Active listener workers status (Standard Puppeteer + Express Direct API)
   const activeWorkerIds: string[] = [];
   try {
     for (const [key, val] of activeListeners.entries()) {
       if (!key.startsWith('auth_') && (val?.status === 'ACTIVE' || val?.browser)) {
         activeWorkerIds.push(key);
+      }
+    }
+    for (const key of activeDirectListeners.keys()) {
+      if (!activeWorkerIds.includes(key)) {
+        activeWorkerIds.push(`${key}:express`);
       }
     }
   } catch (_) {}

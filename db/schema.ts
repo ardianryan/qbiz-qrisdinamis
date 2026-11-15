@@ -9,6 +9,7 @@ export const merchants = pgTable('merchants', {
   qrisPayload: text('qris_payload').default('').notNull(), // Raw static EMVCo QRIS string
   sessionFilePath: text('session_file_path').notNull(), // 'sessions/mrc_1.json'
   sessionToken: text('session_token'), // GoBiz Bearer access token (extracted after OTP login)
+  syncMode: text('sync_mode').$type<'STANDARD' | 'EXPRESS'>().default('STANDARD').notNull(),
   status: text('status').$type<'ACTIVE' | 'NEEDS_OTP' | 'DISCONNECTED'>().default('NEEDS_OTP').notNull(),
   logoUrl: text('logo_url'), // Custom merchant branding logo URL
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

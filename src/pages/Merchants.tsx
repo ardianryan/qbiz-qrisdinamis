@@ -10,9 +10,65 @@ interface Merchant {
   qrisImageUrl: string;
   qrisPayload?: string;
   logoUrl?: string | null;
+  syncMode?: 'STANDARD' | 'EXPRESS';
   status: 'ACTIVE' | 'NEEDS_OTP' | 'DISCONNECTED';
   todayTransactions: number;
   lastSync: string;
+}
+
+function SyncModeSelector({ prefix, defaultValue = 'STANDARD' }: { prefix: string; defaultValue?: 'STANDARD' | 'EXPRESS' }) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300">
+        Mode Pemeriksaan Mutasi (Sync Mode)
+      </label>
+      <div className="grid grid-cols-1 gap-2.5">
+        <label className="relative flex items-start gap-3 p-3 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-950/60 cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-600 transition-colors">
+          <input
+            type="radio"
+            id={`${prefix}-sync-mode-standard`}
+            name="sync_mode"
+            value="STANDARD"
+            defaultChecked={defaultValue === 'STANDARD'}
+            className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-slate-900 dark:text-zinc-50">🐢 Standard Mode (Disarankan)</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                Low Risk · ~12 Menit
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1 leading-relaxed">
+              Menggunakan browser portal GoPay Merchant. Pemeriksaan mutasi & notifikasi terkadang lambat (bisa memakan waktu setidaknya <strong>12 menit</strong>), namun pola akses normal sehingga <strong>risiko pembatasan akun rendah</strong>.
+            </p>
+          </div>
+        </label>
+
+        <label className="relative flex items-start gap-3 p-3 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 cursor-pointer hover:border-amber-400 dark:hover:border-amber-600 transition-colors">
+          <input
+            type="radio"
+            id={`${prefix}-sync-mode-express`}
+            name="sync_mode"
+            value="EXPRESS"
+            defaultChecked={defaultValue === 'EXPRESS'}
+            className="mt-0.5 text-amber-600 focus:ring-amber-500"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold text-slate-900 dark:text-zinc-50">⚡ Express Mode (Direct API)</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300">
+                High Risk · 1–2 Menit
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1 leading-relaxed">
+              Menembak langsung API GoPay Merchant tanpa browser (hemat RAM). Pemeriksaan sangat cepat (<strong>1–2 menit</strong>), tetapi <strong>berisiko tinggi</strong> terkena rate-limit, sesi keluar paksa, atau pembatasan akun.
+            </p>
+          </div>
+        </label>
+      </div>
+    </div>
+  );
 }
 
 interface MerchantsPageProps {
@@ -187,6 +243,20 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                       <dt className="text-slate-500 dark:text-zinc-400">Last Sync</dt>
                       <dd className="text-slate-700 dark:text-zinc-300 font-mono">{merchant.lastSync}</dd>
                     </div>
+                    <div className="flex justify-between items-center">
+                      <dt className="text-slate-500 dark:text-zinc-400">Sync Mode</dt>
+                      <dd>
+                        {merchant.syncMode === 'EXPRESS' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                            ⚡ Express · High Risk
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                            🐢 Standard · Low Risk
+                          </span>
+                        )}
+                      </dd>
+                    </div>
                   </dl>
                 </div>
 
@@ -265,6 +335,7 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                         data-name={merchant.name}
                         data-phone={merchant.phoneNumber}
                         data-payload={merchant.qrisPayload}
+                        data-sync-mode={merchant.syncMode || 'STANDARD'}
                       >
                         Edit Merchant Details
                       </button>
@@ -699,6 +770,10 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                 <input type="file" id="edit-logo-file-input" name="logo_image" accept="image/*" className="w-full text-xs text-slate-500" />
                 <span id="edit-logo-name-preview" className="text-[10px] text-slate-400 mt-1 block">Leave empty to keep existing logo</span>
               </div>
+              <SyncModeSelector prefix="edit" />
+              <p className="text-[10px] text-amber-600 dark:text-amber-400">
+                Catatan: Mengubah Sync Mode akan menghentikan sesi lama dan memerlukan verifikasi OTP ulang.
+              </p>
             </div>
             <div className="p-6 border-t border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/30 flex gap-3">
               <button type="button" className="flex-grow h-10 inline-flex items-center justify-center border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold rounded-lg sheet-close-trigger">Cancel</button>
@@ -737,6 +812,7 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                 <label htmlFor="add-logo-file-input" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Upload Store Logo (Optional)</label>
                 <input type="file" id="add-logo-file-input" name="logo_image" accept="image/*" className="w-full text-xs text-slate-500" />
               </div>
+              <SyncModeSelector prefix="add" defaultValue="STANDARD" />
             </div>
             <div className="p-6 border-t border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/30 flex gap-3">
               <button type="button" className="flex-grow h-10 inline-flex items-center justify-center border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-semibold rounded-lg sheet-close-trigger">Cancel</button>
@@ -1046,14 +1122,21 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                 const name = this.getAttribute('data-name');
                 const phone = this.getAttribute('data-phone');
                 const payload = this.getAttribute('data-payload') || '';
+                const syncMode = this.getAttribute('data-sync-mode') || 'STANDARD';
                 const form = document.getElementById('edit-merchant-form');
                 if (form) form.action = '/api/v1/merchants/' + id + '/edit';
                 const editName = document.getElementById('edit-merchant-name');
                 const editPhone = document.getElementById('edit-merchant-phone');
                 const editPayload = document.getElementById('edit-merchant-qris-payload');
+                const editStd = document.getElementById('edit-sync-mode-standard');
+                const editExp = document.getElementById('edit-sync-mode-express');
                 if (editName) editName.value = name;
                 if (editPhone) editPhone.value = phone;
                 if (editPayload) editPayload.value = payload;
+                if (editStd && editExp) {
+                  editStd.checked = syncMode !== 'EXPRESS';
+                  editExp.checked = syncMode === 'EXPRESS';
+                }
                 openSheet('sheet-edit-merchant');
               });
             });
