@@ -321,6 +321,36 @@ On application startup, default accounts are seeded into the database for quick 
 | **Merchant Owner** | `merchant@qbiz.com` | `MerchantQBiz2026` | `qbiz_api_key_live_2026_merchant` |
 | **Cashier / Employee** | `karyawan@qbiz.com` | `EmployeeQBiz2026` | `qbiz_api_key_live_2026_karyawan` |
 
+### 🔐 Reset Super Admin / Admin Password via CLI
+
+Jika Anda lupa password akun bawaan (`superadmin@qbiz.com` / `admin@qbiz.com`) atau ingin meresetnya secara aman di server produksi:
+
+* **Docker (`docker exec`)**:
+  ```bash
+  # Cek daftar email Super Admin & Admin yang terdaftar
+  docker exec -it qbiz-gateway deno task admin:reset --list
+
+  # Generate password acak baru untuk Super Admin
+  docker exec -it qbiz-gateway deno task admin:reset
+
+  # Atau tentukan password & ganti email sekaligus
+  docker exec -it qbiz-gateway deno task admin:reset --new-email=owner@toko.com --password="PasswordBaru2026!"
+  docker exec -it qbiz-gateway deno task admin:reset --role=ADMIN --password="PasswordAdmin2026!"
+  ```
+* **Proxmox LXC**:
+  ```bash
+  # Dari dalam container LXC:
+  cd /opt/qbiz && deno task admin:reset --list
+  cd /opt/qbiz && deno task admin:reset --new-email=owner@toko.com --password="PasswordBaru2026!"
+
+  # Atau langsung dari Proxmox Host (ganti <CTID> dengan ID container Anda):
+  pct exec <CTID> -- bash -lc "cd /opt/qbiz && /usr/local/bin/deno task admin:reset --list"
+  ```
+* **Bare Metal / Local Development**:
+  ```bash
+  deno task admin:reset --help
+  ```
+
 ---
 
 ## 📄 License

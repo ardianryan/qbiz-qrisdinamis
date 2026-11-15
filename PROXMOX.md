@@ -135,3 +135,13 @@ Run these commands inside the LXC container:
   ```bash
   nano /opt/qbiz/.env
   ```
+
+- **Check Admin Emails / Reset Super Admin & Admin Password**:
+  ```bash
+  # Cek email admin yang terdaftar
+  cd /opt/qbiz && /usr/local/bin/deno task admin:reset --list
+
+  # Reset password & ganti email sekaligus
+  cd /opt/qbiz && /usr/local/bin/deno task admin:reset --new-email=owner@toko.com --password="PasswordBaru2026!"
+  ```
+  *(Tanpa `--password`, CLI otomatis membuat password acak baru yang aman; gunakan `--role=ADMIN` untuk akun `ADMIN`, `--list-all` untuk semua user, atau `--default` untuk mengembalikan password bawaan.)*
