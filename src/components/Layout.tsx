@@ -955,6 +955,11 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
                   requestAnimationFrame(() => {
                     mainEl.style.opacity = '1';
                     mainEl.style.transform = 'translateY(0)';
+                    setTimeout(() => {
+                      // Clear inline transform so position:fixed modals inside #main-content stay anchored to the viewport
+                      mainEl.style.transform = '';
+                      mainEl.style.opacity = '';
+                    }, 220);
                   });
                 }
 
