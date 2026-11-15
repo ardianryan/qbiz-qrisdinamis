@@ -32,6 +32,21 @@ import { migrate } from 'npm:drizzle-orm/postgres-js/migrator';
 import { doitAdapter } from './src/adapters/doit.ts';
 import { xenditAdapter } from './src/adapters/xendit.ts';
 import { duitkuAdapter } from './src/adapters/duitku.ts';
+import { ErrorPage } from './src/pages/ErrorPage.tsx';
+
+function wantsJson(c: any): boolean {
+  const path = c.req.path || '';
+  if (
+    path.startsWith('/api/') ||
+    path.startsWith('/v1/') ||
+    path.startsWith('/v2/') ||
+    path.startsWith('/webapi/')
+  ) {
+    return true;
+  }
+  const accept = (c.req.header('accept') || '').toLowerCase();
+  return accept.includes('application/json') && !accept.includes('text/html');
+}
 
 const DEFAULT_MOCK_STATIC_QRIS = "00020101021138590014ID.CO.QRIS.WWW0215ID10200845344330303UMI51440014ID.CO.QRIS.WWW0215ID10200845344330303UMI5204581253033605802ID5920Resto Ayam Bakar Cbk6009Mojokerto6105613006304D116";
 
@@ -475,6 +490,49 @@ app.all('*', renderer);
 
 // Apply auth middleware to protect application pages
 app.use('*', authMiddleware);
+
+// Global Maintenance Mode Guard (503 Service Unavailable)
+app.use('*', async (c, next) => {
+  const path = c.req.path || '';
+  if (
+    path === '/login' ||
+    path === '/logout' ||
+    path === '/health' ||
+    path === '/api/v1/health' ||
+    path.startsWith('/static/') ||
+    path.startsWith('/settings') ||
+    path.startsWith('/api/v1/settings')
+  ) {
+    return await next();
+  }
+  const user = (c as any).get('user');
+  if (user?.role === 'SUPER_ADMIN') {
+    return await next();
+  }
+  const sysSettings = await getSystemSettings();
+  if (sysSettings.maintenanceMode) {
+    if (wantsJson(c)) {
+      return c.json(
+        {
+          success: false,
+          error: sysSettings.maintenanceMessage || 'Service Unavailable: System is currently undergoing scheduled maintenance.',
+          status: 503,
+        },
+        503
+      );
+    }
+    c.status(503);
+    return c.render(
+      <ErrorPage
+        statusCode={503}
+        message={sysSettings.maintenanceMessage || undefined}
+        requestPath={path}
+      />,
+      { title: '503 Service Unavailable' }
+    );
+  }
+  return await next();
+});
 
 // =========================================================================
 // AUTHENTICATION ROUTES
@@ -2247,13 +2305,31 @@ app.get('/pay/:id', async (c) => {
   try {
     const invList = await db.select().from(invoices).where(eq(invoices.id, id));
     if (invList.length === 0) {
-      return c.text('Invoice not found', 404);
+      c.status(404);
+      return c.render(
+        <ErrorPage
+          statusCode={404}
+          title="Invoice Not Found"
+          message="The requested payment invoice does not exist or has been removed."
+          requestPath={c.req.path}
+        />,
+        { title: '404 Invoice Not Found' }
+      );
     }
     const invoice = invList[0];
     
     const mrcList = await db.select().from(merchants).where(eq(merchants.id, invoice.merchantId || ''));
     if (mrcList.length === 0) {
-      return c.text('Merchant not found', 404);
+      c.status(404);
+      return c.render(
+        <ErrorPage
+          statusCode={404}
+          title="Merchant Not Found"
+          message="The merchant store associated with this invoice could not be found."
+          requestPath={c.req.path}
+        />,
+        { title: '404 Merchant Not Found' }
+      );
     }
     const merchant = mrcList[0];
 
@@ -2710,6 +2786,72 @@ const handleHealthCheck = async (c: any) => {
 
 app.get('/api/v1/health', handleHealthCheck);
 app.get('/health', handleHealthCheck);
+
+const ALLOWED_SDK_FILES = new Set([
+  'qbiz.go',
+  'qbiz.ts',
+  'qbiz.php',
+  'qbiz-node.js',
+  'qbiz.py',
+  'qbiz.dart',
+  'QBizClient.java',
+  'qbiz.rs',
+]);
+
+app.get('/developer/sdk/:filename', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT']), async (c) => {
+  const filename = c.req.param('filename');
+  if (!ALLOWED_SDK_FILES.has(filename)) {
+    c.status(404);
+    return c.render(
+      <ErrorPage statusCode={404} title="SDK File Not Found" requestPath={c.req.path} />,
+      { title: '404 Not Found' }
+    );
+  }
+  const content = await Deno.readTextFile(`./sdk/${filename}`);
+  c.header('Content-Type', 'text/plain; charset=utf-8');
+  c.header('Content-Disposition', `attachment; filename="${filename}"`);
+  c.header('X-Content-Type-Options', 'nosniff');
+  c.header('Cache-Control', 'private, max-age=300');
+  return c.body(content);
+});
+
+// Global 404 Not Found Handler
+app.notFound((c) => {
+  if (wantsJson(c)) {
+    return c.json({ success: false, error: 'Not Found', status: 404 }, 404);
+  }
+  c.status(404);
+  return c.render(
+    <ErrorPage statusCode={404} requestPath={c.req.path} />,
+    { title: '404 Not Found' }
+  );
+});
+
+// Global Unhandled Error Handler (500 / 503 / HTTP status)
+app.onError((err, c) => {
+  console.error('[App Error]', err);
+  const rawStatus = (err as any)?.status;
+  const statusCode = typeof rawStatus === 'number' && rawStatus >= 400 && rawStatus < 600 ? rawStatus : 500;
+  if (wantsJson(c)) {
+    return c.json(
+      {
+        success: false,
+        error: statusCode >= 500 ? 'Internal Server Error' : (err.message || 'Request Error'),
+        status: statusCode,
+      },
+      statusCode as any
+    );
+  }
+  c.status(statusCode as any);
+  return c.render(
+    <ErrorPage
+      statusCode={statusCode}
+      message={statusCode >= 500 ? undefined : err.message}
+      requestPath={c.req.path}
+    />,
+    { title: `${statusCode} Error` }
+  );
+});
 
 // Start Deno Serve (Only when run directly as main script)
 if (import.meta.main) {

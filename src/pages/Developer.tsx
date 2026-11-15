@@ -217,11 +217,8 @@ curl -X POST ${baseUrl}/webapi/api/merchant/v2/inquiry \\
         </a>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
         
-        {/* Left Column: API Settings Forms */}
-        <div className="lg:col-span-2 space-y-6">
-          
           {/* ========================================================================= */}
           {/* SECTION 1: ENTERPRISE MULTI-API KEY MANAGER */}
           {/* ========================================================================= */}
@@ -632,28 +629,60 @@ curl -X POST ${baseUrl}/webapi/api/merchant/v2/inquiry \\
             </div>
           </section>
 
-        </div>
+      </div>
 
-        {/* Right Column: Code Snippets & interactive cURL execution */}
-        {/* ========================================================================= */}
-        {/* SECTION 3: CODE SNIPPETS */}
-        {/* ========================================================================= */}
-        <section className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm flex flex-col h-full min-h-[500px]">
-          <div className="p-5 border-b border-slate-100 dark:border-zinc-800/60">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-50 flex items-center gap-2">
-              <svg className="w-5 h-5 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-              Integration Snippets
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-              Select runtime to copy template scripts.
-            </p>
-            <div className="mt-3 bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800 rounded-lg p-2.5 flex items-start gap-2">
-              <span className="text-[14px]">💡</span>
-              <span className="text-[10px] text-slate-600 dark:text-zinc-400 leading-relaxed">
-                <strong>Official Client SDKs available!</strong> Ready in the <code>sdk/</code> folder: <strong>Go</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.go" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.go</a>), <strong>TypeScript</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.ts" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.ts</a>), <strong>PHP</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.php" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.php</a>), <strong>Node.js</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz-node.js" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz-node.js</a>), <strong>Python</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.py" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.py</a>), <strong>Dart/Flutter</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.dart" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.dart</a>), <strong>Java</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/QBizClient.java" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/QBizClient.java</a>), and <strong>Rust</strong> (<a href="https://github.com/ardianryan/qbiz-qrisdinamis/blob/main/sdk/qbiz.rs" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline font-mono">sdk/qbiz.rs</a>).
-              </span>
+      {/* ========================================================================= */}
+      {/* SECTION 3: CODE SNIPPETS (Full Width before Notification Bots) */}
+      {/* ========================================================================= */}
+      <section className="mt-8 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm flex flex-col">
+        <div className="p-5 sm:p-6 border-b border-slate-100 dark:border-zinc-800/60">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-50 flex items-center gap-2">
+                <svg className="w-5 h-5 text-sky-600 dark:text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                Integration Snippets & Official SDKs
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                Select a runtime or compatibility mode below to copy or download ready-to-use integration templates.
+              </p>
             </div>
           </div>
+
+          <div className="mt-4 bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-800 rounded-xl p-3.5">
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className="text-[14px]">📦</span>
+              <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                Download Official Client SDKs
+              </span>
+              <span className="text-[10px] text-slate-500 dark:text-zinc-400">
+                (Verified local <code>sdk/</code> packages)
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: 'Go', file: 'qbiz.go' },
+                { label: 'TypeScript', file: 'qbiz.ts' },
+                { label: 'PHP', file: 'qbiz.php' },
+                { label: 'Node.js', file: 'qbiz-node.js' },
+                { label: 'Python', file: 'qbiz.py' },
+                { label: 'Dart / Flutter', file: 'qbiz.dart' },
+                { label: 'Java', file: 'QBizClient.java' },
+                { label: 'Rust', file: 'qbiz.rs' },
+              ].map((sdk) => (
+                <a
+                  key={sdk.file}
+                  href={`/developer/sdk/${sdk.file}`}
+                  download={sdk.file}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-slate-700 dark:text-zinc-200 hover:border-sky-500/60 hover:text-sky-600 dark:hover:text-sky-400 transition-colors shadow-2xs"
+                >
+                  <svg className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  <span>{sdk.label}</span>
+                  <code className="text-[10px] text-slate-400 font-mono">({sdk.file})</code>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
 
           {/* Tab Switcher Headers */}
           <div className="flex flex-wrap border-b border-slate-100 dark:border-zinc-800/60 bg-slate-50/50 dark:bg-zinc-900/50">
@@ -721,14 +750,26 @@ curl -X POST ${baseUrl}/webapi/api/merchant/v2/inquiry \\
 
           {/* Code Panels */}
           <div className="flex-grow bg-zinc-950 p-5 flex flex-col justify-between relative min-h-[300px]">
-            {/* Copy snippet helper */}
-            <button 
-              id="btn-copy-snippet"
-              className="absolute top-4 right-4 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 border border-zinc-800 rounded px-2 py-1 text-[10px] font-semibold transition-all focus-visible:ring-2 focus-visible:ring-sky-400"
-              aria-label="Copy code snippet to clipboard"
-            >
-              Copy Code
-            </button>
+            {/* Copy & Download snippet helpers */}
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+              <button
+                type="button"
+                id="btn-download-snippet"
+                className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 rounded-lg px-2.5 py-1 text-[10px] font-semibold transition-all inline-flex items-center gap-1 cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400"
+                aria-label="Download active code snippet"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Download
+              </button>
+              <button 
+                type="button"
+                id="btn-copy-snippet"
+                className="bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 rounded-lg px-2.5 py-1 text-[10px] font-semibold transition-all cursor-pointer focus-visible:ring-2 focus-visible:ring-sky-400"
+                aria-label="Copy code snippet to clipboard"
+              >
+                Copy Code
+              </button>
+            </div>
 
             {/* Snippet displays */}
             <div className="flex-grow">
@@ -802,8 +843,6 @@ curl -X POST ${baseUrl}/webapi/api/merchant/v2/inquiry \\
             </div>
           </div>
         </section>
-
-      </div>
 
       {/* ========================================================================= */}
       {/* SECTION 4: REAL-TIME NOTIFICATION BOTS INTEGRATION (Telegram, Discord, WhatsApp) */}
@@ -1920,7 +1959,38 @@ curl -X POST ${baseUrl}/webapi/api/merchant/v2/inquiry \\
               });
             });
 
-            // --- L. Copy Code Snippet ---
+            // --- L. Copy & Download Code Snippet ---
+            const downloadSnippetBtn = document.getElementById('btn-download-snippet');
+            if (downloadSnippetBtn) {
+              const snippetFileMap = {
+                curl: 'qbiz-snippet.sh',
+                go: 'qbiz-example.go',
+                ts: 'qbiz-example.ts',
+                php: 'qbiz-example.php',
+                node: 'qbiz-example.js',
+                python: 'qbiz-example.py',
+                rust: 'qbiz-example.rs',
+                doit: 'qbiz-doit-mode.sh',
+                xendit: 'qbiz-xendit-mode.sh',
+                duitku: 'qbiz-duitku-mode.sh',
+              };
+              downloadSnippetBtn.addEventListener('click', function() {
+                const codePre = document.getElementById('panel-' + activeTab);
+                if (!codePre) return;
+                const codeText = codePre.querySelector('code')?.textContent || '';
+                const filename = snippetFileMap[activeTab] || 'qbiz-snippet.txt';
+                const blob = new Blob([codeText], { type: 'text/plain;charset=utf-8' });
+                const blobUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+              });
+            }
+
             const copySnippetBtn = document.getElementById('btn-copy-snippet');
             if (copySnippetBtn) {
               copySnippetBtn.addEventListener('click', function() {

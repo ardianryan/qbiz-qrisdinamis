@@ -264,5 +264,26 @@ Deno.test("Health Check - should report version v1.4.1", async () => {
   assertEquals(data.version, "v1.4.1");
 });
 
+Deno.test("Error Pages - /pay/nonexistent should render styled 404 ErrorPage", async () => {
+  const res = await app.request("/pay/nonexistent_inv_404");
+  assertEquals(res.status, 404);
+  const html = await res.text();
+  assertStringIncludes(html, "HTTP 404");
+  assertStringIncludes(html, "Invoice Not Found");
+});
+
+Deno.test("Error Pages - /api/v1/nonexistent should return 404 JSON", async () => {
+  const res = await app.request("/api/v1/invoices/nonexistent_endpoint_404/unknown");
+  assertEquals(res.status, 404);
+  const data = await res.json();
+  assertEquals(data.success, false);
+  assertEquals(data.status, 404);
+});
+
+Deno.test("Developer SDK Security - /developer/sdk/qbiz.ts should reject unauthenticated requests", async () => {
+  const res = await app.request("/developer/sdk/qbiz.ts");
+  assertEquals(res.status, 302);
+});
+
 
 

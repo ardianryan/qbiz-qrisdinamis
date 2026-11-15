@@ -2,6 +2,7 @@ import { getSignedCookie } from 'hono/cookie';
 import { db } from '../../db/db.ts';
 import { users, merchants, regionalAdminMerchants } from '../../db/schema.ts';
 import { eq, inArray } from 'drizzle-orm';
+import { ErrorPage } from '../pages/ErrorPage.tsx';
 
 /**
  * Known insecure / placeholder secrets from documentation or templates.
@@ -345,11 +346,15 @@ export function requireRole(allowedRoles: UserRole[]) {
       if (url.pathname.startsWith('/api/')) {
         return c.json({ error: 'Forbidden' }, 403);
       }
-      // Access denied redirection: Super Admins go to /merchants, Merchants to /transactions
       if (user) {
-        if (user.role === 'MERCHANT' || user.role === 'MERCHANT_EMPLOYEE') {
-          return c.redirect('/transactions');
-        }
+        c.status(403);
+        return c.render(
+          ErrorPage({
+            statusCode: 403,
+            requestPath: url.pathname,
+          }),
+          { title: '403 Forbidden' }
+        );
       }
       return c.redirect('/login?error=forbidden');
     }
