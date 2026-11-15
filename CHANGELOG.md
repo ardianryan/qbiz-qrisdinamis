@@ -2,6 +2,37 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.4.1] - 2026-11-15
+
+### Added
+- **Dual-Mode Merchant Sync (`Standard` vs `Express`)**:
+  - Added per-merchant `syncMode` selection supporting both Standard Puppeteer interception and Express Direct API polling (`worker/direct-api-listener.ts`).
+- **Built-in QBiz Brand Kit**:
+  - Added integrated Brand Kit assets, standardized SVG mark/wordmark, and cohesive visual identity across dashboard and checkout surfaces.
+- **GOWA v6+ Multi-Device API Support**:
+  - Upgraded WhatsApp notification service to comply with `aldinokemal/go-whatsapp-web-multidevice` v6+ OpenAPI spec, including `X-Device-Id` header support and `@s.whatsapp.net` phone normalization.
+- **Admin Reset CLI (`deno task admin:reset`)**:
+  - Added `cli/reset-admin.ts` to list admin accounts, rename admin email addresses, and reset admin passwords directly from the CLI.
+- **Integration Guide**:
+  - Added beginner-friendly QRIS integration guide (`docs/INTEGRATION_GUIDE.md`) for QBiz Native and `doit.id` compatibility modes.
+
+### Fixed
+- **Merchants Page & Modal UX**:
+  - Fixed `syncMode` persistence on SSR merchant edit forms and disabled browser email autofill on the merchant search input.
+  - Standardized Transaction Sync Mode selector copy to English.
+  - Cleared inline `transform` on `#main-content` after SPA navigation so fixed modals center properly in the viewport.
+- **Database Migrations**:
+  - Added Drizzle migration `0007` for `client_dialect` and `client_metadata` columns on `invoices`.
+
+### Security
+- **Cloudflare + Reverse Proxy Real Client IP Resolution**:
+  - Added `isValidIp()`, `isPrivateOrLoopbackIp()`, `getClientIp()`, and `clientIpMiddleware` in `src/middleware/security.ts`, prioritizing `CF-Connecting-IP` → `True-Client-IP` → leftmost valid public `X-Forwarded-For` → `X-Real-IP` → socket `remoteAddr` when behind a trusted proxy (`TRUSTED_PROXY=true`, `CLOUDFLARE_PROXY=true`, or private/loopback TCP peer), while rejecting spoofed headers from untrusted public peers.
+  - Forwarded `info.remoteAddr` from `Deno.serve` into Hono context (`c.env.remoteAddr`) and updated `createRateLimiter()` to use `getClientIp(c)`.
+- **Hardened `resolveBaseUrl` & Anti-Slop Deduplication**:
+  - Deduplicated `resolveBaseUrl` into `src/utils/url.ts`, enforcing `VALID_HOST_REGEX` validation on `X-Forwarded-Host` and strict `http`/`https` protocol checks on `X-Forwarded-Proto`.
+
+---
+
 ## [1.4.0] - 2026-11-13
 
 ### Added

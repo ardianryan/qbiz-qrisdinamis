@@ -2693,7 +2693,7 @@ const handleHealthCheck = async (c: any) => {
 
   return c.json({
     status: isHealthy ? 'healthy' : 'degraded',
-    version: 'v1.4.0',
+    version: 'v1.4.1',
     timestamp: new Date().toISOString(),
     uptime_seconds: uptimeSeconds,
     database: {

@@ -1,4 +1,4 @@
-# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.4.0)
+# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.4.1)
 
 [![Test & CI](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml)
 [![CodeQL Security](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml)
@@ -34,7 +34,14 @@
 
 ## 🚀 Key Features
 
-0. 🌐 **Universal Gateway Multi-Compatibility (v1.4.0)**
+0. ✨ **Dual-Mode Sync, Brand Kit, GOWA v6+ & Proxy Hardening (v1.4.1)**
+   * **Dual-Mode Merchant Sync (`Standard` vs `Express`)**: Choose per-merchant between Standard Puppeteer interception and Express Direct API polling (`worker/direct-api-listener.ts`).
+   * **Built-in QBiz Brand Kit**: Standardized brand identity, SVG mark/wordmark, and cohesive UI styling across dashboard and checkout pages.
+   * **GOWA v6+ Multi-Device API**: Upgraded WhatsApp notifications to `aldinokemal/go-whatsapp-web-multidevice` v6+ OpenAPI spec with `X-Device-Id` support and `@s.whatsapp.net` normalization.
+   * **Cloudflare + Reverse Proxy Real IP Hardening**: Accurately resolves end-user IP (`CF-Connecting-IP` → `True-Client-IP` → `X-Forwarded-For` → `X-Real-IP` → socket `remoteAddr`) when behind `TRUSTED_PROXY=true` / `CLOUDFLARE_PROXY=true` while rejecting spoofed headers from untrusted public peers.
+   * **Admin Recovery CLI (`deno task admin:reset`)**: List admin accounts, rename emails, and reset admin passwords directly from the terminal.
+
+1. 🌐 **Universal Gateway Multi-Compatibility (v1.4.0)**
    * **doit.id Compatibility**: Native drop-in for `POST /v1/payments`, `GET /v1/payments/:id`, and `GET /v1/methods`. Compatible with official doit plugins (WooCommerce, Odoo, ERPNext) and Claude AI Model Context Protocol (`doit-mcp.mjs`).
    * **Xendit Compatibility**: Drop-in replacement for Xendit Legacy Invoice API v2 (`POST /v2/invoices`, `GET /v2/invoices/:id`). Zero code changes needed for existing WooCommerce, WHMCS, and custom Xendit integrations.
    * **Duitku Compatibility**: Drop-in replacement for Duitku v2 (`POST /webapi/api/merchant/v2/inquiry` & `/transactionStatus`) supporting MD5 signature verification and form-urlencoded callbacks.
@@ -254,7 +261,8 @@ QBiz integrates natively with **GOWA**, an open-source WhatsApp Multi-Device HTT
 * **QBiz Configuration Parameters**:
   * **API Base URL**: `http://127.0.0.1:3000` (or `http://gowa:3000` in Docker networks).
   * **Auth Scheme**: `No Authentication`, `Bearer Token`, or `Basic Auth` (matching your GOWA config).
-  * **Target Recipient**: Phone number in international format (`628123456789`) or WhatsApp Group JID (`120363xxx@g.us`).
+  * **Device ID (`X-Device-Id`)**: Optional device identifier for GOWA v6+ multi-device instances.
+  * **Target Recipient**: Phone number in international format (`628123456789` — auto-normalized to `@s.whatsapp.net`) or WhatsApp Group JID (`120363xxx@g.us`).
   * **Custom Template**: Supports dynamic variable interpolation (`{merchant_name}`, `{order_id}`, `{amount_formatted}`, `{customer_name}`, `{paid_at}`).
 
 ### 2. ✈️ Telegram Bot
