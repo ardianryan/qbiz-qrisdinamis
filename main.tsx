@@ -1419,6 +1419,7 @@ app.get('/api/v1/merchants/:id/notifications', requireRole(['SUPER_ADMIN', 'ADMI
           discordTemplate: DEFAULT_TEMPLATES.discord,
           whatsappEnabled: false,
           whatsappApiUrl: '',
+          whatsappDeviceId: '',
           whatsappAuthType: 'NONE',
           whatsappAuthKey: '',
           whatsappRecipient: '',
@@ -1457,6 +1458,7 @@ app.post('/api/v1/merchants/:id/notifications', requireRole(['SUPER_ADMIN', 'ADM
 
       whatsappEnabled: !!body.whatsappEnabled,
       whatsappApiUrl: body.whatsappApiUrl ? body.whatsappApiUrl.trim() : null,
+      whatsappDeviceId: body.whatsappDeviceId ? body.whatsappDeviceId.trim() : null,
       whatsappAuthType: (['NONE', 'BEARER', 'BASIC'].includes(body.whatsappAuthType) ? body.whatsappAuthType : 'NONE') as 'NONE' | 'BEARER' | 'BASIC',
       whatsappAuthKey: body.whatsappAuthKey ? body.whatsappAuthKey.trim() : null,
       whatsappRecipient: body.whatsappRecipient ? body.whatsappRecipient.trim() : null,

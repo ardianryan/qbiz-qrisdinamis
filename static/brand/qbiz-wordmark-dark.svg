@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 96" width="360" height="96" fill="none">
+  <defs>
+    <linearGradient id="qbiz-lockup-dark-bg" x1="8" y1="8" x2="88" y2="88" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="80" height="80" rx="20" fill="url(#qbiz-lockup-dark-bg)"/>
+  <path d="M48 25.5C35.5736 25.5 25.5 35.5736 25.5 48C25.5 60.4264 35.5736 70.5 48 70.5C52.775 70.5 57.2025 69.0125 60.843 66.4762L67.0237 72.657C68.6509 74.2841 71.2891 74.2841 72.9163 72.657C74.5435 71.0298 74.5435 68.3916 72.9163 66.7644L66.7355 60.5836C69.1217 56.9841 70.5 52.6562 70.5 48C70.5 35.5736 60.4264 25.5 48 25.5ZM48 34.6667C55.3638 34.6667 61.3333 40.6362 61.3333 48C61.3333 55.3638 55.3638 61.3333 48 61.3333C40.6362 61.3333 34.6667 55.3638 34.6667 48C34.6667 40.6362 40.6362 34.6667 48 34.6667Z" fill="#FFFFFF"/>
+  <path d="M50.0833 38.8333L42.5833 48.8333H48L45.9167 57.1667L53.4167 47.1667H48L50.0833 38.8333Z" fill="#FFFFFF"/>
+  <text x="108" y="48" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" letter-spacing="-0.03em" fill="#F8FAFC">QBiz</text>
+  <text x="108" y="70" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" letter-spacing="0.06em" fill="#94A3B8">DYNAMIC QRIS GATEWAY</text>
+</svg>

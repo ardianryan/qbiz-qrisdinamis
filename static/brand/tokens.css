@@ -1,0 +1,29 @@
+:root {
+  /* Brand Primary */
+  --qbiz-primary: #0284C7;
+  --qbiz-primary-light: #0EA5E9;
+  --qbiz-primary-dark: #0369A1;
+  --qbiz-accent: #38BDF8;
+
+  /* Neutrals */
+  --qbiz-ink: #0F172A;
+  --qbiz-muted: #64748B;
+  --qbiz-surface: #FFFFFF;
+  --qbiz-surface-dark: #09090B;
+  --qbiz-border: #E2E8F0;
+
+  /* Semantic Status */
+  --qbiz-success: #10B981;
+  --qbiz-warning: #F59E0B;
+  --qbiz-danger: #EF4444;
+
+  /* Typography */
+  --qbiz-font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --qbiz-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Radii */
+  --qbiz-radius-sm: 0.5rem;
+  --qbiz-radius-md: 0.75rem;
+  --qbiz-radius-lg: 1rem;
+  --qbiz-radius-xl: 1.5rem;
+}

@@ -93,6 +93,7 @@ export const merchantNotifications = pgTable('merchant_notifications', {
   // WhatsApp (GOWA by Aldinokemal) Settings
   whatsappEnabled: boolean('whatsapp_enabled').default(false).notNull(),
   whatsappApiUrl: text('whatsapp_api_url'), // e.g. http://localhost:3000
+  whatsappDeviceId: text('whatsapp_device_id'), // Optional X-Device-Id for GOWA v6+ multi-device
   whatsappAuthType: text('whatsapp_auth_type').$type<'NONE' | 'BEARER' | 'BASIC'>().default('NONE').notNull(),
   whatsappAuthKey: text('whatsapp_auth_key'), // API Key or Basic Auth
   whatsappRecipient: text('whatsapp_recipient'), // Target phone: 628123456789 or Group JID

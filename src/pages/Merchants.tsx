@@ -643,6 +643,16 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   </div>
 
                   <div>
+                    <label htmlFor="notif-wa-deviceid" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Device ID (X-Device-Id, Optional)</label>
+                    <input 
+                      type="text" 
+                      id="notif-wa-deviceid" 
+                      placeholder="my-device (for GOWA v6+ multi-device)"
+                      className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
                     <label htmlFor="notif-wa-recipient" className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Target Phone / Group JID</label>
                     <input 
                       type="text" 
@@ -1212,6 +1222,7 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   // Populate WhatsApp GOWA
                   document.getElementById('notif-wa-enabled').checked = !!data.whatsappEnabled;
                   document.getElementById('notif-wa-url').value = data.whatsappApiUrl || '';
+                  document.getElementById('notif-wa-deviceid').value = data.whatsappDeviceId || '';
                   document.getElementById('notif-wa-authtype').value = data.whatsappAuthType || 'NONE';
                   document.getElementById('notif-wa-authkey').value = data.whatsappAuthKey || '';
                   document.getElementById('notif-wa-recipient').value = data.whatsappRecipient || '';
@@ -1307,6 +1318,7 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
             document.getElementById('btn-test-whatsapp')?.addEventListener('click', function() {
               triggerChannelTest('whatsapp', {
                 apiUrl: document.getElementById('notif-wa-url')?.value,
+                deviceId: document.getElementById('notif-wa-deviceid')?.value,
                 authType: document.getElementById('notif-wa-authtype')?.value,
                 authKey: document.getElementById('notif-wa-authkey')?.value,
                 recipient: document.getElementById('notif-wa-recipient')?.value,
@@ -1332,6 +1344,7 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
 
                 whatsappEnabled: document.getElementById('notif-wa-enabled')?.checked,
                 whatsappApiUrl: document.getElementById('notif-wa-url')?.value,
+                whatsappDeviceId: document.getElementById('notif-wa-deviceid')?.value,
                 whatsappAuthType: document.getElementById('notif-wa-authtype')?.value,
                 whatsappAuthKey: document.getElementById('notif-wa-authkey')?.value,
                 whatsappRecipient: document.getElementById('notif-wa-recipient')?.value,

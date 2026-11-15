@@ -1,0 +1,1 @@
+ALTER TABLE "merchant_notifications" ADD COLUMN "whatsapp_device_id" text;

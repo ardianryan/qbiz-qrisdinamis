@@ -64,3 +64,46 @@ Deno.test("Security & SSRF Guard - isValidOutboundUrl should block dangerous pro
   assertEquals(isValidOutboundUrl("not-a-valid-url"), false);
 });
 
+Deno.test("GOWA v6+ API - formatGowaPhone normalizes local numbers to @s.whatsapp.net and preserves JIDs", async () => {
+  const { formatGowaPhone } = await import("./notification.ts");
+  assertEquals(formatGowaPhone("081234567890"), "6281234567890@s.whatsapp.net");
+  assertEquals(formatGowaPhone("+62 812-3456-7890"), "6281234567890@s.whatsapp.net");
+  assertEquals(formatGowaPhone("120363012345@g.us"), "120363012345@g.us");
+  assertEquals(formatGowaPhone("6289685028129@s.whatsapp.net"), "6289685028129@s.whatsapp.net");
+});
+
+Deno.test("GOWA v6+ API - sendWhatsAppGowaNotification sends X-Device-Id header and OpenAPI payload", async () => {
+  const { sendWhatsAppGowaNotification } = await import("./notification.ts");
+  const originalFetch = globalThis.fetch;
+  let capturedUrl = "";
+  let capturedHeaders: Record<string, string> = {};
+  let capturedBody: any = null;
+
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    capturedUrl = String(input);
+    capturedHeaders = (init?.headers || {}) as Record<string, string>;
+    capturedBody = JSON.parse(String(init?.body || "{}"));
+    return new Response(JSON.stringify({ code: "SUCCESS" }), { status: 200 });
+  }) as typeof fetch;
+
+  try {
+    const res = await sendWhatsAppGowaNotification({
+      apiUrl: "http://127.0.0.1:3000",
+      deviceId: "kasir-utama",
+      authType: "BASIC",
+      authKey: "admin:secret",
+      recipient: "085155030300",
+      template: "Paid {amount_formatted}",
+    }, mockData);
+
+    assertEquals(res.success, true);
+    assertEquals(capturedUrl, "http://127.0.0.1:3000/send/message");
+    assertEquals(capturedHeaders["X-Device-Id"], "kasir-utama");
+    assertEquals(capturedHeaders["Authorization"], `Basic ${btoa("admin:secret")}`);
+    assertEquals(capturedBody.phone, "6285155030300@s.whatsapp.net");
+    assertEquals(capturedBody.is_forwarded, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+

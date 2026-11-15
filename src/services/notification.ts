@@ -248,10 +248,24 @@ export async function sendDiscordNotification(
 
 /**
  * 3. Send WhatsApp Notification via GOWA (Aldinokemal) API
+ * Supports v5/v6+ Multi-Device X-Device-Id header and /send/message OpenAPI schema.
  */
+export function formatGowaPhone(recipient: string): string {
+  const trimmed = recipient.trim();
+  if (trimmed.includes('@')) {
+    return trimmed;
+  }
+  let digits = trimmed.replace(/[^0-9]/g, '');
+  if (digits.startsWith('0')) {
+    digits = '62' + digits.substring(1);
+  }
+  return `${digits}@s.whatsapp.net`;
+}
+
 export async function sendWhatsAppGowaNotification(
   config: {
     apiUrl?: string | null;
+    deviceId?: string | null;
     authType?: 'NONE' | 'BEARER' | 'BASIC' | string | null;
     authKey?: string | null;
     recipient?: string | null;
@@ -270,22 +284,29 @@ export async function sendWhatsAppGowaNotification(
   }
 
   const message = formatNotificationMessage(config.template, data, DEFAULT_TEMPLATES.whatsapp);
-  
-  // Normalize base API URL
-  const baseUrl = rawUrl.replace(/\/+$/, '');
-  const endpoint = `${baseUrl}/send/message`;
+
+  // Normalize base API URL and extract optional ?device_id= query parameter
+  const parsedUrl = new URL(rawUrl);
+  const queryDeviceId = parsedUrl.searchParams.get('device_id');
+  const basePath = `${parsedUrl.origin}${parsedUrl.pathname}`.replace(/\/+$/, '');
+  const endpoint = basePath.endsWith('/send/message') ? basePath : `${basePath}/send/message`;
 
   // Build Headers
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
+  const resolvedDeviceId = (config.deviceId || queryDeviceId || '').trim();
+  if (resolvedDeviceId) {
+    headers['X-Device-Id'] = resolvedDeviceId;
+  }
+
   if (config.authKey && config.authKey.trim().length > 0) {
     const key = config.authKey.trim();
     if (config.authType === 'BEARER') {
       headers['Authorization'] = `Bearer ${key}`;
     } else if (config.authType === 'BASIC') {
-      // If basic auth string doesn't contain colon, format as key:
+      // If basic auth string doesn't contain colon, assume already base64-encoded
       const authHeader = key.includes(':') ? btoa(key) : key;
       headers['Authorization'] = `Basic ${authHeader}`;
     }
@@ -293,16 +314,10 @@ export async function sendWhatsAppGowaNotification(
     headers['x-api-key'] = key;
   }
 
-  // Clean phone number (e.g. 08123456789 -> 628123456789)
-  let cleanPhone = config.recipient.trim();
-  if (cleanPhone.startsWith('0')) {
-    cleanPhone = '62' + cleanPhone.substring(1);
-  }
-
   const payload = {
-    phone: cleanPhone,
-    recipient: cleanPhone,
+    phone: formatGowaPhone(config.recipient),
     message: message,
+    is_forwarded: false,
   };
 
   try {
@@ -394,6 +409,7 @@ export async function dispatchMerchantNotifications(merchantId: string, invoice:
       tasks.push(
         sendWhatsAppGowaNotification({
           apiUrl: config.whatsappApiUrl,
+          deviceId: config.whatsappDeviceId,
           authType: config.whatsappAuthType,
           authKey: config.whatsappAuthKey,
           recipient: config.whatsappRecipient,
@@ -538,6 +554,7 @@ export async function notifySessionExpired(merchantId: string) {
       tasks.push(
         sendWhatsAppGowaNotification({
           apiUrl: config.whatsappApiUrl,
+          deviceId: config.whatsappDeviceId,
           authType: config.whatsappAuthType,
           authKey: config.whatsappAuthKey,
           recipient: config.whatsappRecipient,
