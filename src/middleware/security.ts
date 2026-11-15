@@ -1,5 +1,86 @@
 import { Context, Next } from 'hono';
 
+const IPV4_REGEX = /^(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)$/;
+const IPV6_REGEX = /^[0-9a-fA-F:]+$/;
+
+/**
+ * Validates whether a string is a syntactically valid IPv4 or IPv6 address.
+ */
+export function isValidIp(ip: string | null | undefined): ip is string {
+  if (!ip) return false;
+  const trimmed = ip.trim();
+  if (trimmed.length === 0 || trimmed.length > 45) return false;
+  if (IPV4_REGEX.test(trimmed)) return true;
+  return trimmed.includes(':') && IPV6_REGEX.test(trimmed);
+}
+
+/**
+ * Returns true if the direct socket peer IP is a local/private reverse-proxy address
+ * (loopback, RFC1918, or Docker bridge).
+ */
+export function isPrivateOrLoopbackIp(ip: string | null | undefined): boolean {
+  if (!ip) return false;
+  const normalized = ip.trim().toLowerCase().replace(/^::ffff:/, '');
+  if (normalized === '::1' || normalized === 'localhost') return true;
+  if (normalized.startsWith('127.')) return true;
+  if (normalized.startsWith('10.')) return true;
+  if (normalized.startsWith('192.168.')) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)) return true;
+  if (normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe80:')) return true;
+  return false;
+}
+
+/**
+ * Resolves the real end-user IP address safely behind Cloudflare + Reverse Proxy.
+ *
+ * Trust rules:
+ * - Forwarded headers are trusted when `TRUSTED_PROXY=true`, `CLOUDFLARE_PROXY=true`,
+ *   OR when the direct TCP peer (`c.env?.remoteAddr`) is a local/private reverse proxy.
+ * - Priority: `CF-Connecting-IP` -> `True-Client-IP` -> leftmost public `X-Forwarded-For`
+ *   -> `X-Real-IP` -> `X-Forwarded-For[0]` -> direct socket `remoteAddr`.
+ */
+export function getClientIp(c: Context): string {
+  const socketIp: string | undefined =
+    (c.env as any)?.remoteAddr?.hostname ||
+    (c.req.raw as any)?.conn?.remoteAddr?.hostname;
+
+  const explicitTrust =
+    Deno.env.get('TRUSTED_PROXY') === 'true' ||
+    Deno.env.get('CLOUDFLARE_PROXY') === 'true';
+
+  const isBehindTrustedProxy = explicitTrust || isPrivateOrLoopbackIp(socketIp);
+
+  if (isBehindTrustedProxy) {
+    const cfIp = c.req.header('cf-connecting-ip')?.trim();
+    if (isValidIp(cfIp)) return cfIp;
+
+    const trueClientIp = c.req.header('true-client-ip')?.trim();
+    if (isValidIp(trueClientIp)) return trueClientIp;
+
+    const xffRaw = c.req.header('x-forwarded-for');
+    if (xffRaw) {
+      const hops = xffRaw.split(',').map((h) => h.trim()).filter(isValidIp);
+      const firstPublic = hops.find((h) => !isPrivateOrLoopbackIp(h));
+      if (firstPublic) return firstPublic;
+      if (hops.length > 0) return hops[0];
+    }
+
+    const xRealIp = c.req.header('x-real-ip')?.trim();
+    if (isValidIp(xRealIp)) return xRealIp;
+  }
+
+  if (isValidIp(socketIp)) return socketIp;
+  return 'client-ip';
+}
+
+/**
+ * Attaches resolved real client IP to Hono context (`c.get('clientIp')`).
+ */
+export async function clientIpMiddleware(c: Context, next: Next) {
+  c.set('clientIp', getClientIp(c));
+  await next();
+}
+
 /**
  * 1. HTTP Security Headers Middleware (Helmet-like)
  */
@@ -46,17 +127,7 @@ export function createRateLimiter(options: {
   const { windowMs, max, message = 'Too many requests, please try again later.', keyGenerator } = options;
 
   return async (c: Context, next: Next) => {
-    // Determine client identifier: API key, IP address, or custom generator
-    // Only trust X-Forwarded-For / X-Real-IP if explicitly configured behind a trusted reverse proxy
-    const isTrustedProxy = Deno.env.get('TRUSTED_PROXY') === 'true';
-    const proxyIp = isTrustedProxy
-      ? (c.req.header('x-forwarded-for')?.split(',')[0].trim() || c.req.header('x-real-ip'))
-      : null;
-
-    const clientKey = keyGenerator 
-      ? keyGenerator(c)
-      : (proxyIp || (c.req.raw as any)?.conn?.remoteAddr?.hostname || 'client-ip');
-
+    const clientKey = keyGenerator ? keyGenerator(c) : getClientIp(c);
     const routePrefix = c.req.path;
     const identifier = `${routePrefix}:${clientKey}`;
     const now = Date.now();

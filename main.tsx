@@ -21,7 +21,8 @@ import { triggerGoBizOTP, verifyGoBizOTP, startMerchantListener, stopMerchantLis
 import { activeListeners } from './worker/puppeteer-listener.ts';
 import { activeDirectListeners } from './worker/direct-api-listener.ts';
 import { authMiddleware, requireRole, hashPassword, verifyPassword, COOKIE_SECRET, UserSession, MerchantContext } from './src/middleware/auth.ts';
-import { securityHeadersMiddleware, createRateLimiter, bodySizeLimiter } from './src/middleware/security.ts';
+import { securityHeadersMiddleware, clientIpMiddleware, createRateLimiter, bodySizeLimiter } from './src/middleware/security.ts';
+import { resolveBaseUrl } from './src/utils/url.ts';
 import { generateDynamicQRIS, decodeQRISFromImage } from './src/utils/qris.ts';
 import { dispatchMerchantNotifications, testChannelNotification, DEFAULT_TEMPLATES, isValidOutboundUrl } from './src/services/notification.ts';
 import { getSystemSettings, updateSystemSettings, invalidateSettingsCache, SystemSettingsConfig } from './src/services/settings.ts';
@@ -41,27 +42,7 @@ app.route('/', doitAdapter);
 app.route('/', xenditAdapter);
 app.route('/', duitkuAdapter);
 
-/**
- * Resolves the public Base URL.
- * Prioritizes BASE_URL from .env (if non-localhost).
- * Dynamically falls back to incoming request proxy headers (X-Forwarded-Host, Host).
- */
-export function resolveBaseUrl(c?: any): string {
-  const envBase = Deno.env.get("BASE_URL");
-  if (envBase && !envBase.includes("localhost")) {
-    return envBase.replace(/\/+$/, '');
-  }
-  if (c) {
-    try {
-      const proto = c.req.header('x-forwarded-proto') || (c.req.url.startsWith('https://') ? 'https' : 'http');
-      const host = c.req.header('x-forwarded-host') || c.req.header('host');
-      if (host && !host.includes("localhost")) {
-        return `${proto}://${host}`.replace(/\/+$/, '');
-      }
-    } catch (_e) {}
-  }
-  return (envBase || "http://localhost:8000").replace(/\/+$/, '');
-}
+export { resolveBaseUrl };
 
 // =========================================================================
 // AUTO-MIGRATIONS & DEFAULT DATA SEEDING (Run on startup)
@@ -290,6 +271,7 @@ try {
 // =========================================================================
 
 // 1. HTTP Security Headers Middleware (Helmet-like)
+app.use('*', clientIpMiddleware);
 app.use('*', securityHeadersMiddleware);
 
 // 2. Payload Body Size Limiter (1MB max)
@@ -2731,5 +2713,5 @@ app.get('/health', handleHealthCheck);
 
 // Start Deno Serve (Only when run directly as main script)
 if (import.meta.main) {
-  Deno.serve({ port: 8000 }, app.fetch);
+  Deno.serve({ port: 8000 }, (req, info) => app.fetch(req, { remoteAddr: info.remoteAddr }));
 }
