@@ -1,4 +1,4 @@
-# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.4.1)
+# ⚡ QBiz — Dynamic QRIS Gateway Hub (v1.4.2)
 
 [![Test & CI](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/ci.yml)
 [![CodeQL Security](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml/badge.svg)](https://github.com/ardianryan/qbiz-qrisdinamis/actions/workflows/codeql.yml)
@@ -34,7 +34,13 @@
 
 ## 🚀 Key Features
 
-0. ✨ **Dual-Mode Sync, Brand Kit, GOWA v6+ & Proxy Hardening (v1.4.1)**
+0. ✨ **Direct API Auth Fix, Smart Fallback & Multi-Merchant Isolation (v1.4.2)**
+   * **Direct API Authorization Fix (Express Mode)**: Upgraded to `go-biz-web-new` client identity and normalized phone number formatting to raw numeric country code `62`, resolving persistent 401 Unauthorized errors on OTP request and token refresh.
+   * **Standard Puppeteer OTP Sanitization**: Sanitized phone inputs and React 18 event dispatching on GoFood merchant portal with expanded OTP input selector fallbacks and guaranteed browser process termination.
+   * **Smart Fallback Engine**: Automatic seamless fallback between Standard Puppeteer and Direct GoBiz API in `worker/listener-router.ts` when portal layout blocks or timeouts occur.
+   * **Universal Multi-Merchant Interoperability**: Independent per-merchant encrypted session storage and bidirectional token synchronization between Direct API and Puppeteer modes.
+
+1. ✨ **Dual-Mode Sync, Brand Kit, GOWA v6+ & Proxy Hardening (v1.4.1)**
    * **Dual-Mode Merchant Sync (`Standard` vs `Express`)**: Choose per-merchant between Standard Puppeteer interception and Express Direct API polling (`worker/direct-api-listener.ts`).
    * **Built-in QBiz Brand Kit**: Standardized brand identity, SVG mark/wordmark, and cohesive UI styling across dashboard and checkout pages.
    * **GOWA v6+ Multi-Device API**: Upgraded WhatsApp notifications to `aldinokemal/go-whatsapp-web-multidevice` v6+ OpenAPI spec with `X-Device-Id` support and `@s.whatsapp.net` normalization.

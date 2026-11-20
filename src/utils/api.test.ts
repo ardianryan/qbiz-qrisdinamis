@@ -257,11 +257,11 @@ Deno.test("Security SEC-03 - POST /api/v1/invoices should reject requests withou
   }
 });
 
-Deno.test("Health Check - should report version v1.4.1", async () => {
+Deno.test("Health Check - should report version v1.4.2", async () => {
   const res = await app.request("/health");
   assertEquals(res.status, 200);
   const data = await res.json();
-  assertEquals(data.version, "v1.4.1");
+  assertEquals(data.version, "v1.4.2");
 });
 
 Deno.test("Error Pages - /pay/nonexistent should render styled 404 ErrorPage", async () => {

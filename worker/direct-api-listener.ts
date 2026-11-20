@@ -7,7 +7,7 @@ import { processIncomingMutations } from './mutation-processor.ts';
 
 const GOBIZ_AUTH_BASE = 'https://api.gobiz.co.id';
 const GOJEK_TRANSACTIONS_URL = 'https://api.gojekapi.com/merchant-analytics/v2/merchants/transactions';
-const GOBIZ_CLIENT_ID = 'go-biz-web-dashboard';
+const GOBIZ_CLIENT_ID = 'go-biz-web-new';
 const TOKEN_REFRESH_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const EXPRESS_ACTIVE_POLL_MS = 65 * 1000; // ~1 minute when pending invoices exist
 const EXPRESS_IDLE_POLL_MS = 5 * 60 * 1000; // 5 minutes when idle
@@ -18,6 +18,8 @@ export interface DirectApiTokenSession {
   expiresAt: number;
   obtainedAt: number;
   phoneNumber: string;
+  merchantGojekId?: string;
+  cookie?: string;
 }
 
 export const activeDirectListeners = new Map<string, {
@@ -51,19 +53,50 @@ function normalizePhoneForGoBiz(phone: string): { raw: string; localWithoutZero:
   };
 }
 
-function buildGoBizHeaders(accessToken?: string): Record<string, string> {
-  const headers: Record<string, string> = {
+function buildGoBizAuthHeaders(): Record<string, string> {
+  return {
     'Accept': 'application/json, text/plain, */*',
     'Content-Type': 'application/json',
+    'accept-language': 'id',
+    'authentication-type': 'go-id',
+    'gojek-country-code': 'ID',
+    'gojek-timezone': 'Asia/Jakarta',
+    'origin': 'https://portal.gofoodmerchant.co.id',
+    'referer': 'https://portal.gofoodmerchant.co.id/',
+    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36',
+    'x-appid': 'go-biz-web-dashboard',
+    'x-appversion': 'platform-v3.111.0-1708bc9a',
+    'x-deviceos': 'Web',
+    'x-phonemake': 'Windows 10 64-bit',
+    'x-phonemodel': 'Chrome 150.0.0.0 on Windows 10 64-bit',
+    'x-platform': 'Web',
+    'x-uniqueid': crypto.randomUUID(),
+    'x-user-locale': 'en-GB',
+    'x-user-type': 'merchant',
+  };
+}
+
+function buildGoBizTransactionHeaders(accessToken: string, refreshToken?: string, customCookie?: string): Record<string, string> {
+  const cookie = customCookie || (refreshToken
+    ? `access_token=${accessToken}; refresh_token=${refreshToken}; auth_method=goid`
+    : `access_token=${accessToken}; auth_method=goid`);
+
+  return {
+    'Accept': 'application/json, text/plain, */*',
+    'Authorization': `Bearer ${accessToken}`,
+    'Cookie': cookie,
+    'authentication-type': 'go-id',
     'Origin': 'https://portal.gofoodmerchant.co.id',
     'Referer': 'https://portal.gofoodmerchant.co.id/',
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-    'Authentication-Type': 'go-id',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36',
   };
+}
+
+function buildGoBizHeaders(accessToken?: string): Record<string, string> {
   if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
+    return buildGoBizTransactionHeaders(accessToken);
   }
-  return headers;
+  return buildGoBizAuthHeaders();
 }
 
 export async function saveDirectTokenSession(merchantId: string, session: DirectApiTokenSession): Promise<void> {
@@ -80,10 +113,61 @@ export async function loadDirectTokenSession(merchantId: string): Promise<Direct
     if (parsed && parsed.accessToken) {
       return parsed;
     }
-    return null;
   } catch (_) {
-    return null;
+    // Continue to fallback
   }
+
+  // Fallback 1: If session file from Puppeteer exists, import tokens seamlessly
+  try {
+    const mrc = await db.select().from(merchants).where(eq(merchants.id, merchantId));
+    if (mrc.length > 0) {
+      const candidatePaths = [
+        mrc[0].sessionFilePath,
+        `sessions/${merchantId}.json`,
+      ].filter(Boolean) as string[];
+
+      for (const p of candidatePaths) {
+        try {
+          const raw = await Deno.readTextFile(p);
+          const dec = await decryptSession(raw);
+          const cookies = JSON.parse(dec);
+          if (Array.isArray(cookies)) {
+            const atCookie = cookies.find((c: any) =>
+              c.name === 'access_token' || c.name === 'Authorization' || c.name === '_token' || c.name === 'gobiz_token'
+            );
+            const rtCookie = cookies.find((c: any) => c.name === 'refresh_token');
+            if (atCookie?.value) {
+              const cookieStr = cookies.map((c: any) => `${c.name}=${c.value}`).join('; ');
+              const session: DirectApiTokenSession = {
+                accessToken: atCookie.value,
+                refreshToken: rtCookie?.value || '',
+                expiresAt: Date.now() + 86400 * 1000,
+                obtainedAt: Date.now(),
+                phoneNumber: mrc[0].phoneNumber,
+                cookie: cookieStr,
+              };
+              await saveDirectTokenSession(merchantId, session).catch(() => {});
+              return session;
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Fallback 2: DB sessionToken if available
+      if (mrc[0].sessionToken) {
+        return {
+          accessToken: mrc[0].sessionToken,
+          refreshToken: '',
+          expiresAt: Date.now() + 3600 * 1000,
+          obtainedAt: Date.now(),
+          phoneNumber: mrc[0].phoneNumber,
+          cookie: `access_token=${mrc[0].sessionToken}; auth_method=goid`,
+        };
+      }
+    }
+  } catch (_) {}
+
+  return null;
 }
 
 export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string }> {
@@ -96,18 +180,18 @@ export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ succe
   try {
     const res = await fetch(`${GOBIZ_AUTH_BASE}/goid/login/request`, {
       method: 'POST',
-      headers: buildGoBizHeaders(),
+      headers: buildGoBizAuthHeaders(),
       body: JSON.stringify({
         client_id: GOBIZ_CLIENT_ID,
         phone_number: phone.localWithoutZero,
-        country_code: '+62',
+        country_code: '62',
       }),
       signal: AbortSignal.timeout(15000),
     });
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const msg = data?.errors?.[0]?.message_title || data?.message || `HTTP ${res.status}`;
+      const msg = data?.errors?.[0]?.message_title || data?.errors?.[0]?.message || data?.message || `HTTP ${res.status}`;
       return { success: false, error: `GoBiz Direct API OTP request failed: ${msg}` };
     }
 
@@ -138,7 +222,7 @@ export async function verifyDirectGoBizOTP(merchantId: string, otpCode: string):
   try {
     const res = await fetch(`${GOBIZ_AUTH_BASE}/goid/token`, {
       method: 'POST',
-      headers: buildGoBizHeaders(),
+      headers: buildGoBizAuthHeaders(),
       body: JSON.stringify({
         client_id: GOBIZ_CLIENT_ID,
         grant_type: 'otp',
@@ -152,7 +236,7 @@ export async function verifyDirectGoBizOTP(merchantId: string, otpCode: string):
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const msg = data?.errors?.[0]?.message_title || data?.message || `HTTP ${res.status}`;
+      const msg = data?.errors?.[0]?.message_title || data?.errors?.[0]?.message || data?.message || `HTTP ${res.status}`;
       return { success: false, error: `OTP verification failed: ${msg}` };
     }
 
@@ -164,16 +248,45 @@ export async function verifyDirectGoBizOTP(merchantId: string, otpCode: string):
       return { success: false, error: 'GoBiz Direct API did not return an access_token.' };
     }
 
+    let merchantGojekId: string | undefined;
+    try {
+      const configRes = await fetch(`${GOBIZ_AUTH_BASE}/goresto/v5/public/users/config`, {
+        method: 'GET',
+        headers: buildGoBizTransactionHeaders(accessToken, refreshToken),
+        signal: AbortSignal.timeout(10000),
+      });
+      if (configRes.ok) {
+        const configData = await configRes.json().catch(() => null);
+        merchantGojekId = configData?.data?.merchant?.id || configData?.merchant?.id || undefined;
+      }
+    } catch (_) {}
+
     const session: DirectApiTokenSession = {
       accessToken,
       refreshToken,
       expiresAt: Date.now() + expiresIn * 1000,
       obtainedAt: Date.now(),
       phoneNumber: pending.phoneNumber,
+      merchantGojekId,
+      cookie: `access_token=${accessToken}; refresh_token=${refreshToken}; auth_method=goid`,
     };
 
     await saveDirectTokenSession(merchantId, session);
     pendingOtpRequests.delete(merchantId);
+
+    // Also save encrypted cookies session file for Puppeteer Standard mode compatibility
+    try {
+      const cookieArray = [
+        { name: 'access_token', value: accessToken, domain: '.gofoodmerchant.co.id', path: '/' },
+        { name: 'refresh_token', value: refreshToken, domain: '.gofoodmerchant.co.id', path: '/' },
+        { name: 'auth_method', value: 'goid', domain: '.gofoodmerchant.co.id', path: '/' },
+      ];
+      const mrcList = await db.select().from(merchants).where(eq(merchants.id, merchantId));
+      const sessionPath = mrcList[0]?.sessionFilePath || `sessions/${merchantId}.json`;
+      await Deno.mkdir('sessions', { recursive: true }).catch(() => {});
+      const encryptedCookies = await encryptSession(JSON.stringify(cookieArray));
+      await Deno.writeTextFile(sessionPath, encryptedCookies);
+    } catch (_) {}
 
     await db.update(merchants)
       .set({ status: 'ACTIVE', sessionToken: accessToken })
@@ -192,15 +305,19 @@ export async function refreshDirectApiToken(merchantId: string): Promise<DirectA
     return null;
   }
 
+  const phone = normalizePhoneForGoBiz(current.phoneNumber || '');
+
   try {
     const res = await fetch(`${GOBIZ_AUTH_BASE}/goid/token`, {
       method: 'POST',
-      headers: buildGoBizHeaders(),
+      headers: buildGoBizAuthHeaders(),
       body: JSON.stringify({
         client_id: GOBIZ_CLIENT_ID,
         grant_type: 'refresh_token',
         data: {
           refresh_token: current.refreshToken,
+          phone_number: phone.localWithoutZero,
+          country_code: '62',
         },
       }),
       signal: AbortSignal.timeout(15000),
@@ -227,6 +344,7 @@ export async function refreshDirectApiToken(merchantId: string): Promise<DirectA
       refreshToken,
       expiresAt: Date.now() + expiresIn * 1000,
       obtainedAt: Date.now(),
+      cookie: `access_token=${accessToken}; refresh_token=${refreshToken}; auth_method=goid`,
     };
 
     await saveDirectTokenSession(merchantId, updated);
@@ -241,19 +359,6 @@ export async function refreshDirectApiToken(merchantId: string): Promise<DirectA
 
 export async function syncDirectApiMutations(merchantId: string): Promise<number> {
   let session = await loadDirectTokenSession(merchantId);
-  if (!session) {
-    // Fallback to DB sessionToken if available
-    const mrc = await db.select().from(merchants).where(eq(merchants.id, merchantId));
-    if (mrc.length > 0 && mrc[0].sessionToken) {
-      session = {
-        accessToken: mrc[0].sessionToken,
-        refreshToken: '',
-        expiresAt: Date.now() + 3600 * 1000,
-        obtainedAt: Date.now(),
-        phoneNumber: mrc[0].phoneNumber,
-      };
-    }
-  }
 
   if (!session) {
     await db.update(merchants).set({ status: 'NEEDS_OTP' }).where(eq(merchants.id, merchantId));
@@ -269,20 +374,32 @@ export async function syncDirectApiMutations(merchantId: string): Promise<number
   try {
     const now = new Date();
     const startTime = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
-    const url = `${GOJEK_TRANSACTIONS_URL}?from=0&size=50&statuses=SETTLEMENT,CAPTURE&start_time=${encodeURIComponent(startTime)}&end_time=${encodeURIComponent(now.toISOString())}`;
+    const queryParams = new URLSearchParams({
+      from: '0',
+      size: '50',
+      statuses: 'SETTLEMENT,CAPTURE,REFUND,PARTIAL_REFUND',
+      payment_types: 'QRIS,GOPAY,OFFLINE_CREDIT_CARD,OFFLINE_DEBIT_CARD,CREDIT_CARD',
+      start_time: startTime,
+      end_time: now.toISOString(),
+    });
+    if (session.merchantGojekId) {
+      queryParams.set('merchant_ids', session.merchantGojekId);
+    }
+    const url = `${GOJEK_TRANSACTIONS_URL}?${queryParams.toString()}`;
 
     let res = await fetch(url, {
       method: 'GET',
-      headers: buildGoBizHeaders(session.accessToken),
+      headers: buildGoBizTransactionHeaders(session.accessToken, session.refreshToken, session.cookie),
       signal: AbortSignal.timeout(15000),
     });
 
     if (res.status === 401 && session.refreshToken) {
       const refreshed = await refreshDirectApiToken(merchantId);
       if (refreshed) {
+        session = refreshed;
         res = await fetch(url, {
           method: 'GET',
-          headers: buildGoBizHeaders(refreshed.accessToken),
+          headers: buildGoBizTransactionHeaders(session.accessToken, session.refreshToken, session.cookie),
           signal: AbortSignal.timeout(15000),
         });
       }

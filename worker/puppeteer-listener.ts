@@ -408,10 +408,11 @@ export async function triggerGoBizOTP(merchantId: string) {
   const mrcList = await db.select().from(merchants).where(eq(merchants.id, merchantId));
   if (mrcList.length === 0) return { success: false, error: 'Merchant not found' };
   const merchant = mrcList[0];
+  let browser: any = null;
 
   try {
     const proxyConfig = getProxyConfig();
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       headless: true,
       executablePath: Deno.env.get("PUPPETEER_EXECUTABLE_PATH") || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       args: proxyConfig.args
@@ -433,24 +434,44 @@ export async function triggerGoBizOTP(merchantId: string) {
     // Auto-dismiss OneTrust Cookie banner if displayed
     await dismissOneTrustBanner(page);
 
-    // Format phone number to standard local format (08...)
-    let phone = merchant.phoneNumber.trim();
-    if (phone.startsWith('+62')) {
-      phone = '0' + phone.slice(3);
-    } else if (phone.startsWith('62') && phone.length > 10) {
-      phone = '0' + phone.slice(2);
+    // Format phone number: strip non-digits and leading 62 or 0 for GoFood web portal
+    const digits = merchant.phoneNumber.replace(/\D/g, '');
+    let localDigits = digits;
+    if (localDigits.startsWith('62')) {
+      localDigits = localDigits.slice(2);
+    } else if (localDigits.startsWith('0')) {
+      localDigits = localDigits.slice(1);
     }
 
     await page.waitForSelector('#auth-phone-input, input[type="tel"], input[name="phone"]', { timeout: 15000 });
-    await page.type('#auth-phone-input, input[type="tel"]', phone);
+    
+    // Set input value using React native prototype setter to guarantee React state updates
+    await page.evaluate((val: string) => {
+      const doc = (globalThis as any).document;
+      const win = (globalThis as any).window || (globalThis as any);
+      const input = doc?.querySelector('#auth-phone-input, input[type="tel"], input[name="phone"]');
+      if (input) {
+        input.value = '';
+        const nativeSetter = Object.getOwnPropertyDescriptor(win.HTMLInputElement?.prototype || {}, 'value')?.set;
+        if (nativeSetter) {
+          nativeSetter.call(input, val);
+        } else {
+          input.value = val;
+        }
+        input.dispatchEvent(new (win.Event || (globalThis as any).Event)('input', { bubbles: true }));
+        input.dispatchEvent(new (win.Event || (globalThis as any).Event)('change', { bubbles: true }));
+      }
+    }, localDigits);
+
     await new Promise(r => setTimeout(r, 600));
 
     await page.waitForSelector('#phone-next-button, button[type="submit"]', { timeout: 10000 });
     await page.click('#phone-next-button, button[type="submit"]');
 
-    // Wait for OTP field appearance confirming SMS dispatch
-    await page.waitForSelector('#auth-otp-input, input[name="otp"]', { timeout: 15000 });
-    console.log(`[Worker ${merchantId}] GoBiz OTP successfully sent to ${phone}.`);
+    // Wait for OTP field appearance confirming SMS dispatch with multiple fallback selectors
+    const otpSelector = '#auth-otp-input, input[name="otp"], input[autocomplete="one-time-code"], input[placeholder*="OTP" i], input[data-testid*="otp" i]';
+    await page.waitForSelector(otpSelector, { timeout: 15000 });
+    console.log(`[Worker ${merchantId}] GoBiz OTP successfully sent to ${localDigits}.`);
 
     // Keep browser session alive in memory associated with this merchant's registration flow
     activeListeners.set(`auth_${merchantId}`, {
@@ -462,6 +483,10 @@ export async function triggerGoBizOTP(merchantId: string) {
     return { success: true };
   } catch (err: any) {
     console.error(`[Worker ${merchantId}] OTP trigger failed:`, err);
+    if (browser) {
+      try { await browser.close(); } catch (_) {}
+    }
+    activeListeners.delete(`auth_${merchantId}`);
     return { success: false, error: err.message };
   }
 }

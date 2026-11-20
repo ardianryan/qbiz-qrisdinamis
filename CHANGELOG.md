@@ -2,6 +2,29 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.4.2] - 2026-11-20
+
+### Fixed
+- **Direct API Authentication & Authorization (Express Mode)**:
+  - Upgraded GoBiz OAuth Client ID from deprecated `go-biz-web-dashboard` to `go-biz-web-new`, resolving persistent `HTTP 401 Unauthorized` (`goid:error:unauthorized`) errors when requesting OTP and refreshing tokens.
+  - Standardized phone number formatting to raw numeric country code `62` (without leading `+`), matching GoBiz identity server requirements.
+  - Enriched GoBiz authentication headers with complete platform and device telemetry (`x-appid: 'go-biz-web-dashboard'`, `x-appversion: 'platform-v3.111.0-1708bc9a'`, `x-deviceos: 'Web'`, `x-platform: 'Web'`, `x-uniqueid: crypto.randomUUID()`, `gojek-country-code: 'ID'`, `gojek-timezone: 'Asia/Jakarta'`).
+  - Added mandatory `Cookie` header (`access_token`, `refresh_token`, `auth_method=goid`) alongside `Authorization: Bearer <token>` and query parameter `payment_types: 'QRIS,GOPAY,OFFLINE_CREDIT_CARD,OFFLINE_DEBIT_CARD,CREDIT_CARD'` on the Gojek analytics transactions endpoint (`/merchant-analytics/v2/merchants/transactions`).
+  - Fixed token refresh payload in `worker/direct-api-listener.ts` to include required `phone_number` and `country_code: '62'`.
+
+- **Standard Puppeteer Mode OTP Trigger & Form Sanitization**:
+  - Sanitized phone input on GoFood merchant web portal (`portal.gofoodmerchant.co.id`), stripping non-digits and leading `0` or `62` to prevent client-side `"Format nomor HP Anda salah"` validation rejections against the portal's fixed `+62` label.
+  - Implemented React 18 controlled input value setting via native `HTMLInputElement.prototype.value` descriptor setter and dispatched synthetic `input` and `change` events, ensuring submit button `#phone-next-button` is properly enabled.
+  - Expanded OTP selector wait fallbacks to accommodate layout variations (`#auth-otp-input`, `input[name="otp"]`, `input[autocomplete="one-time-code"]`, `input[placeholder*="OTP" i]`, `input[data-testid*="otp" i]`).
+  - Guaranteed headless browser process termination in `catch` blocks to prevent zombie Chromium process leaks.
+
+- **Resilient Smart Fallback & Multi-Merchant Interoperability**:
+  - Implemented automatic fallback in `worker/listener-router.ts`: if Standard Puppeteer OTP dispatch or verification encounters web portal timeouts or layout blocks, it seamlessly falls back to Direct GoBiz API.
+  - Two-way session interoperability: Direct API automatically imports encrypted cookie sessions from Puppeteer (`sessions/${merchantId}.json`), while Direct API OTP verification exports session cookies for Puppeteer interoperability.
+  - Confirmed complete multi-merchant isolation with per-merchant encrypted session storage and query isolation.
+
+---
+
 ## [1.4.1] - 2026-11-15
 
 ### Added
