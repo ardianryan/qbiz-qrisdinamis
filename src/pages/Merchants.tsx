@@ -848,7 +848,9 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
             </button>
           </div>
           <div className="p-6 flex-grow space-y-4">
-            <p className="text-xs text-slate-500">Enter the 4-digit verification code sent to your registered WhatsApp.</p>
+            <p className="text-xs text-slate-500">
+              Masukkan 4 digit kode OTP yang dikirimkan oleh GoBiz ke nomor HP Anda (<strong>Periksa SMS / Pesan Masuk</strong> atau WhatsApp).
+            </p>
             <div className="flex gap-2 justify-center py-4">
               <input type="text" id="otp-input-code" maxLength={4} placeholder="1234" className="w-36 text-center text-2xl font-bold tracking-widest bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg py-2 text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none" />
             </div>
@@ -997,7 +999,11 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   this.removeAttribute('disabled');
                   if (data.success) {
                     openSheet('sheet-otp');
-                    window.showToast({ type: 'info', title: 'OTP Sent', message: 'Verification code sent to ' + phone });
+                    window.showToast({ 
+                      type: 'info', 
+                      title: 'OTP Terkirim', 
+                      message: data.message || ('Kode OTP 4 digit telah dikirim ke ' + phone + '. Mohon periksa SMS / Pesan Masuk HP Anda.') 
+                    });
                   } else {
                     window.showToast({ type: 'error', title: 'OTP Trigger Failed', message: data.error || 'Failed to trigger OTP.' });
                   }

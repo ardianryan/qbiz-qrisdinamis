@@ -63,7 +63,7 @@ export async function syncMerchantMutations(merchantId: string): Promise<number>
   return await syncPuppeteerMutations(merchantId);
 }
 
-export async function triggerGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string }> {
+export async function triggerGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string; channel?: string; message?: string }> {
   const mode = await getMerchantSyncMode(merchantId);
   if (mode === 'EXPRESS') {
     return await triggerDirectGoBizOTP(merchantId);

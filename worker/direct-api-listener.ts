@@ -119,7 +119,7 @@ export async function loadDirectTokenSession(merchantId: string): Promise<Direct
   return null;
 }
 
-export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string }> {
+export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string; channel?: string; message?: string }> {
   const mrc = await db.select().from(merchants).where(eq(merchants.id, merchantId));
   if (mrc.length === 0) {
     return { success: false, error: 'Merchant not found' };
@@ -155,8 +155,13 @@ export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ succe
       createdAt: Date.now(),
     });
 
-    console.log(`[Express ${merchantId}] OTP requested via Direct GoBiz API for ${phone.e164}.`);
-    return { success: true };
+    const channel = (data?.data?.next_state?.state || 'sms').toUpperCase();
+    console.log(`[Express ${merchantId}] OTP requested via Direct GoBiz API for ${phone.e164} (channel: ${channel}).`);
+    return {
+      success: true,
+      channel,
+      message: `Kode OTP 4 digit telah dikirim oleh GoBiz melalui ${channel} ke ${phone.e164}. Mohon periksa SMS / Pesan Masuk di HP Anda.`
+    };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to request Direct API OTP' };
   }
