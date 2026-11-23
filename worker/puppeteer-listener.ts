@@ -31,11 +31,14 @@ async function triggerSessionExpiredAlert(merchantId: string) {
  */
 async function dismissOneTrustBanner(page: any) {
   try {
-    const banner = await page.$('#onetrust-accept-btn-handler');
-    if (banner) {
-      await banner.click();
-      await new Promise(r => setTimeout(r, 400));
-    }
+    await page.evaluate(() => {
+      const doc = (globalThis as any).document;
+      const btn = doc?.querySelector('#onetrust-accept-btn-handler');
+      if (btn) btn.click();
+      doc?.getElementById('onetrust-consent-sdk')?.remove();
+      doc?.querySelector('.onetrust-pc-dark-filter')?.remove();
+    });
+    await new Promise(r => setTimeout(r, 300));
   } catch (_) {}
 }
 
@@ -445,7 +448,8 @@ export async function triggerGoBizOTP(merchantId: string) {
 
     await page.waitForSelector('#auth-phone-input, input[type="tel"], input[name="phone"]', { timeout: 15000 });
     
-    // Set input value using React native prototype setter to guarantee React state updates
+    // Ensure input is focused and cleared, then type with keystroke delay for reliable React state triggering
+    await page.focus('#auth-phone-input, input[type="tel"], input[name="phone"]');
     await page.evaluate((val: string) => {
       const doc = (globalThis as any).document;
       const win = (globalThis as any).window || (globalThis as any);
@@ -463,7 +467,12 @@ export async function triggerGoBizOTP(merchantId: string) {
       }
     }, localDigits);
 
-    await new Promise(r => setTimeout(r, 600));
+    // Also trigger typing events directly to guarantee synthetic input listeners catch the change
+    await page.type('#auth-phone-input, input[type="tel"], input[name="phone"]', '', { delay: 10 });
+    await new Promise(r => setTimeout(r, 500));
+
+    // Clear any re-rendered OneTrust overlay right before clicking submit
+    await dismissOneTrustBanner(page);
 
     await page.waitForSelector('#phone-next-button, button[type="submit"]', { timeout: 10000 });
     await page.click('#phone-next-button, button[type="submit"]');
@@ -511,6 +520,7 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
     await page.type('#auth-otp-input, input[name="otp"]', otpCode);
     await new Promise(r => setTimeout(r, 500));
 
+    await dismissOneTrustBanner(page);
     console.log(`[Worker ${merchantId}] Clicking OTP verify submit button...`);
     await page.waitForSelector('#verify-otp-button, button[type="submit"]', { timeout: 10000 });
     await page.click('#verify-otp-button, button[type="submit"]');
