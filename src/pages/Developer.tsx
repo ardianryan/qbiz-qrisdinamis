@@ -384,6 +384,11 @@ curl -X POST ${baseUrl}/webapi/api/merchant/v2/inquiry \\
                     <input 
                       type="password" 
                       id="api-key-input" 
+                      name="legacy_api_key_secret"
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
                       value={apiKey || 'qbiz_api_key_demo_2026_x7a9c8b3d'} 
                       readOnly
                       className="w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-slate-900 dark:text-zinc-50 font-mono outline-none"

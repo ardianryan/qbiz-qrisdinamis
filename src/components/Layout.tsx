@@ -732,6 +732,18 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
 
             {/* Change Password Form */}
             <form id="form-change-password" className="space-y-3 pt-1">
+              {/* Explicit username binding to prevent browser password managers from guessing outside this form */}
+              <input 
+                type="text" 
+                name="username" 
+                defaultValue={currentUser.email} 
+                autoComplete="username" 
+                className="sr-only" 
+                tabIndex={-1} 
+                aria-hidden="true" 
+                readOnly 
+              />
+
               <div className="border-b border-slate-100 dark:border-zinc-800 pb-2">
                 <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">Ganti Kata Sandi</span>
                 <p className="text-[10px] text-slate-400 dark:text-zinc-500">Masukkan password saat ini dan buat password baru yang aman.</p>
@@ -746,6 +758,8 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
                 <input
                   type="password"
                   id="input-current-password"
+                  name="current_password"
+                  autoComplete="current-password"
                   required
                   placeholder="••••••••"
                   className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-sky-500"
@@ -759,6 +773,8 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
                 <input
                   type="password"
                   id="input-new-password"
+                  name="new_password"
+                  autoComplete="new-password"
                   required
                   minLength={6}
                   placeholder="••••••••"
@@ -773,6 +789,8 @@ export function Layout({ children, activePath, user, activeMerchant, accessibleM
                 <input
                   type="password"
                   id="input-confirm-password"
+                  name="confirm_password"
+                  autoComplete="new-password"
                   required
                   minLength={6}
                   placeholder="••••••••"

@@ -116,10 +116,15 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
             <input 
               type="search" 
               id="merchant-filter-search" 
-              name="merchant_filter_q"
+              name="search_store_query"
               autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-form-type="other"
               data-lpignore="true"
               data-1p-ignore="true"
+              data-bwignore="true"
               placeholder="Search store name or phone..." 
               className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-zinc-50 placeholder-slate-400 focus-visible:ring-2 focus-visible:ring-sky-500 outline-none"
             />
@@ -492,6 +497,11 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   <input 
                     type="password" 
                     id="notif-tg-token" 
+                    name="tg_bot_token_secret"
+                    autoComplete="new-password"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    data-bwignore="true"
                     placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ"
                     className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
                   />
@@ -681,6 +691,11 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                     <input 
                       type="password" 
                       id="notif-wa-authkey" 
+                      name="wa_webhook_auth_secret"
+                      autoComplete="new-password"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
                       placeholder="Enter API token or credentials"
                       className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 dark:text-zinc-50 focus:ring-2 focus:ring-sky-500 outline-none"
                     />
@@ -1533,6 +1548,25 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                 mCurrentPage++;
                 updateMerchantPagination();
               });
+            }
+
+            // Clear any browser password manager autofill in search input
+            if (merchantSearchInput) {
+              if (merchantSearchInput.value && merchantSearchInput.value.includes('@')) {
+                merchantSearchInput.value = '';
+              }
+              setTimeout(() => {
+                if (merchantSearchInput && merchantSearchInput.value && merchantSearchInput.value.includes('@')) {
+                  merchantSearchInput.value = '';
+                  filterMerchantCards();
+                }
+              }, 150);
+              setTimeout(() => {
+                if (merchantSearchInput && merchantSearchInput.value && merchantSearchInput.value.includes('@')) {
+                  merchantSearchInput.value = '';
+                  filterMerchantCards();
+                }
+              }, 500);
             }
 
             filterMerchantCards();
