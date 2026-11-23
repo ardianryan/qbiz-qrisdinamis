@@ -984,13 +984,17 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
             let currentOtpMerchantId = null;
             document.querySelectorAll('.btn-auth-otp').forEach(btn => {
               btn.addEventListener('click', async function() {
+                if (this.hasAttribute('disabled')) return;
+                this.setAttribute('disabled', 'true');
+                const origText = this.textContent;
                 currentOtpMerchantId = this.getAttribute('data-id');
                 const phone = this.getAttribute('data-phone');
                 this.textContent = 'Sending OTP...';
                 try {
                   const res = await fetch('/api/v1/merchants/' + currentOtpMerchantId + '/otp', { method: 'POST' });
                   const data = await res.json();
-                  this.textContent = 'Auth OTP';
+                  this.textContent = origText;
+                  this.removeAttribute('disabled');
                   if (data.success) {
                     openSheet('sheet-otp');
                     window.showToast({ type: 'info', title: 'OTP Sent', message: 'Verification code sent to ' + phone });
@@ -998,7 +1002,8 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                     window.showToast({ type: 'error', title: 'OTP Trigger Failed', message: data.error || 'Failed to trigger OTP.' });
                   }
                 } catch(e) {
-                  this.textContent = 'Auth OTP';
+                  this.textContent = origText;
+                  this.removeAttribute('disabled');
                   window.showToast({ type: 'error', title: 'Network Error', message: 'Network error sending OTP.' });
                 }
               });
@@ -1007,11 +1012,14 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
             const btnSubmitOtp = document.getElementById('btn-submit-otp');
             if (btnSubmitOtp) {
               btnSubmitOtp.addEventListener('click', async function() {
+                if (this.hasAttribute('disabled')) return;
                 const code = document.getElementById('otp-input-code')?.value;
                 if (!code || code.length !== 4) {
                   window.showToast({ type: 'warning', title: 'Invalid OTP', message: 'Please enter a valid 4-digit OTP code.' });
                   return;
                 }
+                this.setAttribute('disabled', 'true');
+                const origText = this.textContent;
                 this.textContent = 'Verifying...';
                 try {
                   const res = await fetch('/api/v1/merchants/' + currentOtpMerchantId + '/verify', {
@@ -1020,7 +1028,8 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                     body: JSON.stringify({ otp: code })
                   });
                   const data = await res.json();
-                  this.textContent = 'Verify OTP';
+                  this.textContent = origText;
+                  this.removeAttribute('disabled');
                   if (data.success) {
                     closeSheet('sheet-otp');
                     window.showToast({ type: 'success', title: 'Authenticated', message: 'Store successfully authenticated and listener started!' });
@@ -1029,7 +1038,8 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                     window.showToast({ type: 'error', title: 'Verification Failed', message: data.error || 'OTP verification failed.' });
                   }
                 } catch(e) {
-                  this.textContent = 'Verify OTP';
+                  this.textContent = origText;
+                  this.removeAttribute('disabled');
                   window.showToast({ type: 'error', title: 'Network Error', message: 'Network error verifying OTP.' });
                 }
               });

@@ -402,14 +402,31 @@ export async function stopMerchantListener(merchantId: string) {
     .where(eq(merchants.id, merchantId));
 }
 
+const inFlightOtpMerchants = new Set<string>();
+
 /**
  * Trigger GoBiz WhatsApp OTP Request (using Puppeteer headless flow)
  */
 export async function triggerGoBizOTP(merchantId: string) {
+  if (inFlightOtpMerchants.has(merchantId)) {
+    return { success: false, error: 'Permintaan OTP sedang diproses. Mohon tunggu sejenak.' };
+  }
+  inFlightOtpMerchants.add(merchantId);
+
   console.log(`[Worker ${merchantId}] Requesting GoBiz OTP via WhatsApp/SMS...`);
   
+  // Close any existing pending auth browser session for this merchant
+  const existing = activeListeners.get(`auth_${merchantId}`);
+  if (existing?.browser) {
+    try { await existing.browser.close(); } catch (_) {}
+    activeListeners.delete(`auth_${merchantId}`);
+  }
+
   const mrcList = await db.select().from(merchants).where(eq(merchants.id, merchantId));
-  if (mrcList.length === 0) return { success: false, error: 'Merchant not found' };
+  if (mrcList.length === 0) {
+    inFlightOtpMerchants.delete(merchantId);
+    return { success: false, error: 'Merchant not found' };
+  }
   const merchant = mrcList[0];
   let browser: any = null;
 
@@ -497,6 +514,8 @@ export async function triggerGoBizOTP(merchantId: string) {
     }
     activeListeners.delete(`auth_${merchantId}`);
     return { success: false, error: err.message };
+  } finally {
+    inFlightOtpMerchants.delete(merchantId);
   }
 }
 
