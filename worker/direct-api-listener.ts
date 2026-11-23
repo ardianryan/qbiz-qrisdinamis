@@ -20,6 +20,7 @@ export interface DirectApiTokenSession {
   phoneNumber: string;
   merchantGojekId?: string;
   cookie?: string;
+  deviceId?: string;
 }
 
 export const activeDirectListeners = new Map<string, {
@@ -31,8 +32,26 @@ export const activeDirectListeners = new Map<string, {
 const pendingOtpRequests = new Map<string, {
   otpToken: string;
   phoneNumber: string;
+  deviceId: string;
   createdAt: number;
 }>();
+
+const merchantDeviceIds = new Map<string, string>();
+
+export async function getOrCreateMerchantDeviceId(merchantId: string): Promise<string> {
+  const cached = merchantDeviceIds.get(merchantId);
+  if (cached) return cached;
+
+  const existing = await loadDirectTokenSession(merchantId);
+  if (existing?.deviceId) {
+    merchantDeviceIds.set(merchantId, existing.deviceId);
+    return existing.deviceId;
+  }
+
+  const generated = crypto.randomUUID();
+  merchantDeviceIds.set(merchantId, generated);
+  return generated;
+}
 
 function getTokenFilePath(merchantId: string): string {
   return `sessions/${merchantId}.token.json`;
@@ -53,7 +72,7 @@ function normalizePhoneForGoBiz(phone: string): { raw: string; localWithoutZero:
   };
 }
 
-function buildGoBizAuthHeaders(): Record<string, string> {
+function buildGoBizAuthHeaders(deviceId?: string): Record<string, string> {
   return {
     'Accept': 'application/json, text/plain, */*',
     'Content-Type': 'application/json',
@@ -70,7 +89,7 @@ function buildGoBizAuthHeaders(): Record<string, string> {
     'x-phonemake': 'Windows 10 64-bit',
     'x-phonemodel': 'Chrome 150.0.0.0 on Windows 10 64-bit',
     'x-platform': 'Web',
-    'x-uniqueid': crypto.randomUUID(),
+    'x-uniqueid': deviceId || crypto.randomUUID(),
     'x-user-locale': 'en-GB',
     'x-user-type': 'merchant',
   };
@@ -136,11 +155,12 @@ export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ succe
     return { success: false, error: 'Merchant not found' };
   }
 
+  const deviceId = await getOrCreateMerchantDeviceId(merchantId);
   const phone = normalizePhoneForGoBiz(mrc[0].phoneNumber);
   try {
     const res = await fetch(`${GOBIZ_AUTH_BASE}/goid/login/request`, {
       method: 'POST',
-      headers: buildGoBizAuthHeaders(),
+      headers: buildGoBizAuthHeaders(deviceId),
       body: JSON.stringify({
         client_id: GOBIZ_CLIENT_ID,
         phone_number: phone.localWithoutZero,
@@ -151,6 +171,7 @@ export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ succe
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
+      console.error(`[Express ${merchantId}] GoBiz Direct API login/request failed (HTTP ${res.status}):`, JSON.stringify(data));
       const msg = data?.errors?.[0]?.message_title || data?.errors?.[0]?.message || data?.message || `HTTP ${res.status}`;
       return { success: false, error: `GoBiz Direct API OTP request failed: ${msg}` };
     }
@@ -163,11 +184,12 @@ export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ succe
     pendingOtpRequests.set(merchantId, {
       otpToken,
       phoneNumber: phone.e164,
+      deviceId,
       createdAt: Date.now(),
     });
 
     const channel = (data?.data?.next_state?.state || 'sms').toUpperCase();
-    console.log(`[Express ${merchantId}] OTP requested via Direct GoBiz API for ${phone.e164} (channel: ${channel}).`);
+    console.log(`[Express ${merchantId}] OTP requested via Direct GoBiz API for ${phone.e164} (channel: ${channel}, deviceId: ${deviceId}).`);
     return {
       success: true,
       channel,
@@ -184,15 +206,20 @@ export async function verifyDirectGoBizOTP(merchantId: string, otpCode: string):
     return { success: false, error: 'No active Direct API OTP session. Please request OTP again.' };
   }
 
+  const cleanOtp = otpCode.replace(/\D/g, '').trim();
+  if (cleanOtp.length !== 4) {
+    return { success: false, error: 'Kode OTP harus berupa 4 digit angka.' };
+  }
+
   try {
     const res = await fetch(`${GOBIZ_AUTH_BASE}/goid/token`, {
       method: 'POST',
-      headers: buildGoBizAuthHeaders(),
+      headers: buildGoBizAuthHeaders(pending.deviceId),
       body: JSON.stringify({
         client_id: GOBIZ_CLIENT_ID,
         grant_type: 'otp',
         data: {
-          otp: otpCode.trim(),
+          otp: cleanOtp,
           otp_token: pending.otpToken,
         },
       }),
@@ -201,6 +228,7 @@ export async function verifyDirectGoBizOTP(merchantId: string, otpCode: string):
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
+      console.error(`[Express ${merchantId}] GoBiz Direct API token verify failed (HTTP ${res.status}):`, JSON.stringify(data));
       const msg = data?.errors?.[0]?.message_title || data?.errors?.[0]?.message || data?.message || `HTTP ${res.status}`;
       return { success: false, error: `OTP verification failed: ${msg}` };
     }
@@ -233,6 +261,7 @@ export async function verifyDirectGoBizOTP(merchantId: string, otpCode: string):
       obtainedAt: Date.now(),
       phoneNumber: pending.phoneNumber,
       merchantGojekId,
+      deviceId: pending.deviceId,
       cookie: `access_token=${accessToken}; refresh_token=${refreshToken}; auth_method=goid`,
     };
 
@@ -256,12 +285,13 @@ export async function refreshDirectApiToken(merchantId: string): Promise<DirectA
     return null;
   }
 
+  const deviceId = current.deviceId || await getOrCreateMerchantDeviceId(merchantId);
   const phone = normalizePhoneForGoBiz(current.phoneNumber || '');
 
   try {
     const res = await fetch(`${GOBIZ_AUTH_BASE}/goid/token`, {
       method: 'POST',
-      headers: buildGoBizAuthHeaders(),
+      headers: buildGoBizAuthHeaders(deviceId),
       body: JSON.stringify({
         client_id: GOBIZ_CLIENT_ID,
         grant_type: 'refresh_token',
@@ -293,6 +323,7 @@ export async function refreshDirectApiToken(merchantId: string): Promise<DirectA
       ...current,
       accessToken,
       refreshToken,
+      deviceId,
       expiresAt: Date.now() + expiresIn * 1000,
       obtainedAt: Date.now(),
       cookie: `access_token=${accessToken}; refresh_token=${refreshToken}; auth_method=goid`,

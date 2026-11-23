@@ -984,11 +984,15 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
 
             // Auth OTP
             let currentOtpMerchantId = null;
+            let isSendingOtp = false;
+            let isVerifyingOtp = false;
+
             document.querySelectorAll('.btn-auth-otp').forEach(btn => {
-              btn.addEventListener('click', async function(e) {
+              btn.onclick = async function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                if (this.disabled || this.dataset.loading === 'true') return;
+                if (isSendingOtp || this.disabled || this.dataset.loading === 'true') return;
+                isSendingOtp = true;
                 this.disabled = true;
                 this.dataset.loading = 'true';
                 this.style.pointerEvents = 'none';
@@ -1003,7 +1007,13 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   this.disabled = false;
                   this.dataset.loading = 'false';
                   this.style.pointerEvents = '';
+                  isSendingOtp = false;
                   if (data.success) {
+                    const otpInput = document.getElementById('otp-input-code');
+                    if (otpInput) {
+                      otpInput.value = '';
+                      setTimeout(() => otpInput.focus(), 250);
+                    }
                     openSheet('sheet-otp');
                     window.showToast({ 
                       type: 'info', 
@@ -1018,22 +1028,24 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   this.disabled = false;
                   this.dataset.loading = 'false';
                   this.style.pointerEvents = '';
+                  isSendingOtp = false;
                   window.showToast({ type: 'error', title: 'Network Error', message: 'Network error sending OTP.' });
                 }
-              });
+              };
             });
 
             const btnSubmitOtp = document.getElementById('btn-submit-otp');
             if (btnSubmitOtp) {
-              btnSubmitOtp.addEventListener('click', async function(e) {
+              btnSubmitOtp.onclick = async function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                if (this.disabled || this.dataset.loading === 'true') return;
-                const code = document.getElementById('otp-input-code')?.value;
+                if (isVerifyingOtp || this.disabled || this.dataset.loading === 'true') return;
+                const code = document.getElementById('otp-input-code')?.value?.trim();
                 if (!code || code.length !== 4) {
-                  window.showToast({ type: 'warning', title: 'Invalid OTP', message: 'Please enter a valid 4-digit OTP code.' });
+                  window.showToast({ type: 'warning', title: 'Invalid OTP', message: 'Mohon masukkan 4 digit kode OTP yang valid.' });
                   return;
                 }
+                isVerifyingOtp = true;
                 this.disabled = true;
                 this.dataset.loading = 'true';
                 this.style.pointerEvents = 'none';
@@ -1050,21 +1062,23 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   this.disabled = false;
                   this.dataset.loading = 'false';
                   this.style.pointerEvents = '';
+                  isVerifyingOtp = false;
                   if (data.success) {
                     closeSheet('sheet-otp');
-                    window.showToast({ type: 'success', title: 'Authenticated', message: 'Store successfully authenticated and listener started!' });
+                    window.showToast({ type: 'success', title: 'Authenticated', message: 'Toko berhasil terautentikasi dan listener aktif!' });
                     setTimeout(() => window.location.reload(), 1000);
                   } else {
-                    window.showToast({ type: 'error', title: 'Verification Failed', message: data.error || 'OTP verification failed.' });
+                    window.showToast({ type: 'error', title: 'Verification Failed', message: data.error || 'Verifikasi OTP gagal.' });
                   }
                 } catch(e) {
                   this.textContent = origText;
                   this.disabled = false;
                   this.dataset.loading = 'false';
                   this.style.pointerEvents = '';
-                  window.showToast({ type: 'error', title: 'Network Error', message: 'Network error verifying OTP.' });
+                  isVerifyingOtp = false;
+                  window.showToast({ type: 'error', title: 'Network Error', message: 'Gangguan koneksi saat memverifikasi OTP.' });
                 }
-              });
+              };
             }
 
             // Pause Worker

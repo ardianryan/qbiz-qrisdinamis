@@ -64,6 +64,7 @@ export async function syncMerchantMutations(merchantId: string): Promise<number>
 }
 
 const inFlightOtpMerchants = new Set<string>();
+const inFlightVerifyMerchants = new Set<string>();
 
 export async function triggerGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string; channel?: string; message?: string }> {
   if (inFlightOtpMerchants.has(merchantId)) {
@@ -85,13 +86,22 @@ export async function triggerGoBizOTP(merchantId: string): Promise<{ success: bo
 }
 
 export async function verifyGoBizOTP(merchantId: string, otpCode: string): Promise<{ success: boolean; error?: string }> {
-  const mode = await getMerchantSyncMode(merchantId);
-  if (mode === 'EXPRESS') {
-    return await verifyDirectGoBizOTP(merchantId, otpCode);
+  if (inFlightVerifyMerchants.has(merchantId)) {
+    return { success: false, error: 'Verifikasi OTP sedang diproses. Mohon tunggu sejenak.' };
   }
+  inFlightVerifyMerchants.add(merchantId);
 
-  // Standard Mode: verify strictly through the active Puppeteer browser session
-  return await verifyPuppeteerOTP(merchantId, otpCode);
+  try {
+    const mode = await getMerchantSyncMode(merchantId);
+    if (mode === 'EXPRESS') {
+      return await verifyDirectGoBizOTP(merchantId, otpCode);
+    }
+
+    // Standard Mode: verify strictly through the active Puppeteer browser session
+    return await verifyPuppeteerOTP(merchantId, otpCode);
+  } finally {
+    inFlightVerifyMerchants.delete(merchantId);
+  }
 }
 
 export async function closeAllListeners(): Promise<void> {

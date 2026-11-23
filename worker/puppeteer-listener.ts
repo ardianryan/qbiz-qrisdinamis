@@ -512,7 +512,7 @@ export async function triggerGoBizOTP(merchantId: string) {
     });
 
     // Wait for OTP field appearance confirming SMS dispatch with multiple fallback selectors
-    const otpSelector = '#auth-otp-input, input[name="otp"], input[autocomplete="one-time-code"], input[placeholder*="OTP" i], input[data-testid*="otp" i]';
+    const otpSelector = '#auth-otp-input, input[name="otp"], input[autocomplete="one-time-code"], input[placeholder*="OTP" i], input[data-testid*="otp" i], input[inputmode="numeric"]';
     try {
       await page.waitForSelector(otpSelector, { timeout: 15000 });
     } catch (waitErr: any) {
@@ -565,13 +565,14 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
     // Auto-dismiss OneTrust Cookie banner if displayed
     await dismissOneTrustBanner(page);
 
-    await page.waitForSelector('#auth-otp-input, input[name="otp"]', { timeout: 15000 });
+    const otpInputSelector = '#auth-otp-input, input[name="otp"], input[autocomplete="one-time-code"], input[placeholder*="OTP" i], input[data-testid*="otp" i], input[inputmode="numeric"]';
+    await page.waitForSelector(otpInputSelector, { timeout: 15000 });
     
     // Set OTP using React native prototype setter for guaranteed state update
-    await page.evaluate((val: string) => {
+    await page.evaluate((val: string, selector: string) => {
       const doc = (globalThis as any).document;
       const win = (globalThis as any).window || (globalThis as any);
-      const input = doc?.querySelector('#auth-otp-input, input[name="otp"]');
+      const input = doc?.querySelector(selector);
       if (input) {
         input.value = '';
         const nativeSetter = Object.getOwnPropertyDescriptor(win.HTMLInputElement?.prototype || {}, 'value')?.set;
@@ -583,7 +584,7 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
         input.dispatchEvent(new (win.Event || (globalThis as any).Event)('input', { bubbles: true }));
         input.dispatchEvent(new (win.Event || (globalThis as any).Event)('change', { bubbles: true }));
       }
-    }, otpCode);
+    }, otpCode, otpInputSelector);
     await new Promise(r => setTimeout(r, 500));
 
     await dismissOneTrustBanner(page);

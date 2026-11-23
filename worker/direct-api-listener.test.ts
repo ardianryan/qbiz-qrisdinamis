@@ -10,6 +10,7 @@ Deno.test("Direct API Listener - encrypted token session save and load round-tri
     expiresAt: Date.now() + 3600_000,
     obtainedAt: Date.now(),
     phoneNumber: "+6281234567890",
+    deviceId: "018f67c5-5555-7777-8888-99990000aaaa",
   };
 
   try {
@@ -23,6 +24,7 @@ Deno.test("Direct API Listener - encrypted token session save and load round-tri
     assertEquals(loaded?.accessToken, sampleSession.accessToken);
     assertEquals(loaded?.refreshToken, sampleSession.refreshToken);
     assertEquals(loaded?.phoneNumber, sampleSession.phoneNumber);
+    assertEquals(loaded?.deviceId, sampleSession.deviceId);
   } finally {
     await Deno.remove(`sessions/${testMerchantId}.token.json`).catch(() => {});
   }
