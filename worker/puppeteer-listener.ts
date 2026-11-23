@@ -465,7 +465,7 @@ export async function triggerGoBizOTP(merchantId: string) {
 
     await page.waitForSelector('#auth-phone-input, input[type="tel"], input[name="phone"]', { timeout: 15000 });
     
-    // Ensure input is focused and cleared, then type with keystroke delay for reliable React state triggering
+    // Ensure input is focused and cleared, then set value using React native prototype setter
     await page.focus('#auth-phone-input, input[type="tel"], input[name="phone"]');
     await page.evaluate((val: string) => {
       const doc = (globalThis as any).document;
@@ -484,19 +484,41 @@ export async function triggerGoBizOTP(merchantId: string) {
       }
     }, localDigits);
 
-    // Also trigger typing events directly to guarantee synthetic input listeners catch the change
-    await page.type('#auth-phone-input, input[type="tel"], input[name="phone"]', '', { delay: 10 });
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 600));
 
     // Clear any re-rendered OneTrust overlay right before clicking submit
     await dismissOneTrustBanner(page);
 
     await page.waitForSelector('#phone-next-button, button[type="submit"]', { timeout: 10000 });
-    await page.click('#phone-next-button, button[type="submit"]');
+    
+    // Trigger submission reliably via DOM click to prevent overlay interception or coordinate misses
+    await page.evaluate(() => {
+      const doc = (globalThis as any).document;
+      const btn = doc?.getElementById('phone-next-button') || doc?.querySelector('#phone-next-button, button[type="submit"]');
+      if (btn) {
+        btn.click();
+      }
+    });
+    try {
+      await page.click('#phone-next-button, button[type="submit"]');
+    } catch (_) {}
 
     // Wait for OTP field appearance confirming SMS dispatch with multiple fallback selectors
     const otpSelector = '#auth-otp-input, input[name="otp"], input[autocomplete="one-time-code"], input[placeholder*="OTP" i], input[data-testid*="otp" i]';
-    await page.waitForSelector(otpSelector, { timeout: 15000 });
+    try {
+      await page.waitForSelector(otpSelector, { timeout: 15000 });
+    } catch (waitErr: any) {
+      // Check if GoFood portal displayed a validation or rate limit error on screen
+      const pageErr = await page.evaluate(() => {
+        const doc = (globalThis as any).document;
+        const errEl = doc?.querySelector('[role="alert"], [class*="error" i], [class*="Error" i]');
+        return errEl ? ((errEl as any).innerText || errEl.textContent || '').trim() : '';
+      }).catch(() => '');
+      if (pageErr) {
+        throw new Error(pageErr);
+      }
+      throw waitErr;
+    }
     console.log(`[Worker ${merchantId}] GoBiz OTP successfully sent to ${localDigits}.`);
 
     // Keep browser session alive in memory associated with this merchant's registration flow
@@ -536,13 +558,41 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
     await dismissOneTrustBanner(page);
 
     await page.waitForSelector('#auth-otp-input, input[name="otp"]', { timeout: 15000 });
-    await page.type('#auth-otp-input, input[name="otp"]', otpCode);
+    
+    // Set OTP using React native prototype setter for guaranteed state update
+    await page.evaluate((val: string) => {
+      const doc = (globalThis as any).document;
+      const win = (globalThis as any).window || (globalThis as any);
+      const input = doc?.querySelector('#auth-otp-input, input[name="otp"]');
+      if (input) {
+        input.value = '';
+        const nativeSetter = Object.getOwnPropertyDescriptor(win.HTMLInputElement?.prototype || {}, 'value')?.set;
+        if (nativeSetter) {
+          nativeSetter.call(input, val);
+        } else {
+          input.value = val;
+        }
+        input.dispatchEvent(new (win.Event || (globalThis as any).Event)('input', { bubbles: true }));
+        input.dispatchEvent(new (win.Event || (globalThis as any).Event)('change', { bubbles: true }));
+      }
+    }, otpCode);
     await new Promise(r => setTimeout(r, 500));
 
     await dismissOneTrustBanner(page);
     console.log(`[Worker ${merchantId}] Clicking OTP verify submit button...`);
     await page.waitForSelector('#verify-otp-button, button[type="submit"]', { timeout: 10000 });
-    await page.click('#verify-otp-button, button[type="submit"]');
+    
+    // Trigger submission reliably via DOM click
+    await page.evaluate(() => {
+      const doc = (globalThis as any).document;
+      const btn = doc?.getElementById('verify-otp-button') || doc?.querySelector('#verify-otp-button, button[type="submit"]');
+      if (btn) {
+        btn.click();
+      }
+    });
+    try {
+      await page.click('#verify-otp-button, button[type="submit"]');
+    } catch (_) {}
 
     // Wait for redirect to dashboard indicating success
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {});
@@ -604,9 +654,14 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
 
       return { success: true };
     } else {
+      const pageErr = await page.evaluate(() => {
+        const doc = (globalThis as any).document;
+        const errEl = doc?.querySelector('[role="alert"], [class*="error" i], [class*="Error" i]');
+        return errEl ? ((errEl as any).innerText || errEl.textContent || '').trim() : '';
+      }).catch(() => '');
       await browser.close();
       activeListeners.delete(`auth_${merchantId}`);
-      return { success: false, error: 'OTP validation failed. Redirect unsuccessful.' };
+      return { success: false, error: pageErr || 'OTP validation failed. Redirect unsuccessful.' };
     }
   } catch (err: any) {
     console.error(`[Worker ${merchantId}] OTP verification failed:`, err);
