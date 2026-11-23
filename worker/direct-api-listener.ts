@@ -114,59 +114,8 @@ export async function loadDirectTokenSession(merchantId: string): Promise<Direct
       return parsed;
     }
   } catch (_) {
-    // Continue to fallback
+    return null;
   }
-
-  // Fallback 1: If session file from Puppeteer exists, import tokens seamlessly
-  try {
-    const mrc = await db.select().from(merchants).where(eq(merchants.id, merchantId));
-    if (mrc.length > 0) {
-      const candidatePaths = [
-        mrc[0].sessionFilePath,
-        `sessions/${merchantId}.json`,
-      ].filter(Boolean) as string[];
-
-      for (const p of candidatePaths) {
-        try {
-          const raw = await Deno.readTextFile(p);
-          const dec = await decryptSession(raw);
-          const cookies = JSON.parse(dec);
-          if (Array.isArray(cookies)) {
-            const atCookie = cookies.find((c: any) =>
-              c.name === 'access_token' || c.name === 'Authorization' || c.name === '_token' || c.name === 'gobiz_token'
-            );
-            const rtCookie = cookies.find((c: any) => c.name === 'refresh_token');
-            if (atCookie?.value) {
-              const cookieStr = cookies.map((c: any) => `${c.name}=${c.value}`).join('; ');
-              const session: DirectApiTokenSession = {
-                accessToken: atCookie.value,
-                refreshToken: rtCookie?.value || '',
-                expiresAt: Date.now() + 86400 * 1000,
-                obtainedAt: Date.now(),
-                phoneNumber: mrc[0].phoneNumber,
-                cookie: cookieStr,
-              };
-              await saveDirectTokenSession(merchantId, session).catch(() => {});
-              return session;
-            }
-          }
-        } catch (_) {}
-      }
-
-      // Fallback 2: DB sessionToken if available
-      if (mrc[0].sessionToken) {
-        return {
-          accessToken: mrc[0].sessionToken,
-          refreshToken: '',
-          expiresAt: Date.now() + 3600 * 1000,
-          obtainedAt: Date.now(),
-          phoneNumber: mrc[0].phoneNumber,
-          cookie: `access_token=${mrc[0].sessionToken}; auth_method=goid`,
-        };
-      }
-    }
-  } catch (_) {}
-
   return null;
 }
 
@@ -273,20 +222,6 @@ export async function verifyDirectGoBizOTP(merchantId: string, otpCode: string):
 
     await saveDirectTokenSession(merchantId, session);
     pendingOtpRequests.delete(merchantId);
-
-    // Also save encrypted cookies session file for Puppeteer Standard mode compatibility
-    try {
-      const cookieArray = [
-        { name: 'access_token', value: accessToken, domain: '.gofoodmerchant.co.id', path: '/' },
-        { name: 'refresh_token', value: refreshToken, domain: '.gofoodmerchant.co.id', path: '/' },
-        { name: 'auth_method', value: 'goid', domain: '.gofoodmerchant.co.id', path: '/' },
-      ];
-      const mrcList = await db.select().from(merchants).where(eq(merchants.id, merchantId));
-      const sessionPath = mrcList[0]?.sessionFilePath || `sessions/${merchantId}.json`;
-      await Deno.mkdir('sessions', { recursive: true }).catch(() => {});
-      const encryptedCookies = await encryptSession(JSON.stringify(cookieArray));
-      await Deno.writeTextFile(sessionPath, encryptedCookies);
-    } catch (_) {}
 
     await db.update(merchants)
       .set({ status: 'ACTIVE', sessionToken: accessToken })
