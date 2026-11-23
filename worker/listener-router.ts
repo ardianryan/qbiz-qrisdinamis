@@ -63,14 +63,25 @@ export async function syncMerchantMutations(merchantId: string): Promise<number>
   return await syncPuppeteerMutations(merchantId);
 }
 
-export async function triggerGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string; channel?: string; message?: string }> {
-  const mode = await getMerchantSyncMode(merchantId);
-  if (mode === 'EXPRESS') {
-    return await triggerDirectGoBizOTP(merchantId);
-  }
+const inFlightOtpMerchants = new Set<string>();
 
-  // Standard Mode: strictly run Puppeteer OTP flow without firing duplicate Direct API OTPs
-  return await triggerPuppeteerOTP(merchantId);
+export async function triggerGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string; channel?: string; message?: string }> {
+  if (inFlightOtpMerchants.has(merchantId)) {
+    return { success: false, error: 'Permintaan OTP sedang diproses. Mohon tunggu sejenak.' };
+  }
+  inFlightOtpMerchants.add(merchantId);
+
+  try {
+    const mode = await getMerchantSyncMode(merchantId);
+    if (mode === 'EXPRESS') {
+      return await triggerDirectGoBizOTP(merchantId);
+    }
+
+    // Standard Mode: strictly run Puppeteer OTP flow without firing duplicate Direct API OTPs
+    return await triggerPuppeteerOTP(merchantId);
+  } finally {
+    inFlightOtpMerchants.delete(merchantId);
+  }
 }
 
 export async function verifyGoBizOTP(merchantId: string, otpCode: string): Promise<{ success: boolean; error?: string }> {

@@ -120,6 +120,17 @@ export async function loadDirectTokenSession(merchantId: string): Promise<Direct
 }
 
 export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string; channel?: string; message?: string }> {
+  // Check if an active OTP request is already pending within 60s cooldown to prevent double dispatch
+  const existingPending = pendingOtpRequests.get(merchantId);
+  if (existingPending && Date.now() - existingPending.createdAt < 60_000) {
+    console.log(`[Express ${merchantId}] Reusing active OTP token (requested ${Math.round((Date.now() - existingPending.createdAt) / 1000)}s ago) to prevent duplicate OTP.`);
+    return {
+      success: true,
+      channel: 'SMS',
+      message: `Kode OTP sebelumnya masih aktif. Silakan masukkan 4 digit kode OTP yang telah dikirim ke nomor HP Anda (${existingPending.phoneNumber}).`
+    };
+  }
+
   const mrc = await db.select().from(merchants).where(eq(merchants.id, merchantId));
   if (mrc.length === 0) {
     return { success: false, error: 'Merchant not found' };

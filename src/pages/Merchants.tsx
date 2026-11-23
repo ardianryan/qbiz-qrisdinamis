@@ -985,9 +985,13 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
             // Auth OTP
             let currentOtpMerchantId = null;
             document.querySelectorAll('.btn-auth-otp').forEach(btn => {
-              btn.addEventListener('click', async function() {
-                if (this.hasAttribute('disabled')) return;
-                this.setAttribute('disabled', 'true');
+              btn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.disabled || this.dataset.loading === 'true') return;
+                this.disabled = true;
+                this.dataset.loading = 'true';
+                this.style.pointerEvents = 'none';
                 const origText = this.textContent;
                 currentOtpMerchantId = this.getAttribute('data-id');
                 const phone = this.getAttribute('data-phone');
@@ -996,7 +1000,9 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   const res = await fetch('/api/v1/merchants/' + currentOtpMerchantId + '/otp', { method: 'POST' });
                   const data = await res.json();
                   this.textContent = origText;
-                  this.removeAttribute('disabled');
+                  this.disabled = false;
+                  this.dataset.loading = 'false';
+                  this.style.pointerEvents = '';
                   if (data.success) {
                     openSheet('sheet-otp');
                     window.showToast({ 
@@ -1009,7 +1015,9 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   }
                 } catch(e) {
                   this.textContent = origText;
-                  this.removeAttribute('disabled');
+                  this.disabled = false;
+                  this.dataset.loading = 'false';
+                  this.style.pointerEvents = '';
                   window.showToast({ type: 'error', title: 'Network Error', message: 'Network error sending OTP.' });
                 }
               });
@@ -1017,14 +1025,18 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
 
             const btnSubmitOtp = document.getElementById('btn-submit-otp');
             if (btnSubmitOtp) {
-              btnSubmitOtp.addEventListener('click', async function() {
-                if (this.hasAttribute('disabled')) return;
+              btnSubmitOtp.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.disabled || this.dataset.loading === 'true') return;
                 const code = document.getElementById('otp-input-code')?.value;
                 if (!code || code.length !== 4) {
                   window.showToast({ type: 'warning', title: 'Invalid OTP', message: 'Please enter a valid 4-digit OTP code.' });
                   return;
                 }
-                this.setAttribute('disabled', 'true');
+                this.disabled = true;
+                this.dataset.loading = 'true';
+                this.style.pointerEvents = 'none';
                 const origText = this.textContent;
                 this.textContent = 'Verifying...';
                 try {
@@ -1035,7 +1047,9 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   });
                   const data = await res.json();
                   this.textContent = origText;
-                  this.removeAttribute('disabled');
+                  this.disabled = false;
+                  this.dataset.loading = 'false';
+                  this.style.pointerEvents = '';
                   if (data.success) {
                     closeSheet('sheet-otp');
                     window.showToast({ type: 'success', title: 'Authenticated', message: 'Store successfully authenticated and listener started!' });
@@ -1045,7 +1059,9 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                   }
                 } catch(e) {
                   this.textContent = origText;
-                  this.removeAttribute('disabled');
+                  this.disabled = false;
+                  this.dataset.loading = 'false';
+                  this.style.pointerEvents = '';
                   window.showToast({ type: 'error', title: 'Network Error', message: 'Network error verifying OTP.' });
                 }
               });

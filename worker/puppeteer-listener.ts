@@ -415,9 +415,20 @@ export async function triggerGoBizOTP(merchantId: string) {
 
   console.log(`[Worker ${merchantId}] Requesting GoBiz OTP via WhatsApp/SMS...`);
   
-  // Close any existing pending auth browser session for this merchant
+  // Check if an existing active auth session is already waiting on the OTP screen
   const existing = activeListeners.get(`auth_${merchantId}`);
-  if (existing?.browser) {
+  if (existing?.browser && existing?.page) {
+    try {
+      const isOtpScreen = await existing.page.$('#auth-otp-input, input[name="otp"]');
+      if (isOtpScreen && Date.now() - (existing.createdAt || 0) < 60_000) {
+        console.log(`[Worker ${merchantId}] Existing auth session already on OTP screen. Reusing without duplicate trigger.`);
+        inFlightOtpMerchants.delete(merchantId);
+        return { 
+          success: true, 
+          message: 'Layar OTP sudah aktif. Silakan masukkan 4 digit kode OTP yang telah dikirim ke nomor HP Anda (cek SMS).' 
+        };
+      }
+    } catch (_) {}
     try { await existing.browser.close(); } catch (_) {}
     activeListeners.delete(`auth_${merchantId}`);
   }
@@ -491,7 +502,7 @@ export async function triggerGoBizOTP(merchantId: string) {
 
     await page.waitForSelector('#phone-next-button, button[type="submit"]', { timeout: 10000 });
     
-    // Trigger submission reliably via DOM click to prevent overlay interception or coordinate misses
+    // Trigger submission reliably via single DOM click (do NOT double-click)
     await page.evaluate(() => {
       const doc = (globalThis as any).document;
       const btn = doc?.getElementById('phone-next-button') || doc?.querySelector('#phone-next-button, button[type="submit"]');
@@ -499,9 +510,6 @@ export async function triggerGoBizOTP(merchantId: string) {
         btn.click();
       }
     });
-    try {
-      await page.click('#phone-next-button, button[type="submit"]');
-    } catch (_) {}
 
     // Wait for OTP field appearance confirming SMS dispatch with multiple fallback selectors
     const otpSelector = '#auth-otp-input, input[name="otp"], input[autocomplete="one-time-code"], input[placeholder*="OTP" i], input[data-testid*="otp" i]';
@@ -582,7 +590,7 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
     console.log(`[Worker ${merchantId}] Clicking OTP verify submit button...`);
     await page.waitForSelector('#verify-otp-button, button[type="submit"]', { timeout: 10000 });
     
-    // Trigger submission reliably via DOM click
+    // Trigger submission reliably via single DOM click (do NOT double-click)
     await page.evaluate(() => {
       const doc = (globalThis as any).document;
       const btn = doc?.getElementById('verify-otp-button') || doc?.querySelector('#verify-otp-button, button[type="submit"]');
@@ -590,9 +598,6 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string) {
         btn.click();
       }
     });
-    try {
-      await page.click('#verify-otp-button, button[type="submit"]');
-    } catch (_) {}
 
     // Wait for redirect to dashboard indicating success
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 20000 }).catch(() => {});
