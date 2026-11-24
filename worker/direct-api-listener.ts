@@ -209,11 +209,13 @@ export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ succe
     } catch (_) {}
 
     const channel = (data?.data?.next_state?.state || 'sms').toUpperCase();
-    console.log(`[Express ${merchantId}] OTP requested via Direct GoBiz API for ${phone.e164} (channel: ${channel}, deviceId: ${deviceId}).`);
+    const destination = data?.data?.next_state?.destination || '';
+    const timer = data?.data?.next_state?.timer_in_seconds || 120;
+    console.log(`[Express ${merchantId}] OTP requested via Direct GoBiz API for ${phone.e164} (channel: ${channel}${destination ? ', dest: ' + destination : ''}, timer: ${timer}s, deviceId: ${deviceId}).`);
     return {
       success: true,
       channel,
-      message: `Kode OTP 4 digit telah dikirim oleh GoBiz melalui ${channel} ke ${phone.e164}. Mohon periksa SMS / Pesan Masuk di HP Anda.`
+      message: `Kode OTP 4 digit telah dikirim oleh GoBiz melalui ${channel} ke ${phone.e164}. Mohon periksa WhatsApp / SMS di HP Anda.`
     };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to request Direct API OTP' };

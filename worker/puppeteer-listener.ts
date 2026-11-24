@@ -527,6 +527,13 @@ export async function triggerGoBizOTP(merchantId: string) {
       }
       throw waitErr;
     }
+    const otpPromptText = await page.evaluate(() => {
+      const doc = (globalThis as any).document;
+      return (doc?.body?.innerText || '').replace(/\s+/g, ' ').slice(0, 300);
+    }).catch(() => '');
+    if (otpPromptText) {
+      console.log(`[Worker ${merchantId}] GoBiz portal prompt: "${otpPromptText}"`);
+    }
     console.log(`[Worker ${merchantId}] GoBiz OTP successfully sent to ${localDigits}.`);
 
     // Keep browser session alive in memory associated with this merchant's registration flow
