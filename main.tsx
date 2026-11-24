@@ -2758,7 +2758,7 @@ const handleHealthCheck = async (c: any) => {
 
   return c.json({
     status: isHealthy ? 'healthy' : 'degraded',
-    version: 'v1.4.2',
+    version: 'v1.4.3',
     timestamp: new Date().toISOString(),
     uptime_seconds: uptimeSeconds,
     database: {

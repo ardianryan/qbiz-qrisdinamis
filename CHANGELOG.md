@@ -2,6 +2,32 @@
 
 All notable changes to the **QBiz Gateway Hub** project will be documented in this file. The versioning scheme follows [Semantic Versioning (SemVer)](https://semver.org/).
 
+## [1.4.3] - 2026-11-24
+
+### Fixed
+- **Mode Isolation & Double-Dispatch Mutex Lock**:
+  - Completely separated **Standard Mode (Puppeteer)** and **Express Mode (Direct API)** without fallback, ensuring each mode runs strictly according to the merchant's explicit configuration.
+  - Implemented server-side in-flight mutex locks (`inFlightOtpMerchants` and `inFlightVerifyMerchants`) to prevent race conditions, rapid double-clicks, and premature OTP token invalidation on GoBiz.
+  - Reduced Direct API OTP request cooldown from 60 seconds to 30 seconds with informative remaining-timer toasts.
+
+- **GoBiz Direct API Device ID & Pending OTP Disk Persistence**:
+  - Bound `deviceId` (`x-uniqueid`) permanently per merchant and persisted to disk storage (`sessions/${merchantId}.device.txt`), guaranteeing matching device identities between OTP request and token verification to eliminate `Authentication session expired` rejections.
+  - Persisted pending OTP sessions to disk (`sessions/${merchantId}.otp.json`) to prevent session loss across worker reloads and process restarts.
+
+- **Removal of Legacy Mock Bypasses**:
+  - Removed all `id.startsWith('mrc_toko')` stub bypasses in `main.tsx` across `/otp`, `/verify`, and `/disconnect` endpoints, ensuring both default demo stores and newly created merchants execute real GoBiz authentication.
+
+- **Browser Autofill & UX Enhancements**:
+  - Fixed Chrome/Edge password managers automatically populating user email credentials into the merchant and transaction search inputs.
+  - Added hidden dummy username inputs and explicit autocomplete attributes on password change modals in `Layout.tsx`.
+  - Added real-time client-side clearing if stored email patterns are detected in search inputs.
+  - Enhanced UI feedback toasts and server logs to explicitly identify the active sync engine (`⚡ Express Direct API` vs `🐢 Standard Puppeteer`) and log delivery channel and destination metadata.
+
+- **Database Self-Healing**:
+  - Added automated startup self-healing DDL to ensure `sync_mode` column exists on `merchants` table across all environments.
+
+---
+
 ## [1.4.2] - 2026-11-20
 
 ### Fixed

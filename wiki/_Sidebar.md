@@ -21,6 +21,6 @@
 
 ---
 <p align="center">
-  <small>Version: <code>v1.4.2</code></small><br>
+  <small>Version: <code>v1.4.3</code></small><br>
   <small><a href="https://github.com/ardianryan/qbiz-qrisdinamis">GitHub Repository ↗</a></small>
 </p>
