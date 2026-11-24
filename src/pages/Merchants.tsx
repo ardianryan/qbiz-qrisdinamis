@@ -1030,9 +1030,10 @@ export function MerchantsPage({ merchants, currentUser, activeMerchant, accessib
                       setTimeout(() => otpInput.focus(), 250);
                     }
                     openSheet('sheet-otp');
+                    const modeLabel = data.mode === 'EXPRESS' ? '⚡ Express Direct API' : '🐢 Standard Puppeteer';
                     window.showToast({ 
                       type: 'info', 
-                      title: 'OTP Terkirim', 
+                      title: 'OTP Terkirim (' + modeLabel + ')', 
                       message: data.message || ('Kode OTP 4 digit telah dikirim ke ' + phone + '. Mohon periksa SMS / Pesan Masuk HP Anda.') 
                     });
                   } else {

@@ -66,7 +66,7 @@ export async function syncMerchantMutations(merchantId: string): Promise<number>
 const inFlightOtpMerchants = new Set<string>();
 const inFlightVerifyMerchants = new Set<string>();
 
-export async function triggerGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string; channel?: string; message?: string }> {
+export async function triggerGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string; channel?: string; message?: string; mode?: MerchantSyncMode }> {
   if (inFlightOtpMerchants.has(merchantId)) {
     return { success: false, error: 'Permintaan OTP sedang diproses. Mohon tunggu sejenak.' };
   }
@@ -74,18 +74,21 @@ export async function triggerGoBizOTP(merchantId: string): Promise<{ success: bo
 
   try {
     const mode = await getMerchantSyncMode(merchantId);
+    console.log(`[Router] Triggering OTP for merchantId=${merchantId} using mode=${mode}`);
     if (mode === 'EXPRESS') {
-      return await triggerDirectGoBizOTP(merchantId);
+      const res = await triggerDirectGoBizOTP(merchantId);
+      return { ...res, mode };
     }
 
     // Standard Mode: strictly run Puppeteer OTP flow without firing duplicate Direct API OTPs
-    return await triggerPuppeteerOTP(merchantId);
+    const res = await triggerPuppeteerOTP(merchantId);
+    return { ...res, mode };
   } finally {
     inFlightOtpMerchants.delete(merchantId);
   }
 }
 
-export async function verifyGoBizOTP(merchantId: string, otpCode: string): Promise<{ success: boolean; error?: string }> {
+export async function verifyGoBizOTP(merchantId: string, otpCode: string): Promise<{ success: boolean; error?: string; mode?: MerchantSyncMode }> {
   if (inFlightVerifyMerchants.has(merchantId)) {
     return { success: false, error: 'Verifikasi OTP sedang diproses. Mohon tunggu sejenak.' };
   }
@@ -93,12 +96,15 @@ export async function verifyGoBizOTP(merchantId: string, otpCode: string): Promi
 
   try {
     const mode = await getMerchantSyncMode(merchantId);
+    console.log(`[Router] Verifying OTP for merchantId=${merchantId} using mode=${mode}`);
     if (mode === 'EXPRESS') {
-      return await verifyDirectGoBizOTP(merchantId, otpCode);
+      const res = await verifyDirectGoBizOTP(merchantId, otpCode);
+      return { ...res, mode };
     }
 
     // Standard Mode: verify strictly through the active Puppeteer browser session
-    return await verifyPuppeteerOTP(merchantId, otpCode);
+    const res = await verifyPuppeteerOTP(merchantId, otpCode);
+    return { ...res, mode };
   } finally {
     inFlightVerifyMerchants.delete(merchantId);
   }

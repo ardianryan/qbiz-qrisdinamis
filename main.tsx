@@ -121,6 +121,11 @@ async function runAutoMigrations() {
     await db.execute(sql`
       ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "admin_fee" integer DEFAULT 0;
     `);
+
+    // Ensure sync_mode exists on merchants table
+    await db.execute(sql`
+      ALTER TABLE "merchants" ADD COLUMN IF NOT EXISTS "sync_mode" text DEFAULT 'STANDARD' NOT NULL;
+    `);
   } catch (err: any) {
     console.warn('[Boot] Self-healing DDL notice:', err.message);
   }
@@ -1289,9 +1294,7 @@ app.get('/api/v1/transactions', async (c) => {
 // API: Trigger GoBiz WhatsApp OTP (supports both /otp and /otp/request)
 const handleOtpRequest = async (c: any) => {
   const id = c.req.param('id');
-  if (id.startsWith('mrc_toko')) {
-    return c.json({ success: true });
-  }
+  console.log(`[API /otp] Received OTP trigger request for merchantId=${id}`);
   const result = await triggerGoBizOTP(id);
   return c.json(result);
 };
@@ -1303,13 +1306,7 @@ const handleOtpVerify = async (c: any) => {
   const id = c.req.param('id');
   const body = await c.req.json();
   const otpCode = body.otp;
-
-  if (id.startsWith('mrc_toko')) {
-    await db.update(merchants)
-      .set({ status: 'ACTIVE' })
-      .where(eq(merchants.id, id));
-    return c.json({ success: true });
-  }
+  console.log(`[API /verify] Received OTP verification for merchantId=${id}`);
   const result = await verifyGoBizOTP(id, otpCode);
   return c.json(result);
 };
@@ -1361,14 +1358,6 @@ app.post('/api/v1/merchants/:id/toggle', requireRole(['SUPER_ADMIN', 'ADMIN']), 
 app.post('/api/v1/merchants/:id/disconnect', requireRole(['SUPER_ADMIN', 'ADMIN']), async (c) => {
   const id = c.req.param('id');
   console.log(`[API] Disconnecting merchant account: ${id}`);
-
-  // In mock flow
-  if (id.startsWith('mrc_toko')) {
-    await db.update(merchants)
-      .set({ status: 'NEEDS_OTP' })
-      .where(eq(merchants.id, id));
-    return c.json({ success: true });
-  }
 
   try {
     // 1. Stop the listener

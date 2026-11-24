@@ -48,7 +48,21 @@ export async function getOrCreateMerchantDeviceId(merchantId: string): Promise<s
     return existing.deviceId;
   }
 
+  const devPath = `sessions/${merchantId}.device.txt`;
+  try {
+    const diskDev = await Deno.readTextFile(devPath);
+    if (diskDev && diskDev.trim()) {
+      merchantDeviceIds.set(merchantId, diskDev.trim());
+      return diskDev.trim();
+    }
+  } catch (_) {}
+
   const generated = crypto.randomUUID();
+  try {
+    await Deno.mkdir('sessions', { recursive: true });
+    await Deno.writeTextFile(devPath, generated);
+  } catch (_) {}
+
   merchantDeviceIds.set(merchantId, generated);
   return generated;
 }
@@ -139,14 +153,15 @@ export async function loadDirectTokenSession(merchantId: string): Promise<Direct
 }
 
 export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ success: boolean; error?: string; channel?: string; message?: string }> {
-  // Check if an active OTP request is already pending within 60s cooldown to prevent double dispatch
+  // Check if an active OTP request is already pending within 30s cooldown to prevent double dispatch
   const existingPending = pendingOtpRequests.get(merchantId);
-  if (existingPending && Date.now() - existingPending.createdAt < 60_000) {
-    console.log(`[Express ${merchantId}] Reusing active OTP token (requested ${Math.round((Date.now() - existingPending.createdAt) / 1000)}s ago) to prevent duplicate OTP.`);
+  if (existingPending && Date.now() - existingPending.createdAt < 30_000) {
+    const elapsedSec = Math.round((Date.now() - existingPending.createdAt) / 1000);
+    console.log(`[Express ${merchantId}] Reusing active OTP token (requested ${elapsedSec}s ago) to prevent duplicate OTP.`);
     return {
       success: true,
       channel: 'SMS',
-      message: `Kode OTP sebelumnya masih aktif. Silakan masukkan 4 digit kode OTP yang telah dikirim ke nomor HP Anda (${existingPending.phoneNumber}).`
+      message: `Kode OTP telah diminta ${elapsedSec} detik lalu ke ${existingPending.phoneNumber}. Silakan periksa SMS / WhatsApp atau tunggu 30 detik untuk kirim ulang.`
     };
   }
 
@@ -181,12 +196,17 @@ export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ succe
       return { success: false, error: 'GoBiz Direct API did not return an otp_token.' };
     }
 
-    pendingOtpRequests.set(merchantId, {
+    const pendingData = {
       otpToken,
       phoneNumber: phone.e164,
       deviceId,
       createdAt: Date.now(),
-    });
+    };
+    pendingOtpRequests.set(merchantId, pendingData);
+    try {
+      await Deno.mkdir('sessions', { recursive: true });
+      await Deno.writeTextFile(`sessions/${merchantId}.otp.json`, JSON.stringify(pendingData));
+    } catch (_) {}
 
     const channel = (data?.data?.next_state?.state || 'sms').toUpperCase();
     console.log(`[Express ${merchantId}] OTP requested via Direct GoBiz API for ${phone.e164} (channel: ${channel}, deviceId: ${deviceId}).`);
@@ -201,9 +221,17 @@ export async function triggerDirectGoBizOTP(merchantId: string): Promise<{ succe
 }
 
 export async function verifyDirectGoBizOTP(merchantId: string, otpCode: string): Promise<{ success: boolean; error?: string }> {
-  const pending = pendingOtpRequests.get(merchantId);
+  let pending = pendingOtpRequests.get(merchantId);
   if (!pending) {
-    return { success: false, error: 'No active Direct API OTP session. Please request OTP again.' };
+    try {
+      const diskOtp = await Deno.readTextFile(`sessions/${merchantId}.otp.json`);
+      if (diskOtp) {
+        pending = JSON.parse(diskOtp);
+      }
+    } catch (_) {}
+  }
+  if (!pending) {
+    return { success: false, error: 'Sesi OTP tidak ditemukan atau telah kedaluwarsa. Mohon klik Auth OTP kembali.' };
   }
 
   const cleanOtp = otpCode.replace(/\D/g, '').trim();
@@ -267,6 +295,9 @@ export async function verifyDirectGoBizOTP(merchantId: string, otpCode: string):
 
     await saveDirectTokenSession(merchantId, session);
     pendingOtpRequests.delete(merchantId);
+    try {
+      await Deno.remove(`sessions/${merchantId}.otp.json`);
+    } catch (_) {}
 
     await db.update(merchants)
       .set({ status: 'ACTIVE', sessionToken: accessToken })

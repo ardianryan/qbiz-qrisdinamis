@@ -420,7 +420,7 @@ export async function triggerGoBizOTP(merchantId: string) {
   if (existing?.browser && existing?.page) {
     try {
       const isOtpScreen = await existing.page.$('#auth-otp-input, input[name="otp"]');
-      if (isOtpScreen && Date.now() - (existing.createdAt || 0) < 60_000) {
+      if (isOtpScreen && Date.now() - (existing.createdAt || 0) < 30_000) {
         console.log(`[Worker ${merchantId}] Existing auth session already on OTP screen. Reusing without duplicate trigger.`);
         inFlightOtpMerchants.delete(merchantId);
         return { 
