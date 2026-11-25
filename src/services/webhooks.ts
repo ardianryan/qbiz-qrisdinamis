@@ -1,6 +1,6 @@
 import { db } from '../../db/db.ts';
 import { webhooks, regionalAdminMerchants, users } from '../../db/schema.ts';
-import { eq, and, inArray, isNull, or } from 'drizzle-orm';
+import { eq, and, inArray, isNull, or, desc } from 'drizzle-orm';
 import { isValidOutboundUrl } from './notification.ts';
 
 export const AVAILABLE_WEBHOOK_EVENTS = [
@@ -178,16 +178,18 @@ export async function listWebhookEndpoints(
             eq(webhooks.merchantId, filterMerchantId),
             isNull(webhooks.merchantId)
           )
-        );
+        )
+        .orderBy(desc(webhooks.createdAt));
     } else {
-      rows = await db.select().from(webhooks);
+      rows = await db.select().from(webhooks).orderBy(desc(webhooks.createdAt));
     }
   } else if (userRole === 'MERCHANT' || userRole === 'MERCHANT_EMPLOYEE') {
     if (!userMerchantId) return [];
     rows = await db
       .select()
       .from(webhooks)
-      .where(eq(webhooks.merchantId, userMerchantId));
+      .where(eq(webhooks.merchantId, userMerchantId))
+      .orderBy(desc(webhooks.createdAt));
   } else if (userRole === 'REGIONAL_ADMIN') {
     const assignedStores = await db
       .select({ merchantId: regionalAdminMerchants.merchantId })
@@ -201,12 +203,14 @@ export async function listWebhookEndpoints(
       rows = await db
         .select()
         .from(webhooks)
-        .where(eq(webhooks.merchantId, filterMerchantId));
+        .where(eq(webhooks.merchantId, filterMerchantId))
+        .orderBy(desc(webhooks.createdAt));
     } else {
       rows = await db
         .select()
         .from(webhooks)
-        .where(inArray(webhooks.merchantId, storeIds));
+        .where(inArray(webhooks.merchantId, storeIds))
+        .orderBy(desc(webhooks.createdAt));
     }
   }
 

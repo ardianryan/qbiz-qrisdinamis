@@ -910,7 +910,7 @@ app.get('/developer', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'ME
   const dbUser = userList[0] || { apiKey: '', webhookUrl: '', webhookSecret: '' };
 
   const keyList = await listApiKeys(user, activeMerchant?.id);
-  const webhooksList = await listWebhookEndpoints(user.id, user.role, user.merchantId, activeMerchant?.id);
+  const webhooksList = await listWebhookEndpoints(user.id, user.role, user.merchantId, null);
 
   const baseUrl = resolveBaseUrl(c);
 
@@ -1955,8 +1955,8 @@ app.delete('/api/v1/developer/keys/:id', requireRole(['SUPER_ADMIN', 'ADMIN', 'R
 // API: List Webhooks (JSON endpoint)
 app.get('/api/v1/developer/webhooks', requireRole(['SUPER_ADMIN', 'ADMIN', 'REGIONAL_ADMIN', 'MERCHANT']), async (c) => {
   const user = (c as any).get('user') as UserSession;
-  const activeMerchant = (c as any).get('activeMerchant') as MerchantContext | null;
-  const list = await listWebhookEndpoints(user.id, user.role, user.merchantId, activeMerchant?.id);
+  const filterMerchantId = c.req.query('merchantId') || null;
+  const list = await listWebhookEndpoints(user.id, user.role, user.merchantId, filterMerchantId);
   return c.json({ success: true, webhooks: list, availableEvents: AVAILABLE_WEBHOOK_EVENTS });
 });
 
